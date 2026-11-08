@@ -16,6 +16,7 @@ export const demoEntities: Record<string, EntityDef> = {
     labelField: 'nome',
     group: 'Demonstração',
     lixeira: true,
+    anexos: true,
     defaultSort: { field: 'nome', dir: 'asc' },
     fields: [
       {
@@ -106,6 +107,7 @@ export const demoEntities: Record<string, EntityDef> = {
     labelField: 'descricao',
     group: 'Demonstração',
     lixeira: true,
+    anexos: true,
     periodField: 'data',
     defaultSort: { field: 'data', dir: 'desc' },
     fields: [
@@ -165,6 +167,79 @@ export const demoEntities: Record<string, EntityDef> = {
       },
       { name: 'pago', label: 'Pago', type: 'boolean', default: false, list: true, col: 3 },
       { name: 'observacoes', label: 'Observações', type: 'textarea', col: 12 },
+    ],
+  },
+
+  // Master-detail: orçamento com itens; total do orçamento = soma dos itens
+  demo_orcamentos: {
+    label: 'Orçamentos (demo)',
+    singular: 'Orçamento',
+    icon: 'receipt',
+    labelField: 'numero',
+    group: 'Demonstração',
+    lixeira: true,
+    anexos: true,
+    periodField: 'data',
+    defaultSort: { field: 'data', dir: 'desc' },
+    details: [
+      { entity: 'demo_orcamento_itens', field: 'orcamento_id', label: 'Itens', min: 1, sum: { total: 'valor' } },
+    ],
+    fields: [
+      {
+        name: 'numero',
+        label: 'Número',
+        type: 'text',
+        auto: 'code',
+        prefix: 'ORC',
+        readonly: true,
+        list: true,
+        search: true,
+      },
+      {
+        name: 'cliente_id',
+        label: 'Cliente',
+        type: 'relation',
+        entity: 'demo_clientes',
+        required: true,
+        list: true,
+        col: 6,
+      },
+      { name: 'data', label: 'Data', type: 'date', required: true, list: true, col: 3 },
+      { name: 'validade', label: 'Válido até', type: 'date', col: 3 },
+      {
+        name: 'status',
+        label: 'Status',
+        type: 'select',
+        options: ['Rascunho', 'Enviado', 'Aprovado', 'Recusado'],
+        colors: { Rascunho: '#7a8290', Enviado: '#2f6fed', Aprovado: '#2b8a5a', Recusado: '#e03e3e' },
+        default: 'Rascunho',
+        required: true,
+        list: true,
+        col: 3,
+      },
+      { name: 'total', label: 'Total', type: 'money', list: true, total: 'sum', col: 3 },
+      { name: 'observacoes', label: 'Observações', type: 'textarea', col: 12 },
+    ],
+  },
+
+  demo_orcamento_itens: {
+    label: 'Itens do orçamento',
+    singular: 'Item',
+    icon: 'list-ul',
+    labelField: 'descricao',
+    detailOf: 'demo_orcamentos',
+    fields: [
+      { name: 'orcamento_id', label: 'Orçamento', type: 'relation', entity: 'demo_orcamentos', required: true },
+      { name: 'descricao', label: 'Descrição', type: 'text', required: true, maxLength: 150, col: 5 },
+      { name: 'quantidade', label: 'Qtd.', type: 'number', required: true, min: 0.01, default: 1, col: 2 },
+      { name: 'preco', label: 'Preço unit.', type: 'money', required: true, min: 0, col: 2 },
+      {
+        name: 'valor',
+        label: 'Valor',
+        type: 'money',
+        col: 3,
+        compute: (v) => Number(v.quantidade ?? 0) * Number(v.preco ?? 0),
+      },
     ],
   },
 };

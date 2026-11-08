@@ -21,7 +21,7 @@ const MIGRATIONS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '
 
 export interface SchemaDiff {
   createTables: { table: string; entity: EntityDef }[];
-  addColumns: { table: string; field: FieldDef }[];
+  addColumns: { table: string; field: FieldDef; entity?: EntityDef }[];
   /** Colunas que existem no banco mas não na entidade (só aviso) */
   orphanColumns: { table: string; column: string }[];
 }
@@ -37,7 +37,7 @@ export async function computeDiff(db: Knex, entities: Record<string, EntityDef>)
     }
     const existing = Object.keys(await db(table).columnInfo());
     const fields = tableFields(entity);
-    for (const field of fields) if (!existing.includes(field.name)) diff.addColumns.push({ table, field });
+    for (const field of fields) if (!existing.includes(field.name)) diff.addColumns.push({ table, field, entity });
     for (const column of existing) {
       if (!SYSTEM_COLUMNS.has(column) && !fields.some((f) => f.name === column))
         diff.orphanColumns.push({ table, column });
@@ -46,8 +46,12 @@ export async function computeDiff(db: Knex, entities: Record<string, EntityDef>)
   return diff;
 }
 
+/** Linha de sub-tabela some junto com o "pai"; demais relações só perdem o vínculo */
+const onDeleteOf = (f: FieldDef, ent?: EntityDef) =>
+  ent?.detailOf && ent.detailOf === f.entity ? 'CASCADE' : 'SET NULL';
+
 /** Código Knex de uma coluna (literal: a migração não depende de código que muda) */
-export function columnCode(f: FieldDef): string {
+export function columnCode(f: FieldDef, ent?: EntityDef): string {
   const n = `'${f.name}'`;
   switch (f.type) {
     case 'number':
@@ -64,7 +68,7 @@ export function columnCode(f: FieldDef): string {
     case 'permissions':
       return `t.text(${n});`;
     case 'relation':
-      return `t.integer(${n}).references('id').inTable('${f.entity}').onDelete('SET NULL');\n    t.index([${n}]);`;
+      return `t.integer(${n}).references('id').inTable('${f.entity}').onDelete('${onDeleteOf(f, ent)}');\n    t.index([${n}]);`;
     default:
       return `t.text(${n});`;
   }
@@ -77,7 +81,7 @@ export function renderMigration(diff: SchemaDiff, name: string): string {
   for (const { table, entity } of diff.createTables) {
     const cols = [
       "t.increments('id');",
-      ...tableFields(entity).map(columnCode),
+      ...tableFields(entity).map((f) => columnCode(f, entity)),
       "t.text('criado_em');",
       "t.text('atualizado_em');",
     ];
@@ -86,9 +90,15 @@ export function renderMigration(diff: SchemaDiff, name: string): string {
   }
 
   const byTable = new Map<string, FieldDef[]>();
-  for (const { table, field } of diff.addColumns) byTable.set(table, [...(byTable.get(table) ?? []), field]);
+  const entOf = new Map<string, EntityDef | undefined>();
+  for (const { table, field, entity } of diff.addColumns) {
+    byTable.set(table, [...(byTable.get(table) ?? []), field]);
+    entOf.set(table, entity);
+  }
   for (const [table, fields] of byTable) {
-    up.push(`  await knex.schema.alterTable('${table}', (t) => {\n    ${fields.map(columnCode).join('\n    ')}\n  });`);
+    up.push(
+      `  await knex.schema.alterTable('${table}', (t) => {\n    ${fields.map((f) => columnCode(f, entOf.get(table))).join('\n    ')}\n  });`,
+    );
     down.unshift(
       `  await knex.schema.alterTable('${table}', (t) => {\n    ${fields
         .map((f) => (f.type === 'relation' ? `t.dropIndex(['${f.name}']);\n    ` : '') + `t.dropColumn('${f.name}');`)
@@ -118,7 +128,7 @@ ${down.join('\n\n')}
 const slug = (s: string) =>
   s
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_|_$/g, '')
@@ -145,7 +155,7 @@ export function writeMigration(diff: SchemaDiff, description: string, dir = MIGR
 }
 
 /** Adiciona a coluna equivalente a `columnCode` (versão programática, usada em testes e ferramentas) */
-export function addColumn(t: Knex.CreateTableBuilder, f: FieldDef) {
+export function addColumn(t: Knex.CreateTableBuilder, f: FieldDef, ent?: EntityDef) {
   switch (f.type) {
     case 'number':
     case 'percent':
@@ -158,7 +168,7 @@ export function addColumn(t: Knex.CreateTableBuilder, f: FieldDef) {
       return t.date(f.name);
     case 'relation':
       t.index([f.name]);
-      return t.integer(f.name).references('id').inTable(String(f.entity)).onDelete('SET NULL');
+      return t.integer(f.name).references('id').inTable(String(f.entity)).onDelete(onDeleteOf(f, ent));
     default:
       return t.text(f.name);
   }
@@ -168,7 +178,7 @@ export function addColumn(t: Knex.CreateTableBuilder, f: FieldDef) {
 export async function createEntityTable(db: Knex, table: string, ent: EntityDef) {
   await db.schema.createTable(table, (t) => {
     t.increments('id');
-    tableFields(ent).forEach((f) => addColumn(t, f));
+    tableFields(ent).forEach((f) => addColumn(t, f, ent));
     t.text('criado_em');
     t.text('atualizado_em');
   });

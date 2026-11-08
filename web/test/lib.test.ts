@@ -31,7 +31,8 @@ describe('menu', () => {
 describe('formatação', () => {
   it('formata moeda e bytes', () => {
     expect(fmtMoney(1234.5).replace(/\s/g, ' ')).toBe('R$ 1.234,50');
-    expect(fmtBytes(2048)).toBe('2.0 KB');
+    expect(fmtBytes(2048)).toBe('2 KB');
+    expect(fmtBytes(2.5 * 1024 * 1024)).toBe('2,5 MB');
   });
 });
 

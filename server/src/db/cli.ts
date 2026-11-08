@@ -81,6 +81,7 @@ try {
       if (config.dbFile !== ':memory:') {
         await db.destroy();
         for (const f of [config.dbFile, `${config.dbFile}-wal`, `${config.dbFile}-shm`]) fs.rmSync(f, { force: true });
+        fs.rmSync(config.uploadDir, { recursive: true, force: true }); // anexos do banco apagado
         db = createDb(config.dbFile);
       } else {
         await rollback(db, true);

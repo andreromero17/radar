@@ -3,7 +3,7 @@
 // no navegador e a requisição na API, então as regras nunca divergem.
 // =============================================================================
 import { z } from 'zod';
-import { editableFields } from './entities';
+import { editableFields, getEntity } from './entities';
 import { isValidCNPJ, isValidCPF, isValidPhone, maskDocument, maskPhone, onlyDigits, parseMoney } from './masks';
 import { ACTIONS, normalizePermissions, type Permissions } from './permissions';
 import type { EntityDef, FieldDef, FieldErrors } from './types';
@@ -209,4 +209,71 @@ export function validateEntity(
   if (!result.success) return { ok: false, errors: toFieldErrors(result.error) };
   const data = Object.fromEntries(Object.entries(result.data).filter(([, v]) => v !== undefined));
   return { ok: true, data };
+}
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Valores dos campos calculados (`compute`) a partir dos demais valores do registro */
+export function computeFields(ent: EntityDef, values: Record<string, unknown>): Record<string, number | null> {
+  const out: Record<string, number | null> = {};
+  for (const f of ent.fields) {
+    if (!f.compute) continue;
+    const v = f.compute({ ...values, ...out });
+    out[f.name] = v == null || !Number.isFinite(v) ? null : f.type === 'money' ? round2(v) : v;
+  }
+  return out;
+}
+
+/** Somas das sub-tabelas que vão para o "pai" (`DetailDef.sum`) */
+export function detailSums(ent: EntityDef, details: Record<string, Record<string, unknown>[]>) {
+  const out: Record<string, number> = {};
+  for (const d of ent.details ?? []) {
+    const rows = details[d.entity];
+    if (!rows) continue;
+    for (const [to, from] of Object.entries(d.sum ?? {}))
+      out[to] = round2(rows.reduce((acc, r) => acc + (Number(r[from]) || 0), 0));
+  }
+  return out;
+}
+
+/** Entidade das linhas sem o campo que aponta para o "pai" (preenchido pela API) */
+export function detailEntity(d: { entity: string; field: string }): EntityDef | undefined {
+  const child = getEntity(d.entity);
+  return child && { ...child, fields: child.fields.filter((f) => f.name !== d.field) };
+}
+
+export type DetailsResult =
+  { ok: true; data: Record<string, Record<string, unknown>[]> } | { ok: false; errors: FieldErrors };
+
+/**
+ * Valida as sub-tabelas enviadas junto com o registro ({ [entidade]: linhas[] }).
+ * Erros vêm como "entidade.índice.campo" (ou "entidade" para o mínimo de linhas).
+ * Sub-tabela ausente do input = não mexer nela.
+ */
+export function validateDetails(ent: EntityDef, input: Record<string, unknown>): DetailsResult {
+  const data: Record<string, Record<string, unknown>[]> = {};
+  const errors: FieldErrors = {};
+  for (const d of ent.details ?? []) {
+    if (!(d.entity in input)) continue;
+    const child = detailEntity(d);
+    const raw = input[d.entity];
+    if (!child || !Array.isArray(raw)) {
+      errors[d.entity] = 'Lista de linhas inválida';
+      continue;
+    }
+    const titulo = d.label ?? child.label;
+    if (d.min && raw.length < d.min) errors[d.entity] = `Inclua ao menos ${d.min} linha(s) em ${titulo}`;
+    if (raw.length > 1000) errors[d.entity] = `No máximo 1000 linhas em ${titulo}`;
+    data[d.entity] = raw.map((r, i) => {
+      const row = (r && typeof r === 'object' ? r : {}) as Record<string, unknown>;
+      const v = validateEntity(child, row, 'create');
+      if (!v.ok) {
+        for (const [k, msg] of Object.entries(v.errors)) errors[`${d.entity}.${i}.${k}`] = msg;
+        return {};
+      }
+      const id = Number(row.id);
+      return { ...(id > 0 && { id }), ...v.data, ...computeFields(child, v.data) };
+    });
+  }
+  return Object.keys(errors).length ? { ok: false, errors } : { ok: true, data };
 }

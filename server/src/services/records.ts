@@ -5,12 +5,24 @@
 // permite reaproveitar a mesma lógica em ações em lote e exportação.
 // =============================================================================
 import type { Knex } from 'knex';
-import { getEntity, validateEntity, type AuthUser, type EntityDef, type FieldDef, type Row } from '@frame/shared';
+import {
+  computeFields,
+  detailSums,
+  getEntity,
+  validateDetails,
+  validateEntity,
+  type AuthUser,
+  type EntityDef,
+  type FieldDef,
+  type FieldErrors,
+  type Row,
+} from '@frame/shared';
 import { hashPassword } from '../auth/password';
 import { count, toDbValue, type Db } from '../db/knex';
 import { hooks } from '../hooks';
 import { badRequest, HttpError } from '../utils/http';
 import { generateCode, nowLocal } from '../utils/time';
+import { deleteAnexosOf } from './anexos';
 import { addLog, diffRecord, type Actor } from './logs';
 
 /** Quem está operando (usuário logado) */
@@ -19,6 +31,8 @@ export interface OpCtx {
   user: AuthUser;
   sessionId?: string;
   ip?: string;
+  /** Não registra cada operação no log (ex.: importação, que grava um resumo) */
+  semLog?: boolean;
 }
 
 export type Query = Record<string, unknown>;
@@ -168,10 +182,20 @@ export async function listRecords(db: Db, table: string, ent: EntityDef, query: 
   return { rows, total, page, pageSize, ...(summed.length && { totais: totals }) };
 }
 
+/** Registro com o nome das relações e as linhas das sub-tabelas ({ [entidade]: linhas[] }) */
 export async function getRecord(db: Db, table: string, ent: EntityDef, id: number) {
   const row = await selectWithLabels(db, table, ent).where(`${table}.id`, id).first();
   if (!row) throw new HttpError(404, 'Registro não encontrado');
-  return present(ent, row)!;
+  const out = present(ent, row)!;
+  for (const d of ent.details ?? []) {
+    const child = getEntity(d.entity);
+    if (!child) continue;
+    const rows = (await selectWithLabels(db, d.entity, child)
+      .where(`${d.entity}.${d.field}`, id)
+      .orderBy(`${d.entity}.id`, 'asc')) as Row[];
+    out[d.entity] = rows.map((r) => present(child, r)!);
+  }
+  return out;
 }
 
 async function findRaw(db: Db, table: string, id: number) {
@@ -182,7 +206,7 @@ async function findRaw(db: Db, table: string, id: number) {
 }
 
 /** Relações apontam para registros existentes (e compatíveis com o campo do qual dependem) */
-async function checkRelations(db: Db, ent: EntityDef, data: Record<string, unknown>, current?: Row) {
+export async function checkRelations(db: Db, ent: EntityDef, data: Record<string, unknown>, current?: Row) {
   const errors: Record<string, string> = {};
   for (const f of ent.fields) {
     if (f.type !== 'relation' || !f.entity) continue;
@@ -216,22 +240,82 @@ async function prepare(
   mode: 'create' | 'update',
   current?: Row,
 ) {
-  const v = validateEntity(ent, (body ?? {}) as Record<string, unknown>, mode);
-  if (!v.ok) throw badRequest('Verifique os campos', v.errors);
+  const input = (body ?? {}) as Record<string, unknown>;
+  const v = validateEntity(ent, input, mode);
+  const det = validateDetails(ent, input);
+  if (!v.ok || !det.ok) throw badRequest('Verifique os campos', { ...(!v.ok && v.errors), ...(!det.ok && det.errors) });
   const data = v.data;
   for (const f of ent.fields) {
     if (f.type !== 'password') continue;
     if (data[f.name]) data[f.name] = await hashPassword(String(data[f.name]));
     else delete data[f.name];
   }
+  // calculados e somas das sub-tabelas sempre vêm do servidor
+  Object.assign(data, computeFields(ent, { ...current, ...data }), detailSums(ent, det.data));
   await checkRelations(c.db, ent, data, current);
   const ctx = { db: c.db, actor: c.user, sessionId: c.sessionId, mode, current };
   await hooks[table]?.beforeSave?.(data, ctx);
-  return { data, ctx };
+  return { data, ctx, details: det.data };
 }
 
-export async function createRecord(c: OpCtx, table: string, ent: EntityDef, body: unknown) {
-  const { data, ctx } = await prepare(c, table, ent, body, 'create');
+const prefixErrors = (fields: FieldErrors, prefix: string) =>
+  Object.fromEntries(Object.entries(fields).map(([k, v]) => [`${prefix}${k}`, v]));
+
+/**
+ * Grava as linhas das sub-tabelas: atualiza as que vieram com id, cria as novas e
+ * apaga as que sumiram. Cada linha passa pelas regras (hooks, log) da sua entidade.
+ */
+async function saveDetails(
+  c: OpCtx,
+  ent: EntityDef,
+  parentId: number,
+  details: Record<string, Record<string, unknown>[]>,
+) {
+  for (const d of ent.details ?? []) {
+    const rows = details[d.entity];
+    const child = getEntity(d.entity);
+    if (!rows || !child) continue;
+    const existentes = (await c.db(d.entity).where(d.field, parentId).select('id')).map((r) => Number(r.id));
+    const manter = new Set(rows.map((r) => Number(r.id)).filter((id) => existentes.includes(id)));
+    for (const id of existentes) if (!manter.has(id)) await removeRecord(c, d.entity, child, id);
+    for (const [i, r] of rows.entries()) {
+      const { id, ...vals } = r;
+      const body = { ...vals, [d.field]: parentId };
+      try {
+        if (manter.has(Number(id))) await updateRecord(c, d.entity, child, Number(id), body);
+        else await createRecord(c, d.entity, child, body);
+      } catch (err) {
+        if (err instanceof HttpError && err.fields)
+          throw new HttpError(err.status, err.message, prefixErrors(err.fields, `${d.entity}.${i}.`));
+        throw err;
+      }
+    }
+  }
+}
+
+/** Com sub-tabelas, o registro e as linhas são gravados juntos (tudo ou nada) */
+const inTransaction = <T>(c: OpCtx, ent: EntityDef, fn: (c: OpCtx) => Promise<T>) =>
+  ent.details?.length ? c.db.transaction((trx) => fn({ ...c, db: trx })) : fn(c);
+
+/** Apaga o que depende dos registros: linhas das sub-tabelas e anexos */
+export async function deleteDependents(db: Db, table: string, ent: EntityDef, ids: number[]) {
+  if (!ids.length) return;
+  for (const d of ent.details ?? []) {
+    const child = getEntity(d.entity);
+    if (!child) continue;
+    const childIds = (await db(d.entity).whereIn(d.field, ids).select('id')).map((r) => Number(r.id));
+    await deleteDependents(db, d.entity, child, childIds);
+    await db(d.entity).whereIn(d.field, ids).del();
+  }
+  if (ent.anexos) await deleteAnexosOf(db, table, ids);
+}
+
+export function createRecord(c: OpCtx, table: string, ent: EntityDef, body: unknown) {
+  return inTransaction(c, ent, (c) => createOne(c, table, ent, body));
+}
+
+async function createOne(c: OpCtx, table: string, ent: EntityDef, body: unknown) {
+  const { data, ctx, details } = await prepare(c, table, ent, body, 'create');
   const record: Record<string, unknown> = { ...data, criado_em: nowLocal() };
   for (const f of ent.fields) if (f.auto === 'code') record[f.name] = generateCode(f.prefix);
 
@@ -240,27 +324,33 @@ export async function createRecord(c: OpCtx, table: string, ent: EntityDef, body
     .insert(serialize(c.db, ent, record))
     .returning('id');
   const id = typeof inserted === 'object' ? inserted.id : inserted;
+  await saveDetails(c, ent, id, details);
   const row = (await c.db(table).where({ id }).first()) as Row;
   await hooks[table]?.afterSave?.(row, data, ctx);
-  await addLog(
-    c.db,
-    {
-      entidade: table,
-      registro_id: id,
-      acao: 'criação',
-      detalhe: String(record[ent.labelField] ?? ''),
-      alteracoes: diffRecord(ent, null, record),
-    },
-    actorOf(c),
-  );
+  if (!c.semLog)
+    await addLog(
+      c.db,
+      {
+        entidade: table,
+        registro_id: id,
+        acao: 'criação',
+        detalhe: String(record[ent.labelField] ?? ''),
+        alteracoes: diffRecord(ent, null, record),
+      },
+      actorOf(c),
+    );
   return present(ent, row)!;
 }
 
-export async function updateRecord(c: OpCtx, table: string, ent: EntityDef, id: number, body: unknown) {
+export function updateRecord(c: OpCtx, table: string, ent: EntityDef, id: number, body: unknown) {
+  return inTransaction(c, ent, (c) => updateOne(c, table, ent, id, body));
+}
+
+async function updateOne(c: OpCtx, table: string, ent: EntityDef, id: number, body: unknown) {
   const current = await findRaw(c.db, table, id);
   if (ent.lixeira && current[TRASH_COLUMN])
     throw new HttpError(409, 'Registro está na lixeira. Restaure antes de editar.');
-  const { data, ctx } = await prepare(c, table, ent, body, 'update', current);
+  const { data, ctx, details } = await prepare(c, table, ent, body, 'update', current);
 
   const alteracoes = diffRecord(ent, current, data);
   if (Object.keys(alteracoes).length) {
@@ -269,9 +359,10 @@ export async function updateRecord(c: OpCtx, table: string, ent: EntityDef, id: 
       .where({ id })
       .update(serialize(c.db, ent, { ...data, atualizado_em: nowLocal() }));
   }
+  await saveDetails(c, ent, id, details);
   const row = (await c.db(table).where({ id }).first()) as Row;
   await hooks[table]?.afterSave?.(row, data, ctx);
-  if (Object.keys(alteracoes).length) {
+  if (Object.keys(alteracoes).length && !c.semLog) {
     await addLog(
       c.db,
       { entidade: table, registro_id: id, acao: 'alteração', detalhe: String(row[ent.labelField] ?? ''), alteracoes },
@@ -303,6 +394,7 @@ export async function removeRecord(c: OpCtx, table: string, ent: EntityDef, id: 
   if (ent.lixeira && !naLixeira) throw new HttpError(409, 'Envie para a lixeira antes de excluir definitivamente');
   if (!ent.lixeira) await hooks[table]?.beforeDelete?.(current, { db: c.db, actor: c.user, sessionId: c.sessionId });
 
+  await deleteDependents(c.db, table, ent, [id]);
   await c.db(table).where({ id }).del();
   await addLog(
     c.db,
@@ -356,7 +448,10 @@ export async function purgeTrash(db: Db, entities: Record<string, EntityDef>, di
   let n = 0;
   for (const [table, ent] of Object.entries(entities)) {
     if (!ent.lixeira) continue;
-    n += await db(table).whereNotNull(TRASH_COLUMN).where(TRASH_COLUMN, '<', limite).del();
+    const vencidos = () => db(table).whereNotNull(TRASH_COLUMN).where(TRASH_COLUMN, '<', limite);
+    const ids = (await vencidos().select('id')).map((r) => Number(r.id));
+    await deleteDependents(db, table, ent, ids);
+    n += await vencidos().del();
   }
   return n;
 }

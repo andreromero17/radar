@@ -11,9 +11,11 @@ import { createMailer } from './services/mailer';
 import { setupDemo } from './demo/setup';
 import { getSettings } from './services/settings';
 import { purgeTrash } from './services/records';
+import { configureAnexos } from './services/anexos';
 import { entities } from '@frame/shared';
 
 const db = createDb(config.dbFile);
+configureAnexos({ dir: config.uploadDir, maxMb: config.UPLOAD_MAX_MB });
 
 // Migrações pendentes: aplicadas sozinhas em dev; em produção o servidor não sobe
 const { pending } = await migrationStatus(db).catch((err) => {
@@ -69,6 +71,8 @@ const app = createApp({
   rememberDays: config.REMEMBER_DAYS,
   cookieSecure: config.cookieSecure,
   trustProxy: config.TRUST_PROXY,
+  uploadDir: config.uploadDir,
+  uploadMaxMb: config.UPLOAD_MAX_MB,
 });
 const server = app.listen(config.PORT, () => {
   logger.info(

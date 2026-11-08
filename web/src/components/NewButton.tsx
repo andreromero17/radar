@@ -1,6 +1,6 @@
 import { Dropdown } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { entities, isCoreEntity } from '@frame/shared';
+import { isCoreEntity, mainEntities } from '@frame/shared';
 import { useAuth } from '../context/AuthContext';
 
 /**
@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext';
 export default function NewButton({ collapsed }: { collapsed: boolean }) {
   const { can } = useAuth();
   const navigate = useNavigate();
-  const opcoes = Object.entries(entities)
+  const opcoes = mainEntities()
     .filter(([key]) => can(key, 'criar'))
     .sort(([a], [b]) => Number(isCoreEntity(a)) - Number(isCoreEntity(b)))
     .map(([key, e]) => ({ to: `/${key}/novo`, label: e.singular, icon: e.icon, core: isCoreEntity(key) }));

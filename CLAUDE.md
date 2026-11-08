@@ -5,7 +5,7 @@
 Frame genérico de aplicação web responsiva (menu, CRUD dirigido por configuração, dashboard,
 configurações) que serve de base para vários sistemas. Primeiro sistema em cima dele: gestão de
 finanças pessoais. Interface, mensagens e nomes de tabelas/campos em português do Brasil.
-Roadmap em `ROADMAP.md` (Fases 0, 1 e 2A concluídas).
+Roadmap em `ROADMAP.md` (Fases 0, 1 e 2 concluídas).
 
 ## Stack
 
@@ -29,7 +29,7 @@ Roadmap em `ROADMAP.md` (Fases 0, 1 e 2A concluídas).
 
 - **Núcleo × aplicação.** O frame (núcleo) não tem regra de negócio. O sistema construído sobre ele vive só nas
   pastas `app/`: `shared/src/app/entities.ts`, `server/src/app/` (hooks.ts, routes.ts, seed.ts) e `web/src/app/`
-  (menu.ts, dashboard.tsx). Não coloque nada de negócio no núcleo; se algo genérico faltar, evolua o núcleo.
+  (menu.ts, dashboard.tsx, screens.ts). Não coloque nada de negócio no núcleo; se algo genérico faltar, evolua o núcleo.
 - **Dirigido por configuração.** `shared/src/entities.ts` (= app + core) é a fonte da verdade: define campos,
   validações, rotas CRUD (`/api/:entity`) e as telas genéricas. É importado direto pelo server e pelo web.
 - **Validação única:** `shared/src/schema.ts` gera schemas Zod a partir das entidades
@@ -70,8 +70,18 @@ Roadmap em `ROADMAP.md` (Fases 0, 1 e 2A concluídas).
 - **Motor de registros:** `server/src/services/records.ts` (listar com filtros/período/ordenação/totais, criar, editar,
   lixeira, restaurar, opções de relação) — `routes/crud.ts` só valida permissão e chama o serviço. Exportação em
   `services/export.ts`. Entidade com `lixeira: true` ganha a coluna `excluido_em` (via `tableFields` no diff).
+- **Master-detail:** `details` no pai + `detailOf` na entidade das linhas. `validateDetails`/`computeFields`/
+  `detailSums` (shared) validam e calculam no form e na API. `records.ts` grava pai + linhas numa transação
+  (`inTransaction`; o pool do SQLite tem 1 conexão, então dentro da transação use SEMPRE o `c.db` recebido) e apaga
+  dependentes em `deleteDependents`. `can()` resolve a sub-tabela para o pai.
+- **Anexos:** `services/anexos.ts` (tabela `anexos` + arquivos em `UPLOAD_DIR`, nome aleatório; tipo pelo nome do
+  arquivo, nunca pelo navegador). Upload/importação chegam como `application/octet-stream` (`express.raw` na rota).
+- **Importação:** `services/import.ts` (CSV/XLSX → prévia → `createRecord` com `semLog` + um log de resumo).
+- **Telas plugáveis:** `web/src/lib/screens.ts` (`registerScreens`, `registerPage`), registradas em
+  `web/src/app/screens.ts`; rotas em `pages/EntityRoutes.tsx`. `CrudList`/`CrudForm` aceitam `entity` e slots.
 - **Módulo de demonstração:** `shared/src/demo/`, `server/src/demo/setup.ts`, `web/src/demo/menu.ts`; ligado por
   `DEMO=true` no `.env` (o Vite lê o mesmo arquivo e define `__DEMO__`). Tabelas `demo_*` fora das migrações.
+  Telas próprias de exemplo em `web/src/demo/pages.tsx`.
 - **Logs:** `addLog(db, entrada, actor)` com `diffRecord()` → coluna `alteracoes` `{ campo: { de, para } }`.
 - **Front:** `AuthContext` (`useAuth`), `RouteGuards` (`RequireAuth`, `PublicOnly`, `Guard`). A camada `lib/api.ts`
   dispara eventos em 401/TROCAR_SENHA. Relações no form usam `GET /api/:entidade/opcoes` (liberado a qualquer logado).

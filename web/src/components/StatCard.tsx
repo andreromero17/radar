@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 export interface StatCardProps {
   label: string;
-  value?: number | null;
+  value?: number | string | null;
   icon: string;
   color?: 'blue' | 'red' | 'amber' | 'purple' | 'green' | 'yellow' | 'orange' | 'teal';
   to?: string;

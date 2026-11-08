@@ -46,6 +46,14 @@ export interface FieldDef {
   default?: string | number | boolean;
   /** Exibido mas não editável */
   readonly?: boolean;
+  /**
+   * Coluna técnica: gravada e devolvida pela API, mas fora das telas (formulário, listagem, colunas, filtros,
+   * exportação, importação) e não editável pela API — quem preenche são os hooks. Ex.: id de um grupo de parcelas.
+   * Ainda dá para filtrar pela URL (?grupo=abc).
+   */
+  hidden?: boolean;
+  /** Só preenchido na criação: some do formulário de edição e é ignorado nas atualizações (ex.: "parcelar em") */
+  createOnly?: boolean;
   /** Gerado pelo servidor na criação. 'code' = código legível, ex.: PED20261108-4F2A9 */
   auto?: 'code';
   /** Prefixo do código gerado (auto: 'code') */

@@ -4,6 +4,13 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.6.0 — 08/11/2026
+
+- `hidden` no campo: coluna técnica gravada e devolvida pela API, preenchida pelos hooks, fora das telas
+  (formulário, listagem, colunas, filtros, exportação, importação); filtrável pela URL
+- `createOnly` no campo: só no formulário de criação; ignorado nas atualizações
+- `server/src/app/maintenance.ts` (`appMaintenance`): manutenção diária da aplicação, no boot e a cada 24 h
+
 ## 0.5.1 — 08/11/2026
 
 **Preparação para sistemas derivados do frame (repositório próprio com `upstream` = frame-app)**

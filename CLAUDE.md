@@ -31,7 +31,7 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
 ## Arquitetura (importante)
 
 - **Núcleo × aplicação.** O frame (núcleo) não tem regra de negócio. O sistema construído sobre ele vive só nas
-  pastas `app/`: `shared/src/app/entities.ts`, `server/src/app/` (hooks.ts, routes.ts, seed.ts) e `web/src/app/`
+  pastas `app/`: `shared/src/app/entities.ts`, `server/src/app/` (hooks.ts, routes.ts, seed.ts, maintenance.ts) e `web/src/app/`
   (menu.ts, dashboard.tsx, screens.ts), mais `shared/src/app/info.ts` (nome/versão do sistema),
   `server/src/app/migrations/` e `docs/app/`. Não coloque nada de negócio no núcleo; se algo genérico faltar,
   evolua o núcleo **no repositório do frame** (PR lá) e traga com `git pull upstream main`.

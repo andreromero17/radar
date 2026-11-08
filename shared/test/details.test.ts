@@ -9,6 +9,7 @@ import {
   registerEntities,
   resources,
   validateDetails,
+  validateEntity,
   type EntityDef,
 } from '../src';
 
@@ -76,5 +77,28 @@ describe('master-detail', () => {
     expect(canImport('t_pedido_itens', itens)).toBe(false);
     expect(canImport('t_pedidos', pedidos)).toBe(true);
     expect(canImport('usuarios', { ...pedidos })).toBe(false);
+  });
+});
+
+describe('campos ocultos e só na criação', () => {
+  const ent: EntityDef = {
+    label: 'L',
+    singular: 'L',
+    icon: 'x',
+    labelField: 'nome',
+    fields: [
+      { name: 'nome', label: 'Nome', type: 'text', required: true },
+      { name: 'grupo', label: 'Grupo', type: 'text', hidden: true },
+      { name: 'parcelas', label: 'Parcelas', type: 'number', createOnly: true, default: 1 },
+    ],
+  };
+
+  it('oculto não é editável pela API; só-na-criação é ignorado na edição', () => {
+    expect(editableFields(ent).map((f) => f.name)).toEqual(['nome', 'parcelas']);
+    expect(validateEntity(ent, { nome: 'A', grupo: 'x', parcelas: 3 }, 'create')).toEqual({
+      ok: true,
+      data: { nome: 'A', parcelas: 3 },
+    });
+    expect(validateEntity(ent, { nome: 'B', parcelas: 5 }, 'update')).toEqual({ ok: true, data: { nome: 'B' } });
   });
 });

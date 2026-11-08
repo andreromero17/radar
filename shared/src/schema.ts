@@ -174,8 +174,10 @@ export function fieldSchema(f: FieldDef, mode: 'create' | 'update' = 'create'): 
 /** Schema Zod do registro inteiro. Em `update`, todos os campos são opcionais. */
 export function entitySchema(ent: EntityDef, mode: 'create' | 'update' = 'create') {
   const shape: Record<string, z.ZodType> = {};
-  for (const f of editableFields(ent))
+  for (const f of editableFields(ent)) {
+    if (mode === 'update' && f.createOnly) continue; // ignorado na edição
     shape[f.name] = mode === 'update' ? fieldSchema(f, mode).optional() : fieldSchema(f, mode);
+  }
   return z.object(shape);
 }
 

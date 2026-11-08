@@ -13,7 +13,7 @@ const NOT_EXPORTABLE = new Set(['password', 'permissions']);
 
 /** Colunas exportáveis; `pedidas` (da tela) limita e ordena */
 export function exportColumns(ent: EntityDef, pedidas?: string[]): FieldDef[] {
-  const all = queryable(ent).filter((f) => !NOT_EXPORTABLE.has(f.type));
+  const all = queryable(ent).filter((f) => !NOT_EXPORTABLE.has(f.type) && !f.hidden);
   if (!pedidas?.length) return all;
   return pedidas.map((n) => all.find((f) => f.name === n)).filter((f): f is FieldDef => !!f);
 }

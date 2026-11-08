@@ -44,7 +44,7 @@ export const summedFields = (ent: EntityDef) => new Set((ent.details ?? []).flat
 /** Campos que o usuário pode preencher (exclui somente-leitura, gerados, calculados e somas). */
 export function editableFields(ent: EntityDef) {
   const somas = summedFields(ent);
-  return ent.fields.filter((f) => !f.readonly && !f.auto && !f.compute && !somas.has(f.name));
+  return ent.fields.filter((f) => !f.readonly && !f.auto && !f.compute && !f.hidden && !somas.has(f.name));
 }
 
 /** Entidades que aparecem como cadastro próprio (exclui sub-tabelas) */

@@ -219,7 +219,9 @@ export default function CrudForm(props: Props) {
           ) : (
             <Form noValidate onSubmit={submit}>
               {sections(
-                ent.fields.filter((f) => !(isNew && f.readonly)).filter((f) => !(readOnly && f.type === 'password')),
+                ent.fields
+                  .filter((f) => !f.hidden && !(isNew && f.readonly) && !(!isNew && f.createOnly))
+                  .filter((f) => !(readOnly && f.type === 'password')),
               ).map(([section, fields], i) => (
                 <fieldset key={section ?? i} className={section ? 'form-section' : undefined}>
                   {section && <legend className="form-section-title">{section}</legend>}

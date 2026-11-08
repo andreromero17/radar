@@ -184,8 +184,11 @@ export interface SessionInfo {
 
 /** Versão do sistema (GET /api/health) */
 export interface VersionInfo {
+  /** Versão do sistema (a do frame quando não há sistema próprio) */
   version: string;
   commit: string;
+  /** Versão do frame (package.json da raiz) */
+  frame?: string;
 }
 
 export interface LogRow {

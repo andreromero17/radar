@@ -82,8 +82,10 @@ _Começa assim que a Fase 2 tiver o essencial; as duas andam juntas._
 
 ## Fase 5 — Multi-sistema
 
-- **Monorepo:** `packages/core` (o frame) + `apps/financas`, `apps/<proximo>`. Melhorias no core chegam a todos os sistemas.
-- **Módulo = pasta** com entities, menu, hooks, páginas e widgets próprios
+- **Decidido (08/11/2026, v0.5.1):** cada sistema é um repositório derivado do frame, com `upstream` = frame-app.
+  O sistema só mexe nas pastas `app/` e em `docs/app/`; melhorias no núcleo nascem no frame e descem com
+  `git pull upstream main`. Primeiro: `financas`.
+- Monorepo (`packages/core` + `apps/*`) ou núcleo publicado como pacote npm só se o número de sistemas pedir
 - **CLI de scaffold:** `npm run novo-sistema nome` gera um app pronto para configurar
 - **Decisão a tomar aqui:** instâncias separadas por sistema/cliente (mais simples, recomendado) ou multi-tenant numa instalação só (só se virar SaaS)
 

@@ -1,5 +1,6 @@
 import type { Knex } from 'knex';
 import { isSqlite } from './knex';
+import { appMigrations } from '../app/migrations';
 import { migrations } from './migrations';
 
 export interface Migration {
@@ -9,12 +10,16 @@ export interface Migration {
 }
 
 /**
- * As migrações ficam registradas em código (migrations/index.ts) em vez de
- * serem lidas da pasta em tempo de execução: funciona igual com tsx, no build
- * de produção e nos testes.
+ * As migrações ficam registradas em código em vez de serem lidas da pasta em
+ * tempo de execução: funciona igual com tsx, no build de produção e nos testes.
+ * Núcleo (db/migrations) e aplicação (app/migrations) ficam em listas separadas
+ * — num sistema derivado do frame, cada lado mexe só na sua — e rodam juntas,
+ * na ordem do nome (data e hora).
  */
+export const allMigrations = () => [...migrations, ...appMigrations].sort((a, b) => a.name.localeCompare(b.name));
+
 const migrationSource: Knex.MigrationSource<Migration> = {
-  getMigrations: async () => migrations,
+  getMigrations: async () => allMigrations(),
   getMigrationName: (m) => m.name,
   getMigration: async (m) => m,
 };

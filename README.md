@@ -56,7 +56,7 @@ A **aplicação** é o negócio do sistema construído em cima dele. Para criar 
 ```
 frame-app/
 ├── shared/src/
-│   ├── app/entities.ts     ★ APLICAÇÃO: cadastros do sistema (vazio no frame)
+│   ├── app/                ★ APLICAÇÃO: entities.ts (cadastros), info.ts (nome e versão do sistema)
 │   ├── core/entities.ts    núcleo: usuários e perfis
 │   ├── entities.ts         registro = aplicação + núcleo
 │   ├── schema.ts           validação Zod gerada das entidades (form + API)
@@ -65,25 +65,57 @@ frame-app/
 ├── server/
 │   ├── .env.example        variáveis de ambiente (copiado para .env no setup)
 │   └── src/
-│       ├── app/            ★ APLICAÇÃO: hooks.ts, routes.ts, seed.ts
+│       ├── app/            ★ APLICAÇÃO: hooks.ts, routes.ts, seed.ts, migrations/
 │       ├── auth/           senhas, sessões, middleware de login/permissão
-│       ├── db/             Knex, migrador, migrações, diff, seed, CLI
+│       ├── db/             Knex, migrador, migrações do núcleo, diff, seed, CLI
 │       ├── hooks/          regras do núcleo (usuários, perfis)
 │       ├── routes/         auth, CRUD genérico e rotas de sistema
 │       ├── services/       logs, configurações, backup, e-mail
 │       ├── app.ts          monta o Express (usado também nos testes)
 │       └── index.ts        boot: migrações, manutenção, listen
 ├── web/src/
-│   ├── app/                ★ APLICAÇÃO: menu.ts, dashboard.tsx
+│   ├── app/                ★ APLICAÇÃO: menu.ts, dashboard.tsx, screens.ts
 │   ├── config/menu.ts      menu = Dashboard + aplicação + Administração
 │   ├── layout/             Sidebar (com "+ Novo" e versão), Topbar, Layout
 │   ├── pages/              Dashboard, CrudList, CrudForm, MeuPerfil, Logs, Backup, auth/
 │   └── components/         FieldInput, PermissionMatrix, SettingsModal...
 ├── .github/workflows/      CI (lint, tipos, testes, build a cada push)
-├── CHANGELOG.md            o que mudou em cada versão
-├── CLAUDE.md               contexto do projeto para o Claude Code
+├── docs/app/               ★ APLICAÇÃO: README, CHANGELOG e CLAUDE.md do sistema
+├── CHANGELOG.md            o que mudou em cada versão do frame
+├── CLAUDE.md               contexto do frame para o Claude Code (importa docs/app/CLAUDE.md)
 └── ROADMAP.md              fases do frame
 ```
+
+### Criar um sistema a partir do frame
+
+Cada sistema é um repositório próprio, copiado do frame **com o histórico**, que continua recebendo as melhorias dele.
+Como o sistema só mexe nas pastas `app/` (marcadas com ★) e em `docs/app/`, as atualizações do frame entram sem
+conflito.
+
+```bash
+# uma vez: repositório vazio criado no GitHub (ex.: financas)
+git clone git@github.com:andreromero17/frame-app.git financas && cd financas
+git remote rename origin upstream
+git remote add origin git@github.com:andreromero17/financas.git
+git push -u origin main
+
+# sempre que o frame tiver novidade
+git pull upstream main
+npm install          # se mudou dependência
+npm run dev          # migrações novas do núcleo são aplicadas sozinhas
+```
+
+Regras para não brigar com o frame:
+
+- **Mudança no núcleo nasce no frame-app** (PR lá) e desce para o sistema com `git pull upstream main`. No sistema,
+  só regra de negócio.
+- No sistema, edite apenas `*/src/app/`, `docs/app/` e o `server/.env`. O `package.json` da raiz guarda a versão do
+  frame: a do sistema fica em `shared/src/app/info.ts` (`{ nome: 'Finanças', versao: '0.1.0' }`), que aparece no
+  menu com a do frame no tooltip.
+- Dependência nova do sistema: pode adicionar no `package.json` do workspace; se o frame mexer no mesmo arquivo, o
+  conflito é pequeno e óbvio.
+- Migrações do sistema ficam em `server/src/app/migrations/` (o `db:diff` grava lá); as do núcleo, em
+  `server/src/db/migrations/`. As duas listas rodam juntas, em ordem de data.
 
 ## 5. Criar uma entidade nova (ex.: `contas`)
 
@@ -103,7 +135,7 @@ contas: {
 **2. Gere e aplique a migração:**
 
 ```bash
-npm run db:diff -- cria contas   # gera server/src/db/migrations/<data>_cria_contas.ts
+npm run db:diff -- cria contas   # gera server/src/app/migrations/<data>_cria_contas.ts
 npm run db:migrate
 ```
 

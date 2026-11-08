@@ -1,11 +1,12 @@
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import type { VersionInfo } from '@frame/shared';
+import { appInfo, type VersionInfo } from '@frame/shared';
 import { SERVER_ROOT } from './config';
 
 /**
- * Versão do sistema: número do package.json da raiz + commit do git.
+ * Versão: a do sistema (shared/src/app/info.ts) ou, sem ela, a do frame
+ * (package.json da raiz) + commit do git.
  * Em produção sem git (ex.: Docker), informe o commit em APP_COMMIT.
  */
 function readVersion(): VersionInfo {
@@ -25,7 +26,7 @@ function readVersion(): VersionInfo {
       commit = 'dev';
     }
   }
-  return { version, commit };
+  return { version: appInfo.versao ?? version, commit, frame: version };
 }
 
 export const VERSION: VersionInfo = readVersion();

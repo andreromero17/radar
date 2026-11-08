@@ -1,13 +1,8 @@
-// Registro das migrações, em ordem de aplicação.
-// `npm run db:diff -- descricao` cria o arquivo novo e o registra aqui sozinho.
+// Migrações do NÚCLEO do frame, em ordem de aplicação (escritas à mão).
+// As da aplicação ficam em src/app/migrations (geradas pelo `npm run db:diff`).
 // Migração já aplicada não se edita: crie uma nova.
 import type { Migration } from '../migrator';
 import * as m20261108000000 from './20261108000000_nucleo';
 import * as m20261109000000 from './20261109000000_anexos';
-// @diff:imports
 
-export const migrations: Migration[] = [
-  m20261108000000,
-  m20261109000000,
-  // @diff:list
-];
+export const migrations: Migration[] = [m20261108000000, m20261109000000];

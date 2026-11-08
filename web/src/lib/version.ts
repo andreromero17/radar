@@ -1,8 +1,18 @@
 import { useEffect, useState } from 'react';
-import type { VersionInfo } from '@frame/shared';
+import { appInfo, type VersionInfo } from '@frame/shared';
 
-/** Versão deste front, gravada no build (vite.config.ts) */
-export const APP_VERSION: VersionInfo = { version: __APP_VERSION__, commit: __APP_COMMIT__ };
+/** Versão deste front: a do sistema (app/info.ts) ou a do frame, gravada no build (vite.config.ts) */
+export const APP_VERSION: VersionInfo = {
+  version: appInfo.versao ?? __APP_VERSION__,
+  commit: __APP_COMMIT__,
+  frame: __APP_VERSION__,
+};
+
+/** Texto do tooltip: "Finanças 0.1.0 · frame 0.5.1 · commit abc123" */
+export const versionTitle = (v: VersionInfo = APP_VERSION) =>
+  appInfo.versao
+    ? `${appInfo.nome ?? 'Sistema'} ${v.version} · frame ${v.frame} · commit ${v.commit}`
+    : `Versão ${v.version} (commit ${v.commit})`;
 
 export const versionLabel = (v: VersionInfo = APP_VERSION) => `v${v.version} · ${v.commit}`;
 

@@ -4,6 +4,17 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.5.1 — 08/11/2026
+
+**Preparação para sistemas derivados do frame (repositório próprio com `upstream` = frame-app)**
+
+- Migrações da aplicação em `server/src/app/migrations/` (o `db:diff` grava lá); as do núcleo continuam em
+  `server/src/db/migrations/`. As duas rodam juntas, em ordem de data
+- Nome e versão do sistema em `shared/src/app/info.ts`; o `package.json` fica com a versão do frame.
+  `/api/health` informa as duas (`version` e `frame`)
+- `docs/app/` (README, CHANGELOG e CLAUDE.md do sistema), importado pelo `CLAUDE.md` da raiz
+- README: como criar um sistema a partir do frame e mantê-lo atualizado
+
 ## 0.5.0 — 08/11/2026
 
 **Fase 2B: master-detail, anexos, importação e telas plugáveis**

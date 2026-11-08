@@ -17,6 +17,7 @@ novidades, **CORREÇÃO** só corrige.
 - `default: 'hoje'` (data) e `default: 'agora'` (data e hora), calculados na hora de abrir o formulário/gravar
 - `activeField` na entidade: registros inativos somem dos selects de relação (menos o valor atual), mas continuam
   nos filtros da listagem (`/opcoes?todos=1`)
+- Nome e ícone padrão das Configurações vêm de `app/info.ts` (`nome`, `icone`)
 - Formulário novo aceita valores iniciais pela URL (`/lancamentos/novo?tipo=Receita&conta_id=3`), para atalhos
 - `shared` exporta a pasta `app/` inteira (tipos e constantes do sistema); testes do frame não supõem aplicação vazia
 

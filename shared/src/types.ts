@@ -188,6 +188,16 @@ export interface SessionInfo {
 }
 
 /** Versão do sistema (GET /api/health) */
+/** Identidade do sistema derivado (shared/src/app/info.ts) */
+export interface AppInfo {
+  /** Nome do sistema: padrão do nome nas Configurações e no tooltip da versão */
+  nome?: string;
+  /** Versão do sistema (a do frame fica no package.json da raiz) */
+  versao?: string;
+  /** Ícone padrão (Bootstrap Icons, sem "bi-") nas Configurações */
+  icone?: string;
+}
+
 export interface VersionInfo {
   /** Versão do sistema (a do frame quando não há sistema próprio) */
   version: string;

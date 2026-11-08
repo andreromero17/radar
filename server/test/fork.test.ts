@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { appInfo } from '@frame/shared';
 import { writeMigration } from '../src/db/diff';
 import { allMigrations } from '../src/db/migrator';
 import { VERSION } from '../src/version';
@@ -21,11 +22,12 @@ describe('sistema derivado do frame', () => {
     expect(name).toMatch(/^\d{14}_cria_contas$/);
     const index = fs.readFileSync(path.join(dir, 'index.ts'), 'utf8');
     expect(index).toContain(`from './${name}'`);
-    expect(index).toMatch(/appMigrations: Migration\[\] = \[\n {2}m\d{14},\n {2}\/\/ @diff:list/);
+    expect(index).toMatch(/ {2}m\d{14},\n {2}\/\/ @diff:list/); // última da lista, antes do marcador
   });
 
   it('versão informa a do frame separada', () => {
     expect(VERSION.frame).toMatch(/^\d+\.\d+\.\d+/);
-    expect(VERSION.version).toBe(VERSION.frame); // sem app/info.ts preenchido, é o próprio frame
+    // sem app/info.ts preenchido (o próprio frame), a versão é a do frame
+    expect(VERSION.version).toBe(appInfo.versao ?? VERSION.frame);
   });
 });

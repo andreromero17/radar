@@ -27,16 +27,22 @@ export const migrationConfig: Knex.MigratorConfig = { migrationSource, tableName
  * tabelas filhas e PERDERIA os vínculos. Por isso as FKs ficam desligadas durante
  * a migração e são verificadas no fim.
  */
-async function withForeignKeysOff<T>(db: Knex, fn: () => Promise<T>): Promise<T> {
+export async function withForeignKeysOff<T>(db: Knex, fn: () => Promise<T>): Promise<T> {
   if (!isSqlite(db)) return fn();
   await db.raw('PRAGMA foreign_keys = OFF');
+  let result: T;
   try {
-    return await fn();
+    result = await fn();
   } finally {
     await db.raw('PRAGMA foreign_keys = ON');
-    const violations = (await db.raw('PRAGMA foreign_key_check')) as unknown[];
-    if (violations.length) throw new Error(`Migração deixou ${violations.length} referência(s) inválida(s): ${JSON.stringify(violations.slice(0, 5))}`);
   }
+  const violations = (await db.raw('PRAGMA foreign_key_check')) as unknown[];
+  if (violations.length) {
+    throw new Error(
+      `Migração deixou ${violations.length} referência(s) inválida(s): ${JSON.stringify(violations.slice(0, 5))}`,
+    );
+  }
+  return result;
 }
 
 export async function migrateLatest(db: Knex) {
@@ -45,7 +51,10 @@ export async function migrateLatest(db: Knex) {
 }
 
 export async function rollback(db: Knex, all = false) {
-  const [, reverted] = (await withForeignKeysOff(db, () => db.migrate.rollback(migrationConfig, all))) as [number, string[]];
+  const [, reverted] = (await withForeignKeysOff(db, () => db.migrate.rollback(migrationConfig, all))) as [
+    number,
+    string[],
+  ];
   return reverted;
 }
 

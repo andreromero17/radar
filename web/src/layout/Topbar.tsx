@@ -24,9 +24,24 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
       .get<DashboardData>('/dashboard')
       .then(({ cards }) => {
         const a: Alert[] = [];
-        if (cards.urgentes) a.push({ icon: 'exclamation-triangle text-danger', text: `${cards.urgentes} chamado(s) urgente(s) ativo(s)`, to: '/chamados?prioridade=Urgente' });
-        if (cards.semResponsavel) a.push({ icon: 'person-x text-warning', text: `${cards.semResponsavel} chamado(s) sem responsável`, to: '/chamados' });
-        if (cards.aguardando) a.push({ icon: 'hourglass-split text-primary', text: `${cards.aguardando} aguardando cliente`, to: '/chamados?status=Aguardando cliente' });
+        if (cards.urgentes)
+          a.push({
+            icon: 'exclamation-triangle text-danger',
+            text: `${cards.urgentes} chamado(s) urgente(s) ativo(s)`,
+            to: '/chamados?prioridade=Urgente',
+          });
+        if (cards.semResponsavel)
+          a.push({
+            icon: 'person-x text-warning',
+            text: `${cards.semResponsavel} chamado(s) sem responsável`,
+            to: '/chamados',
+          });
+        if (cards.aguardando)
+          a.push({
+            icon: 'hourglass-split text-primary',
+            text: `${cards.aguardando} aguardando cliente`,
+            to: '/chamados?status=Aguardando cliente',
+          });
         setAlerts(a);
       })
       .catch(() => {});
@@ -57,7 +72,9 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
         <Dropdown.Toggle variant="light" className="position-relative no-caret" aria-label="Notificações">
           <i className="bi bi-bell fs-5" />
           {alerts.length > 0 && (
-            <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{alerts.length}</span>
+            <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+              {alerts.length}
+            </span>
           )}
         </Dropdown.Toggle>
         <Dropdown.Menu className="shadow-sm" style={{ minWidth: 290 }}>
@@ -78,11 +95,18 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
           <span className="fw-bold d-none d-md-inline">Usuário Administrador</span>
         </Dropdown.Toggle>
         <Dropdown.Menu className="shadow-sm">
-          <Dropdown.Item as={Link} to="/usuarios/1"><i className="bi bi-person me-2" />Meu perfil</Dropdown.Item>
-          <Dropdown.Item onClick={() => setShowSettings(true)}><i className="bi bi-gear me-2" />Configurações</Dropdown.Item>
+          <Dropdown.Item as={Link} to="/usuarios/1">
+            <i className="bi bi-person me-2" />
+            Meu perfil
+          </Dropdown.Item>
+          <Dropdown.Item onClick={() => setShowSettings(true)}>
+            <i className="bi bi-gear me-2" />
+            Configurações
+          </Dropdown.Item>
           <Dropdown.Divider />
           <Dropdown.Item onClick={() => alert('Autenticação entra numa próxima etapa 🙂')}>
-            <i className="bi bi-box-arrow-left me-2" />Sair
+            <i className="bi bi-box-arrow-left me-2" />
+            Sair
           </Dropdown.Item>
         </Dropdown.Menu>
       </Dropdown>

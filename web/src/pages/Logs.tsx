@@ -6,7 +6,14 @@ import { fmtDate } from '../lib/format';
 import PageHeader from '../components/PageHeader';
 import ValueBadge from '../components/ValueBadge';
 
-const ACAO_COLORS: Record<string, string> = { criação: '#2b8a5a', alteração: '#2f6fed', exclusão: '#e03e3e', backup: '#7048e8', seed: '#7a8290', configuração: '#f08c2e' };
+const ACAO_COLORS: Record<string, string> = {
+  criação: '#2b8a5a',
+  alteração: '#2f6fed',
+  exclusão: '#e03e3e',
+  backup: '#7048e8',
+  seed: '#7a8290',
+  configuração: '#f08c2e',
+};
 const PAGE_SIZE = 15;
 
 export default function Logs() {
@@ -25,7 +32,9 @@ export default function Logs() {
       <Card className="card-app">
         <Card.Body className="p-0">
           {!data ? (
-            <div className="text-center py-5"><Spinner animation="border" variant="primary" /></div>
+            <div className="text-center py-5">
+              <Spinner animation="border" variant="primary" />
+            </div>
           ) : (
             <Table responsive hover className="table-app mb-0">
               <thead>
@@ -42,7 +51,9 @@ export default function Logs() {
                 {data.rows.map((l) => (
                   <tr key={l.id}>
                     <td className="ps-4 text-nowrap">{fmtDate(l.criado_em, true)}</td>
-                    <td><ValueBadge value={l.acao} colors={ACAO_COLORS} /></td>
+                    <td>
+                      <ValueBadge value={l.acao} colors={ACAO_COLORS} />
+                    </td>
                     <td className="text-capitalize">{l.entidade}</td>
                     <td className="text-muted">{l.registro_id ?? '—'}</td>
                     <td>{l.detalhe}</td>
@@ -57,7 +68,9 @@ export default function Logs() {
           <Card.Footer className="bg-white d-flex justify-content-end">
             <Pagination size="sm" className="mb-0">
               <Pagination.Prev disabled={page <= 1} onClick={() => setPage(page - 1)} />
-              <Pagination.Item active>{page} / {pages}</Pagination.Item>
+              <Pagination.Item active>
+                {page} / {pages}
+              </Pagination.Item>
               <Pagination.Next disabled={page >= pages} onClick={() => setPage(page + 1)} />
             </Pagination>
           </Card.Footer>

@@ -20,11 +20,22 @@ export async function seed(db: Db): Promise<boolean> {
     ['Carla Dias', 'carla@sistema.com', 'Leitura', false],
   ] as const;
   const assuntos = [
-    'Teste chamado', 'Novo chamado hoje', 'Chamado abertura teste', 'Chamado teste 2',
-    'Erro ao emitir nota fiscal', 'Impressora não conecta', 'Acesso ao sistema bloqueado',
-    'Lentidão no relatório mensal', 'Solicitação de novo usuário', 'Backup não executou',
-    'Dúvida sobre integração', 'Atualização de cadastro', 'E-mail não sincroniza',
-    'Instalação de software', 'Troca de senha', 'Falha na VPN',
+    'Teste chamado',
+    'Novo chamado hoje',
+    'Chamado abertura teste',
+    'Chamado teste 2',
+    'Erro ao emitir nota fiscal',
+    'Impressora não conecta',
+    'Acesso ao sistema bloqueado',
+    'Lentidão no relatório mensal',
+    'Solicitação de novo usuário',
+    'Backup não executou',
+    'Dúvida sobre integração',
+    'Atualização de cadastro',
+    'E-mail não sincroniza',
+    'Instalação de software',
+    'Troca de senha',
+    'Falha na VPN',
   ];
   const prioridades = ['Baixa', 'Média', 'Média', 'Alta', 'Urgente'];
   const agora = nowLocal();
@@ -32,11 +43,22 @@ export async function seed(db: Db): Promise<boolean> {
   await db.transaction(async (trx) => {
     await trx('clientes').insert(
       clientes.map(([nome, email, telefone, documento, ativo]) => ({
-        nome, email, telefone, documento, ativo: toDbValue(db, ativo), criado_em: agora,
+        nome,
+        email,
+        telefone,
+        documento,
+        ativo: toDbValue(db, ativo),
+        criado_em: agora,
       })),
     );
     await trx('usuarios').insert(
-      usuarios.map(([nome, email, perfil, ativo]) => ({ nome, email, perfil, ativo: toDbValue(db, ativo), criado_em: agora })),
+      usuarios.map(([nome, email, perfil, ativo]) => ({
+        nome,
+        email,
+        perfil,
+        ativo: toDbValue(db, ativo),
+        criado_em: agora,
+      })),
     );
 
     const now = Date.now();
@@ -55,7 +77,13 @@ export async function seed(db: Db): Promise<boolean> {
       };
     });
     await trx('chamados').insert(chamados);
-    await trx('logs').insert({ entidade: 'sistema', acao: 'seed', detalhe: 'Banco populado com dados de exemplo', usuario: 'Administrador', criado_em: agora });
+    await trx('logs').insert({
+      entidade: 'sistema',
+      acao: 'seed',
+      detalhe: 'Banco populado com dados de exemplo',
+      usuario: 'Administrador',
+      criado_em: agora,
+    });
   });
   return true;
 }

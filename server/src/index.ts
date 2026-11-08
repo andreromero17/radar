@@ -12,7 +12,10 @@ const db = createDb(config.dbFile);
 const { pending } = await migrationStatus(db);
 if (pending.length) {
   if (config.NODE_ENV === 'production') {
-    logger.fatal({ pending }, 'Há migrações pendentes. Rode `npm run db:migrate` antes de subir o servidor.');
+    logger.fatal(
+      { pending },
+      'Há migrações pendentes. Rode `npm run db:migrate` (ou `node dist/cli.js migrate` no servidor) antes de subir.',
+    );
     process.exit(1);
   }
   const applied = await migrateLatest(db);

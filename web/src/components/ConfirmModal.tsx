@@ -10,7 +10,14 @@ interface Props {
   onCancel: () => void;
 }
 
-export default function ConfirmModal({ show, title = 'Confirmar', message, confirmLabel = 'Excluir', onConfirm, onCancel }: Props) {
+export default function ConfirmModal({
+  show,
+  title = 'Confirmar',
+  message,
+  confirmLabel = 'Excluir',
+  onConfirm,
+  onCancel,
+}: Props) {
   return (
     <Modal show={show} onHide={onCancel} centered>
       <Modal.Header closeButton>

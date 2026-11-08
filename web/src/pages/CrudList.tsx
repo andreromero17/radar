@@ -162,7 +162,13 @@ export default function CrudList() {
                       <Link to={`/${entity}/${row.id}`} className="btn btn-sm btn-light me-1" title="Editar">
                         <i className="bi bi-pencil" />
                       </Link>
-                      <Button size="sm" variant="light" className="text-danger" title="Excluir" onClick={() => setToDelete(row)}>
+                      <Button
+                        size="sm"
+                        variant="light"
+                        className="text-danger"
+                        title="Excluir"
+                        onClick={() => setToDelete(row)}
+                      >
                         <i className="bi bi-trash" />
                       </Button>
                     </td>

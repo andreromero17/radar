@@ -24,7 +24,11 @@ export async function saveSettings(db: Db, data: Partial<Settings>): Promise<Set
       .insert(entries.map(([chave, valor]) => ({ chave, valor: String(valor) })))
       .onConflict('chave')
       .merge();
-    await addLog(db, { entidade: 'sistema', acao: 'configuração', detalhe: `Alterado: ${entries.map(([k]) => k).join(', ')}` });
+    await addLog(db, {
+      entidade: 'sistema',
+      acao: 'configuração',
+      detalhe: `Alterado: ${entries.map(([k]) => k).join(', ')}`,
+    });
   }
   const settings = await getSettings(db);
   await purgeLogs(db, settings.dias_logs);

@@ -9,7 +9,8 @@ const SYSTEM_TABLES = ['logs', 'configuracoes'];
 export async function backupInfo(db: Db, dbFile: string): Promise<BackupInfo> {
   const stat = dbFile !== ':memory:' && fs.existsSync(dbFile) ? fs.statSync(dbFile) : null;
   const tabelas = [];
-  for (const tabela of [...Object.keys(entities), ...SYSTEM_TABLES]) tabelas.push({ tabela, registros: await count(db(tabela)) });
+  for (const tabela of [...Object.keys(entities), ...SYSTEM_TABLES])
+    tabelas.push({ tabela, registros: await count(db(tabela)) });
   return {
     arquivo: path.basename(dbFile),
     tamanho: stat?.size ?? 0,
@@ -21,7 +22,10 @@ export async function backupInfo(db: Db, dbFile: string): Promise<BackupInfo> {
 /** Gera uma cópia consistente do banco SQLite (mesmo com o sistema em uso). */
 export async function createBackup(db: Db, destFile: string): Promise<void> {
   if (!isSqlite(db)) throw new Error('Backup pela interface disponível apenas para SQLite');
-  const client = db.client as { acquireConnection(): Promise<Database.Database>; releaseConnection(c: unknown): Promise<void> };
+  const client = db.client as {
+    acquireConnection(): Promise<Database.Database>;
+    releaseConnection(c: unknown): Promise<void>;
+  };
   const conn = await client.acquireConnection();
   try {
     await conn.backup(destFile);

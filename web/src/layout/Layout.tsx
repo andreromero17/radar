@@ -55,7 +55,9 @@ export default function Layout() {
           <Outlet />
         </main>
         <footer className="app-footer">
-          <span>© {new Date().getFullYear()} {settings.organizacao || settings.nome_sistema}</span>
+          <span>
+            © {new Date().getFullYear()} {settings.organizacao || settings.nome_sistema}
+          </span>
           {contato.map((c) => (
             <span key={c}>{c}</span>
           ))}

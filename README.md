@@ -1,91 +1,85 @@
-# Frame App — navegação + CRUD + dashboard
+# Frame App
 
-Frame genérico para sistemas web responsivos. Ponto de partida para outros sistemas
-(o primeiro será **gestão de finanças pessoais**).
+Frame genérico para sistemas web responsivos. Traz navegação, CRUD dirigido por configuração, dashboard, logs, backup e tela de configurações (nome, cores, logo). É o ponto de partida para vários sistemas; o primeiro será **gestão de finanças pessoais**. Veja o [ROADMAP](ROADMAP.md).
 
-**Stack:** React 19 + Vite · Bootstrap 5 (react-bootstrap) + Bootstrap Icons · Chart.js ·
-Node.js + Express 5 · SQLite (better-sqlite3)
+**Stack:** TypeScript · React 19 + Vite · Bootstrap 5 · Node.js + Express 5 · Knex + SQLite · Zod · Vitest
 
 ---
 
 ## 1. Preparar o Mac (uma vez só)
 
 ```bash
-# Ferramentas de linha de comando da Apple (git, compiladores)
-xcode-select --install
-
-# Homebrew
+xcode-select --install                     # git e ferramentas da Apple
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Node.js LTS via nvm
-brew install nvm
-mkdir -p ~/.nvm
-# siga as 2-3 linhas que o brew imprimir para adicionar o nvm ao ~/.zshrc, depois:
-nvm install --lts
-node -v   # deve mostrar v22+ ou superior
-
-# Opcionais, mas recomendados
+brew install nvm && mkdir -p ~/.nvm        # siga as linhas que o brew imprimir para o ~/.zshrc
+nvm install --lts                          # Node 22 ou superior
 brew install --cask visual-studio-code db-browser-for-sqlite
 ```
 
-Extensões úteis no VS Code: **ESLint**, **Prettier**, **SQLite Viewer** e a extensão do **Claude Code**.
+Ao abrir a pasta no VS Code, aceite instalar as extensões recomendadas: ESLint, Prettier, SQLite Viewer e Claude Code.
 
-## 2. Rodar o projeto
+## 2. Rodar
 
 ```bash
-cd frame-app
-npm run setup     # instala dependências da raiz, do server e do web
-npm run dev       # sobe API (3001) + front (5173) e abre o navegador
+npm run setup   # instala, cria server/.env, cria o banco (migrações) e popula com exemplos
+npm run dev     # API em :3001 + front em :5173 (abre o navegador)
 ```
 
-- Front: http://localhost:5173
-- API: http://localhost:3001/api (ex.: `/api/meta`, `/api/dashboard`, `/api/clientes`)
-- Banco: `server/data/app.db` — criado e populado automaticamente na primeira execução
+## 3. Comandos
 
-Outros comandos:
+| Comando                           | O que faz                                               |
+| --------------------------------- | ------------------------------------------------------- |
+| `npm run dev`                     | Desenvolvimento com recarga automática (API + front)    |
+| `npm run check`                   | Lint + formatação + tipos + testes, tudo de uma vez     |
+| `npm test`                        | Testes (shared, server e web)                           |
+| `npm run lint` / `npm run format` | ESLint / formata o código com Prettier                  |
+| `npm run typecheck`               | Checagem de tipos do TypeScript                         |
+| `npm run db:migrate`              | Aplica migrações pendentes                              |
+| `npm run db:rollback`             | Desfaz o último lote de migrações                       |
+| `npm run db:status`               | Lista migrações aplicadas e pendentes                   |
+| `npm run db:diff -- descricao`    | Gera a migração a partir das entidades (ver seção 5)    |
+| `npm run db:seed`                 | Dados de exemplo (só se o banco estiver vazio)          |
+| `npm run db:reset`                | **Apaga tudo**, recria e popula (bloqueado em produção) |
+| `npm run build` + `npm start`     | Produção: Express servindo API + front na porta 3001    |
 
-| Comando | O que faz |
-|---|---|
-| `npm run seed:reset` | Apaga o banco e recria com dados de exemplo (pare o `dev` antes) |
-| `npm run build` | Gera o front otimizado em `web/dist` |
-| `npm start` | Sobe só o Express, servindo API + front buildado na porta 3001 |
-
-## 3. Estrutura
+## 4. Estrutura
 
 ```
 frame-app/
-├── server/                     API Node + SQLite
-│   ├── src/entities.js         ★ definição das entidades (gera tabelas, API e telas)
-│   ├── src/db.js               conexão, migração automática, logs
-│   ├── src/settings.js         configurações padrão, validação, limpeza de logs
-│   ├── src/seed.js             dados de exemplo
-│   ├── src/routes/crud.js      CRUD genérico /api/:entity
-│   ├── src/routes/system.js    meta, dashboard, logs, backup
-│   └── data/app.db             banco (fora do git)
-└── web/                        Front React + Bootstrap
-    └── src/
-        ├── config/menu.js      ★ menu lateral
-        ├── lib/theme.js        aplica cores/título/favicon das Configurações
-        ├── layout/             Sidebar, Topbar, Layout (responsivo)
-        ├── pages/              Dashboard, CrudList, CrudForm, Logs, Backup
-        ├── components/         StatCard, FieldInput, ValueBadge, ConfirmModal...
-        └── styles.css          tema base (layout, raio, fonte; cores via variáveis --brand-*)
+├── shared/                 Código usado pelo server E pelo web
+│   └── src/
+│       ├── entities.ts     ★ definição das entidades (fonte da verdade)
+│       ├── schema.ts       validação Zod gerada das entidades (form + API)
+│       ├── settings.ts     configurações: padrões e validação
+│       └── types.ts        tipos compartilhados
+├── server/                 API
+│   ├── .env.example        variáveis de ambiente (copiado para .env no setup)
+│   ├── src/
+│   │   ├── config.ts       lê e valida o .env
+│   │   ├── app.ts          monta o Express (usado também nos testes)
+│   │   ├── index.ts        boot: migrações, limpeza de logs, listen
+│   │   ├── db/             Knex, migrador, migrações, diff, seed, CLI
+│   │   ├── routes/         CRUD genérico e rotas de sistema
+│   │   └── services/       regras: logs, configurações, backup
+│   └── test/               testes da API (SQLite em memória)
+├── web/                    Front React
+│   ├── src/
+│   │   ├── config/menu.ts  ★ menu lateral
+│   │   ├── layout/         Sidebar, Topbar, Layout
+│   │   ├── pages/          Dashboard, CrudList, CrudForm, Logs, Backup
+│   │   ├── components/     FieldInput, SettingsModal, StatCard...
+│   │   └── lib/            api, tema, formatação
+│   └── test/
+├── .github/workflows/      CI (lint, tipos, testes, build a cada push)
+├── CLAUDE.md               contexto do projeto para o Claude Code
+└── ROADMAP.md              fases do frame
 ```
 
-## 4. Como o CRUD genérico funciona
+## 5. Criar uma entidade nova (ex.: `contas`)
 
-Cada entidade em `server/src/entities.js` ganha automaticamente:
+**1. Descreva a entidade** em `shared/src/entities.ts`:
 
-1. **Tabela no SQLite** (colunas novas são adicionadas sozinhas ao reiniciar)
-2. **API REST**: `GET/POST /api/:entity`, `GET/PUT/DELETE /api/:entity/:id`
-   com busca (`?q=`), filtros por campo (`?status=Aberto`), paginação e ordenação
-3. **Telas**: lista com busca/paginação/exclusão e formulário com validação em `/:entity`, `/:entity/novo`, `/:entity/:id`
-4. **Log** de criação, alteração e exclusão
-
-Para criar uma entidade nova (ex.: `contas`):
-
-```js
-// server/src/entities.js
+```ts
 contas: {
   label: 'Contas', singular: 'Conta', icon: 'bank', labelField: 'nome',
   fields: [
@@ -96,35 +90,33 @@ contas: {
 },
 ```
 
-e adicionar ao menu em `web/src/config/menu.js`:
+**2. Gere e aplique a migração:**
 
-```js
+```bash
+npm run db:diff -- cria contas   # gera server/src/db/migrations/<data>_cria_contas.ts
+npm run db:migrate
+```
+
+**3. Coloque no menu**, em `web/src/config/menu.ts`:
+
+```ts
 { label: 'Contas', icon: 'bank', to: '/contas' },
 ```
 
+Pronto. A entidade ganha API REST, validação (no form e na API), listagem com busca, filtros e paginação, formulário e log de alterações.
+
 Tipos de campo: `text`, `email`, `textarea`, `number`, `money`, `date`, `select`, `boolean`, `relation`.
 
-## 5. Configurações do sistema (identidade visual)
+> O `db:diff` gera só **tabelas e colunas novas**. Renomear ou remover coluna nunca é automático, para não perder dado. Ele avisa e você escreve essa parte à mão na migração (`t.renameColumn` / `t.dropColumn`). Migração já aplicada não se edita: crie outra.
 
-No menu do usuário → **Configurações**. Tudo fica salvo no banco (tabela `configuracoes`)
-e é aplicado na hora, sem rebuild:
+## 6. Configurações do sistema
 
-| Seção | O que controla |
-|---|---|
-| Identidade | Nome do sistema (menu, título da aba), ícone do Bootstrap Icons ou logo próprio (também vira favicon) |
-| Cores | Cor primária (botões, links, destaques) e secundária (gradiente do menu); 6 paletas prontas |
-| Organização | Nome, telefone, e-mail e endereço — exibidos no rodapé, base para relatórios |
-| Manutenção | Por quantos dias manter os logs (limpeza automática diária; 0 = nunca) |
+No menu do usuário → **Configurações**: nome, ícone ou logo, cores (6 paletas prontas), dados da organização (rodapé) e por quantos dias manter os logs. Tudo fica salvo no banco e é aplicado na hora.
 
-Para começar um sistema novo a partir do frame: copie a pasta, ajuste `entities.js` e `menu.js`
-e defina nome/cores/logo nas Configurações. Os valores padrão ficam em `server/src/settings.js`.
+Segredos (SMTP, tokens de API) **não** vão nessa tela. Ficam em `server/.env`, que está fora do git.
 
-> SMTP, WhatsApp e chaves de IA **não** estão nessas configurações de propósito: são segredos e
-> específicos de cada sistema. Quando precisar, use variáveis de ambiente (`.env`), fora do banco e do git.
+## 7. Qualidade
 
-## 6. Próximos passos sugeridos
-
-- Autenticação (login, sessão, perfis de acesso)
-- Entidades de finanças: contas, categorias, lançamentos, orçamentos, metas
-- Dashboard financeiro (saldo, receitas × despesas, gastos por categoria)
-- Importação de extrato (OFX/CSV)
+- **Pre-commit:** ESLint + Prettier nos arquivos alterados. Commit com erro de lint é bloqueado.
+- **CI (GitHub Actions):** lint, formatação, tipos, testes, build e migração do zero, em Node 22 e 24.
+- **Padrão de commits:** `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`.

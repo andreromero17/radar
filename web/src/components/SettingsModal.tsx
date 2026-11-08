@@ -8,8 +8,18 @@ import BrandMark from './BrandMark';
 import ConfirmModal from './ConfirmModal';
 
 const ICONES = [
-  'box-seam', 'wallet2', 'piggy-bank', 'graph-up-arrow', 'briefcase', 'building',
-  'cart3', 'headset', 'heart-pulse', 'mortarboard', 'truck', 'lightning-charge',
+  'box-seam',
+  'wallet2',
+  'piggy-bank',
+  'graph-up-arrow',
+  'briefcase',
+  'building',
+  'cart3',
+  'headset',
+  'heart-pulse',
+  'mortarboard',
+  'truck',
+  'lightning-charge',
 ];
 
 const PALETAS = [
@@ -33,8 +43,19 @@ function ColorField({ label, value, onChange, error }: ColorFieldProps) {
     <Form.Group>
       <Form.Label className="small fw-semibold mb-1">{label}</Form.Label>
       <div className="d-flex gap-2">
-        <Form.Control type="color" value={value} onChange={(e) => onChange(e.target.value)} className="form-control-color flex-shrink-0" />
-        <Form.Control value={value} onChange={(e) => onChange(e.target.value)} isInvalid={!!error} maxLength={7} className="font-monospace" />
+        <Form.Control
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="form-control-color flex-shrink-0"
+        />
+        <Form.Control
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          isInvalid={!!error}
+          maxLength={7}
+          className="font-monospace"
+        />
       </div>
       {error && <div className="invalid-feedback d-block">{error}</div>}
     </Form.Group>
@@ -118,17 +139,33 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
   type TextKey = 'nome_sistema' | 'organizacao' | 'telefone' | 'email' | 'endereco';
   const text = (k: TextKey, label: string, props: { maxLength?: number; type?: string } = {}) => (
     <FloatingLabel label={label}>
-      <Form.Control value={form[k] ?? ''} onChange={(e) => set(k, e.target.value)} isInvalid={!!errors[k]} placeholder={label} {...props} />
+      <Form.Control
+        value={form[k] ?? ''}
+        onChange={(e) => set(k, e.target.value)}
+        isInvalid={!!errors[k]}
+        placeholder={label}
+        {...props}
+      />
       <Form.Control.Feedback type="invalid">{errors[k]}</Form.Control.Feedback>
     </FloatingLabel>
   );
 
   return (
     <>
-      <Modal show={show && !confirmReset} onHide={close} size="lg" scrollable fullscreen="sm-down" className="modal-brand">
+      <Modal
+        show={show && !confirmReset}
+        onHide={close}
+        size="lg"
+        scrollable
+        fullscreen="sm-down"
+        className="modal-brand"
+      >
         <Form onSubmit={submit} noValidate className="d-contents">
           <Modal.Header closeButton closeVariant="white">
-            <Modal.Title className="fs-5 fw-bold"><i className="bi bi-gear me-2" />Configurações do Sistema</Modal.Title>
+            <Modal.Title className="fs-5 fw-bold">
+              <i className="bi bi-gear me-2" />
+              Configurações do Sistema
+            </Modal.Title>
           </Modal.Header>
 
           <Modal.Body className="p-4">
@@ -137,7 +174,10 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
             <Row className="g-3">
               <Col md={7}>{text('nome_sistema', 'Nome do sistema', { maxLength: 40 })}</Col>
               <Col md={5}>
-                <div className="brand-preview" style={{ background: `linear-gradient(135deg, ${form.cor_primaria}, ${form.cor_secundaria})` }}>
+                <div
+                  className="brand-preview"
+                  style={{ background: `linear-gradient(135deg, ${form.cor_primaria}, ${form.cor_secundaria})` }}
+                >
                   <BrandMark settings={form} />
                   <span className="text-truncate">{form.nome_sistema || 'Meu Sistema'}</span>
                 </div>
@@ -147,7 +187,13 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
                 <Form.Label className="small fw-semibold mb-1">Ícone</Form.Label>
                 <div className="icon-grid">
                   {ICONES.map((i) => (
-                    <button type="button" key={i} title={i} className={`icon-option ${form.icone === i ? 'active' : ''}`} onClick={() => set('icone', i)}>
+                    <button
+                      type="button"
+                      key={i}
+                      title={i}
+                      className={`icon-option ${form.icone === i ? 'active' : ''}`}
+                      onClick={() => set('icone', i)}
+                    >
                       <i className={`bi bi-${i}`} />
                     </button>
                   ))}
@@ -163,7 +209,9 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
                 <Form.Control.Feedback type="invalid">{errors.icone}</Form.Control.Feedback>
                 <Form.Text>
                   Catálogo completo em{' '}
-                  <a href="https://icons.getbootstrap.com" target="_blank" rel="noreferrer">icons.getbootstrap.com</a>
+                  <a href="https://icons.getbootstrap.com" target="_blank" rel="noreferrer">
+                    icons.getbootstrap.com
+                  </a>
                 </Form.Text>
               </Col>
 
@@ -173,20 +221,32 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
                   {form.logo ? (
                     <img src={form.logo} alt="Logo" />
                   ) : (
-                    <span className="text-muted small text-center">PNG, JPG, SVG ou WebP<br />até 300 KB</span>
+                    <span className="text-muted small text-center">
+                      PNG, JPG, SVG ou WebP
+                      <br />
+                      até 300 KB
+                    </span>
                   )}
                 </div>
                 <div className="d-flex gap-2 mt-2">
                   <Button size="sm" variant="outline-primary" onClick={() => fileRef.current?.click()}>
-                    <i className="bi bi-upload me-1" />{form.logo ? 'Trocar' : 'Enviar'}
+                    <i className="bi bi-upload me-1" />
+                    {form.logo ? 'Trocar' : 'Enviar'}
                   </Button>
                   {form.logo && (
                     <Button size="sm" variant="light" className="text-danger" onClick={() => set('logo', '')}>
-                      <i className="bi bi-trash me-1" />Remover
+                      <i className="bi bi-trash me-1" />
+                      Remover
                     </Button>
                   )}
                 </div>
-                <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" hidden onChange={pickLogo} />
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  hidden
+                  onChange={pickLogo}
+                />
                 {errors.logo && <div className="invalid-feedback d-block">{errors.logo}</div>}
                 <Form.Text>Se enviado, substitui o ícone.</Form.Text>
               </Col>
@@ -209,15 +269,28 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
             </div>
             <Row className="g-3">
               <Col sm={6}>
-                <ColorField label="Cor primária (botões, destaques, início do gradiente)" value={form.cor_primaria} onChange={(v) => set('cor_primaria', v)} error={errors.cor_primaria} />
+                <ColorField
+                  label="Cor primária (botões, destaques, início do gradiente)"
+                  value={form.cor_primaria}
+                  onChange={(v) => set('cor_primaria', v)}
+                  error={errors.cor_primaria}
+                />
               </Col>
               <Col sm={6}>
-                <ColorField label="Cor secundária (fim do gradiente do menu)" value={form.cor_secundaria} onChange={(v) => set('cor_secundaria', v)} error={errors.cor_secundaria} />
+                <ColorField
+                  label="Cor secundária (fim do gradiente do menu)"
+                  value={form.cor_secundaria}
+                  onChange={(v) => set('cor_secundaria', v)}
+                  error={errors.cor_secundaria}
+                />
               </Col>
             </Row>
 
             {/* ---------- Organização ---------- */}
-            <h6 className="settings-section">Organização <span className="text-muted fw-normal small">— aparece no rodapé e servirá para relatórios</span></h6>
+            <h6 className="settings-section">
+              Organização{' '}
+              <span className="text-muted fw-normal small">— aparece no rodapé e servirá para relatórios</span>
+            </h6>
             <Row className="g-3">
               <Col md={6}>{text('organizacao', 'Nome da empresa / responsável')}</Col>
               <Col md={6}>{text('telefone', 'Telefone')}</Col>
@@ -228,7 +301,8 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
             {/* ---------- Manutenção ---------- */}
             <h6 className="settings-section">Manutenção</h6>
             <Row className="g-3 align-items-center">
-              <Col sm={5} md={4}><FloatingLabel label="Manter logs por (dias)">
+              <Col sm={5} md={4}>
+                <FloatingLabel label="Manter logs por (dias)">
                   <Form.Control
                     type="number"
                     min={0}
@@ -239,7 +313,8 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
                     placeholder="dias"
                   />
                   <Form.Control.Feedback type="invalid">{errors.dias_logs}</Form.Control.Feedback>
-                </FloatingLabel></Col>
+                </FloatingLabel>
+              </Col>
               <Col sm={7} md={8} className="small text-muted">
                 Logs mais antigos são excluídos automaticamente todos os dias. Use <b>0</b> para nunca excluir.
               </Col>
@@ -247,11 +322,18 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
           </Modal.Body>
 
           <Modal.Footer className="justify-content-between">
-            <Button variant="link" className="text-muted px-0 text-decoration-none" onClick={() => setConfirmReset(true)}>
-              <i className="bi bi-arrow-counterclockwise me-1" />Restaurar padrão
+            <Button
+              variant="link"
+              className="text-muted px-0 text-decoration-none"
+              onClick={() => setConfirmReset(true)}
+            >
+              <i className="bi bi-arrow-counterclockwise me-1" />
+              Restaurar padrão
             </Button>
             <div className="d-flex gap-2">
-              <Button variant="light" onClick={close}>Cancelar</Button>
+              <Button variant="light" onClick={close}>
+                Cancelar
+              </Button>
               <Button type="submit" disabled={saving}>
                 {saving ? <Spinner size="sm" className="me-1" /> : <i className="bi bi-check-lg me-1" />}Salvar
               </Button>

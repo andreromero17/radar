@@ -17,7 +17,10 @@ const dias = 'Entre 0 e 3650 dias';
 
 export const settingsSchema = z.object({
   nome_sistema: z.string().trim().min(1, 'Informe o nome do sistema').max(40, 'Máximo de 40 caracteres'),
-  icone: z.string().trim().regex(/^[a-z0-9-]+$/, 'Nome de ícone inválido'),
+  icone: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9-]+$/, 'Nome de ícone inválido'),
   logo: z
     .string()
     .refine((v) => v === '' || LOGO.test(v), 'Formato de imagem não suportado')

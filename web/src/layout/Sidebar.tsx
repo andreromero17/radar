@@ -7,7 +7,11 @@ import BrandMark from '../components/BrandMark';
 
 function MenuLink({ item, active, collapsed }: { item: MenuItem; active: boolean; collapsed: boolean }) {
   return (
-    <Link to={item.to ?? '#'} className={`nav-link-item ${active ? 'active' : ''}`} title={collapsed ? item.label : undefined}>
+    <Link
+      to={item.to ?? '#'}
+      className={`nav-link-item ${active ? 'active' : ''}`}
+      title={collapsed ? item.label : undefined}
+    >
       <i className={`bi bi-${item.icon}`} />
       <span className="nav-label">{item.label}</span>
     </Link>
@@ -58,8 +62,14 @@ export default function Sidebar({ collapsed, mobileOpen, onToggle, onClose }: Si
       <aside className={`app-sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
           <BrandMark settings={settings} />
-          <span className="brand-text" title={settings.nome_sistema}>{settings.nome_sistema || 'Meu Sistema'}</span>
-          <button className="btn btn-sm btn-light sidebar-toggle d-none d-lg-inline-flex" onClick={onToggle} aria-label="Recolher menu">
+          <span className="brand-text" title={settings.nome_sistema}>
+            {settings.nome_sistema || 'Meu Sistema'}
+          </span>
+          <button
+            className="btn btn-sm btn-light sidebar-toggle d-none d-lg-inline-flex"
+            onClick={onToggle}
+            aria-label="Recolher menu"
+          >
             <i className="bi bi-list" />
           </button>
           <button className="btn btn-sm btn-light ms-auto d-lg-none" onClick={onClose} aria-label="Fechar menu">
@@ -78,7 +88,11 @@ export default function Sidebar({ collapsed, mobileOpen, onToggle, onClose }: Si
         </nav>
 
         <div className="sidebar-footer">
-          <button type="button" className="nav-link-item" onClick={() => alert('Autenticação entra numa próxima etapa 🙂')}>
+          <button
+            type="button"
+            className="nav-link-item"
+            onClick={() => alert('Autenticação entra numa próxima etapa 🙂')}
+          >
             <i className="bi bi-box-arrow-left" />
             <span className="nav-label">Sair</span>
           </button>

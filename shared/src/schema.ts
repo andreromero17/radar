@@ -78,7 +78,8 @@ export function validateEntity(
 ): ValidationResult {
   const src: Record<string, unknown> = { ...input };
   if (mode === 'create') {
-    for (const f of editableFields(ent)) if (src[f.name] === undefined && f.default !== undefined) src[f.name] = f.default;
+    for (const f of editableFields(ent))
+      if (src[f.name] === undefined && f.default !== undefined) src[f.name] = f.default;
   }
   const result = entitySchema(ent, mode).safeParse(src);
   if (!result.success) return { ok: false, errors: toFieldErrors(result.error) };

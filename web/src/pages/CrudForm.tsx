@@ -1,7 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, Col, Form, Row as BsRow, Spinner } from 'react-bootstrap';
-import { getEntity, validateEntity, type EntityDef, type FieldErrors, type ListResponse, type Row } from '@frame/shared';
+import {
+  getEntity,
+  validateEntity,
+  type EntityDef,
+  type FieldErrors,
+  type ListResponse,
+  type Row,
+} from '@frame/shared';
 import { api, ApiError, errorMessage } from '../lib/api';
 import { fmtDate } from '../lib/format';
 import { useToast } from '../context/ToastContext';

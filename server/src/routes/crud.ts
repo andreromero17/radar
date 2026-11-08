@@ -104,7 +104,12 @@ export function crudRouter(db: Db) {
 
     const [inserted] = await db(table).insert(toDb(data)).returning('id');
     const id = typeof inserted === 'object' ? inserted.id : inserted;
-    await addLog(db, { entidade: table, registro_id: id, acao: 'criação', detalhe: String(data[ent.labelField] ?? '') });
+    await addLog(db, {
+      entidade: table,
+      registro_id: id,
+      acao: 'criação',
+      detalhe: String(data[ent.labelField] ?? ''),
+    });
     res.status(201).json(await db(table).where({ id }).first());
   });
 

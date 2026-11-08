@@ -27,7 +27,10 @@ export function createApp({ db, logger, dbFile, corsOrigins = [], webDist }: App
   app.use((req, res, next) => {
     const start = performance.now();
     res.on('finish', () =>
-      logger.debug({ method: req.method, url: req.originalUrl, status: res.statusCode, ms: Math.round(performance.now() - start) }, 'request'),
+      logger.debug(
+        { method: req.method, url: req.originalUrl, status: res.statusCode, ms: Math.round(performance.now() - start) },
+        'request',
+      ),
     );
     next();
   });

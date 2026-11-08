@@ -63,7 +63,12 @@ export function renderMigration(diff: SchemaDiff, name: string): string {
   const down: string[] = [];
 
   for (const { table, entity } of diff.createTables) {
-    const cols = ['t.increments(\'id\');', ...entity.fields.map(columnCode), "t.text('criado_em');", "t.text('atualizado_em');"];
+    const cols = [
+      "t.increments('id');",
+      ...entity.fields.map(columnCode),
+      "t.text('criado_em');",
+      "t.text('atualizado_em');",
+    ];
     up.push(`  await knex.schema.createTable('${table}', (t) => {\n    ${cols.join('\n    ')}\n  });`);
     down.unshift(`  await knex.schema.dropTableIfExists('${table}');`);
   }
@@ -80,7 +85,8 @@ export function renderMigration(diff: SchemaDiff, name: string): string {
   }
 
   const warnings = diff.orphanColumns.map(
-    (o) => `// ⚠ Coluna ${o.table}.${o.column} existe no banco mas não na entidade.\n//   Se foi renomeada/removida, trate aqui à mão (ex.: t.renameColumn / t.dropColumn).`,
+    (o) =>
+      `// ⚠ Coluna ${o.table}.${o.column} existe no banco mas não na entidade.\n//   Se foi renomeada/removida, trate aqui à mão (ex.: t.renameColumn / t.dropColumn).`,
   );
 
   return `import type { Knex } from 'knex';

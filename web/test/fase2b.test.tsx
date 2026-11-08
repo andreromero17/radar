@@ -72,3 +72,28 @@ describe('linhas e telas plugáveis', () => {
     expect(() => registerPage({ path: 'w/relatorio', component: Lista })).toThrow(/já registrada/);
   });
 });
+
+describe('valores iniciais do formulário', () => {
+  it('padrões da entidade, sobrepostos pela URL', async () => {
+    const { defaults } = await import('../src/lib/formValues');
+    const ent: EntityDef = {
+      label: 'L',
+      singular: 'L',
+      icon: 'x',
+      labelField: 'a',
+      fields: [
+        { name: 'tipo', label: 'Tipo', type: 'select', options: ['A', 'B'], default: 'A' },
+        { name: 'pago', label: 'Pago', type: 'boolean', default: true },
+        { name: 'tags', label: 'Tags', type: 'multiselect', options: ['x', 'y'] },
+        { name: 'codigo', label: 'Código', type: 'text', readonly: true },
+      ],
+    };
+    expect(defaults(ent)).toEqual({ tipo: 'A', pago: true, tags: [], codigo: '' });
+    expect(defaults(ent, new URLSearchParams('tipo=B&pago=0&tags=x&tags=y&codigo=hack'))).toEqual({
+      tipo: 'B',
+      pago: false,
+      tags: ['x', 'y'],
+      codigo: '',
+    });
+  });
+});

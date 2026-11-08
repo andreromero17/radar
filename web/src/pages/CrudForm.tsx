@@ -1,9 +1,8 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button, Card, Col, Form, Row as BsRow, Spinner } from 'react-bootstrap';
 import {
   computeFields,
-  defaultValue,
   detailEntity,
   detailSums,
   getEntity,
@@ -25,10 +24,10 @@ import FieldInput, { type FormValue, type Option } from '../components/FieldInpu
 import DetailTable from '../components/DetailTable';
 import AnexosCard from '../components/AnexosCard';
 import { fromApiRows, newDetailRow, toApiRows, type DetailRow } from '../lib/details';
+import { defaults, empty, type Values } from '../lib/formValues';
 import NotFound from './NotFound';
 import Forbidden from './Forbidden';
 
-type Values = Record<string, FormValue>;
 type Details = Record<string, DetailRow[]>;
 
 /** Sub-tabelas de um registro novo: já com as linhas mínimas */
@@ -46,12 +45,6 @@ interface Props {
   /** Conteúdo extra abaixo do formulário */
   after?: ReactNode;
 }
-
-const empty = (type: string): FormValue =>
-  type === 'boolean' ? false : type === 'permissions' ? {} : type === 'multiselect' ? [] : '';
-
-const defaults = (ent: EntityDef): Values =>
-  Object.fromEntries(ent.fields.map((f) => [f.name, defaultValue(f) ?? empty(f.type)]));
 
 const fromRow = (ent: EntityDef, r: Row): Values =>
   Object.fromEntries(
@@ -73,6 +66,8 @@ export default function CrudForm(props: Props) {
   const params = useParams();
   const entity = props.entity ?? params.entity ?? '';
   const { id } = params;
+  const [search] = useSearchParams();
+  const preset = search.toString();
   const isNew = !id;
   const ent = getEntity(entity);
   const navigate = useNavigate();
@@ -81,7 +76,7 @@ export default function CrudForm(props: Props) {
   const allowed = !!ent && can(entity, isNew ? 'criar' : 'ver');
   const readOnly = !isNew && !can(entity, 'editar');
 
-  const [values, setValues] = useState<Values>(() => (ent ? defaults(ent) : {}));
+  const [values, setValues] = useState<Values>(() => (ent ? defaults(ent, search) : {}));
   const [details, setDetails] = useState<Details>(() => (ent ? emptyDetails(ent) : {}));
   const [record, setRecord] = useState<Row | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -94,7 +89,7 @@ export default function CrudForm(props: Props) {
     if (!ent || !allowed) return;
     setErrors({});
     if (isNew) {
-      setValues(defaults(ent));
+      setValues(defaults(ent, new URLSearchParams(preset)));
       setDetails(emptyDetails(ent));
       setRecord(null);
       setLoading(false);
@@ -110,7 +105,7 @@ export default function CrudForm(props: Props) {
       })
       .catch((e) => toast.error(errorMessage(e)))
       .finally(() => setLoading(false));
-  }, [entity, id, ent, isNew, toast, allowed]);
+  }, [entity, id, ent, isNew, toast, allowed, preset]);
 
   // Carrega as opções dos campos de relacionamento (só id + nome)
   useEffect(() => {

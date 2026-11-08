@@ -13,8 +13,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "setup": "npm install && npm run env:init && npm run db:migrate && npm run db:seed",
+    "setup": "npm install && npm run hooks && npm run env:init && npm run db:migrate && npm run db:seed",
     "env:init": "node scripts/env-init.mjs",
+    "hooks": "husky",
     "dev": "concurrently -n api,web -c blue,magenta \"npm run dev -w server\" \"npm run dev -w web\"",
     "build": "npm run build -w web && npm run build -w server",
     "start": "npm run start -w server",
@@ -29,8 +30,7 @@
     "db:status": "npm run db -w server -- status",
     "db:diff": "npm run db -w server -- diff",
     "db:seed": "npm run db -w server -- seed",
-    "db:reset": "npm run db -w server -- reset",
-    "prepare": "husky || true"
+    "db:reset": "npm run db -w server -- reset"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs}": [

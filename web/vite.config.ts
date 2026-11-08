@@ -4,6 +4,17 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
 // Versão exibida no menu: package.json da raiz + commit do git (ou APP_COMMIT)
+// Módulo de demonstração: lê DEMO do server/.env (ou do ambiente) para o front saber se mostra os cadastros
+const readDemo = () => {
+  if (process.env.DEMO) return process.env.DEMO === 'true';
+  try {
+    const env = readFileSync(new URL('../server/.env', import.meta.url), 'utf8');
+    return /^\s*DEMO\s*=\s*true\s*$/m.test(env);
+  } catch {
+    return false;
+  }
+};
+
 const version: string = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 let commit = process.env.APP_COMMIT ?? '';
 if (!commit) {
@@ -21,6 +32,7 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(version),
     __APP_COMMIT__: JSON.stringify(commit),
+    __DEMO__: JSON.stringify(readDemo()),
   },
   server: {
     port: 5173,

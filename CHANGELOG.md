@@ -4,6 +4,25 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.4.0 — 08/11/2026
+
+**Fase 2A: motor de CRUD maduro (listagem, campos e lixeira)**
+
+- Tipos de campo novos: `document` (CPF/CNPJ com dígito verificador), `phone`, `color`, `multiselect`, `percent`;
+  `money` com máscara BRL, `min`/`max` e `signColors` (negativo em vermelho, positivo em verde)
+- Listagem: ordenação clicando no cabeçalho, painel de filtros gerado pelos campos (seleção múltipla, faixa de
+  datas e valores, "contém"), chips de filtros ativos, seletor de período (`periodField`) que abre no mês atual,
+  linha de totais (`total: 'sum'`), itens por página, colunas visíveis por usuário
+- Exportar a listagem para Excel (.xlsx) ou CSV com os mesmos filtros e colunas da tela
+- Seleção de linhas e ações em lote (editar um campo, excluir, restaurar), cada registro com as mesmas regras e log
+- Lixeira (`lixeira: true`): excluir envia para a lixeira, que tem tela própria para restaurar ou excluir de vez;
+  esvaziamento automático configurável ("Esvaziar lixeira após N dias")
+- Formulário em seções (`section`) e selects dependentes (`dependsOn`: categoria conforme o tipo)
+- `defaultSort` e `group` (grupo na matriz de permissões) por entidade
+- Módulo de demonstração (`DEMO=true` no `server/.env`): clientes, categorias e movimentos de exemplo com todos os
+  recursos acima, em tabelas `demo_*` criadas fora das migrações
+- Rotas novas: `GET /api/:entidade/exportar`, `POST /api/:entidade/lote`, `POST /api/:entidade/:id/restaurar`
+
 ## 0.3.0 — 08/11/2026
 
 **Núcleo genérico (o frame não tem mais nada de "sistema de chamados")**

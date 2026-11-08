@@ -8,7 +8,10 @@ import { purgeExpiredAuth } from './auth/sessions';
 import { activeAdmins } from './hooks/usuarios';
 import { purgeLogs } from './services/logs';
 import { createMailer } from './services/mailer';
+import { setupDemo } from './demo/setup';
 import { getSettings } from './services/settings';
+import { purgeTrash } from './services/records';
+import { entities } from '@frame/shared';
 
 const db = createDb(config.dbFile);
 
@@ -32,11 +35,18 @@ if (pending.length) {
   logger.info({ applied }, 'migrações aplicadas');
 }
 
-// Manutenção diária: logs antigos, sessões vencidas, links de senha usados
+if (config.demo) {
+  const populou = await setupDemo(db);
+  logger.info(populou ? 'módulo de demonstração ativo (dados de exemplo criados)' : 'módulo de demonstração ativo');
+}
+
+// Manutenção diária: logs antigos, sessões vencidas, links de senha usados, lixeira vencida
 const manutencao = async () => {
-  const logs = await purgeLogs(db, (await getSettings(db)).dias_logs);
+  const settings = await getSettings(db);
+  const logs = await purgeLogs(db, settings.dias_logs);
   const acessos = await purgeExpiredAuth(db);
-  if (logs || acessos) logger.info({ logs, acessos }, 'limpeza de registros antigos');
+  const lixeira = await purgeTrash(db, entities, settings.dias_lixeira);
+  if (logs || acessos || lixeira) logger.info({ logs, acessos, lixeira }, 'limpeza de registros antigos');
 };
 await manutencao();
 setInterval(() => manutencao().catch((err) => logger.error({ err }, 'falha na manutenção')), 86_400_000).unref();

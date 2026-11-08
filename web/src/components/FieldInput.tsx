@@ -1,10 +1,11 @@
-import { Form } from 'react-bootstrap';
-import type { FieldDef, Permissions } from '@frame/shared';
+import { Form, InputGroup } from 'react-bootstrap';
+import { maskDocument, maskPhone, type FieldDef, type Permissions } from '@frame/shared';
+import MoneyInput from './MoneyInput';
 import PasswordInput from './PasswordInput';
 import PermissionMatrix from './PermissionMatrix';
 import { fmtDate } from '../lib/format';
 
-export type FormValue = string | number | boolean | null | undefined | Permissions;
+export type FormValue = string | number | boolean | null | undefined | Permissions | string[];
 export interface Option {
   value: number | string;
   label: string;
@@ -60,6 +61,8 @@ export default function FieldInput({
   }
 
   let input;
+  /** campos compostos (grupo/vários elementos) mostram o erro fora do controle */
+  let composite = false;
   switch (f.type) {
     case 'textarea':
       input = <Form.Control as="textarea" rows={4} value={text} onChange={(e) => set(e.target.value)} {...common} />;
@@ -88,18 +91,125 @@ export default function FieldInput({
         </Form.Select>
       );
       break;
-    case 'number':
     case 'money':
+      input = (
+        <MoneyInput
+          id={f.name}
+          value={value as number | null}
+          onChange={set}
+          isInvalid={!!error}
+          disabled={isDisabled}
+          allowNegative={f.min === undefined || f.min < 0}
+        />
+      );
+      composite = true;
+      break;
+    case 'number':
       input = (
         <Form.Control
           type="number"
-          step={f.type === 'money' ? '0.01' : 'any'}
+          step="any"
+          min={f.min}
+          max={f.max}
           value={text}
           onChange={(e) => set(e.target.value)}
           {...common}
         />
       );
       break;
+    case 'percent':
+      input = (
+        <InputGroup hasValidation>
+          <Form.Control
+            type="number"
+            step="any"
+            min={f.min}
+            max={f.max}
+            className="text-end"
+            value={text}
+            onChange={(e) => set(e.target.value)}
+            {...common}
+          />
+          <InputGroup.Text>%</InputGroup.Text>
+        </InputGroup>
+      );
+      composite = true;
+      break;
+    case 'document':
+      input = (
+        <Form.Control
+          inputMode="numeric"
+          value={text}
+          placeholder={
+            f.docType === 'cnpj' ? '00.000.000/0000-00' : f.docType === 'cpf' ? '000.000.000-00' : 'CPF ou CNPJ'
+          }
+          onChange={(e) => set(maskDocument(e.target.value, f.docType))}
+          {...common}
+        />
+      );
+      break;
+    case 'phone':
+      input = (
+        <Form.Control
+          type="tel"
+          inputMode="tel"
+          value={text}
+          placeholder="(00) 00000-0000"
+          onChange={(e) => set(maskPhone(e.target.value))}
+          {...common}
+        />
+      );
+      break;
+    case 'color':
+      input = (
+        <div className="d-flex gap-2">
+          <Form.Control
+            type="color"
+            className="form-control-color flex-shrink-0"
+            value={/^#[0-9a-f]{6}$/i.test(text) ? text : '#000000'}
+            onChange={(e) => set(e.target.value)}
+            disabled={isDisabled}
+            aria-label={`${f.label} (seletor)`}
+          />
+          <Form.Control
+            value={text}
+            maxLength={7}
+            className="font-monospace"
+            placeholder="#RRGGBB"
+            onChange={(e) => set(e.target.value)}
+            {...common}
+          />
+        </div>
+      );
+      composite = true;
+      break;
+    case 'multiselect': {
+      const sel = Array.isArray(value) ? (value as string[]) : [];
+      input = (
+        <div className={`chip-select ${error ? 'is-invalid' : ''}`} role="group" aria-label={f.label} id={f.name}>
+          {f.options?.map((o) => {
+            const on = sel.includes(o);
+            const cor = f.colors?.[o];
+            return (
+              <button
+                type="button"
+                key={o}
+                disabled={isDisabled}
+                aria-pressed={on}
+                className={`chip-option ${on ? 'on' : ''}`}
+                style={on && cor ? { background: cor, borderColor: cor } : undefined}
+                onClick={() => set(on ? sel.filter((x) => x !== o) : [...sel, o])}
+              >
+                {on && <i className="bi bi-check-lg me-1" />}
+                {o}
+              </button>
+            );
+          })}
+        </div>
+      );
+      composite = true;
+      break;
+    }
     case 'date':
       input = <Form.Control type="date" value={text} onChange={(e) => set(e.target.value)} {...common} />;
       break;
@@ -166,7 +276,11 @@ export default function FieldInput({
     <Form.Group>
       <Label f={f} required={required} />
       {input}
-      <Form.Control.Feedback type="invalid">{error}</Form.Control.Feedback>
+      {composite ? (
+        error && <div className="invalid-feedback d-block">{error}</div>
+      ) : (
+        <Form.Control.Feedback type="invalid">{error}</Form.Control.Feedback>
+      )}
       {help && <Form.Text>{help}</Form.Text>}
     </Form.Group>
   );

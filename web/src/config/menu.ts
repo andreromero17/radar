@@ -5,6 +5,7 @@
 // =============================================================================
 import type { Action } from '@frame/shared';
 import { appMenu } from '../app/menu';
+import { demoMenu } from '../demo/menu';
 
 export interface MenuItem {
   label: string;
@@ -17,6 +18,7 @@ export interface MenuItem {
 export const menu: MenuItem[] = [
   { label: 'Dashboard', icon: 'speedometer2', to: '/' },
   ...appMenu,
+  ...(__DEMO__ ? demoMenu : []),
   {
     label: 'Administração',
     icon: 'sliders',

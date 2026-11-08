@@ -1,11 +1,12 @@
 {
   "name": "@frame/shared",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "Tipos, definição das entidades e validação compartilhados entre server e web",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./demo": "./src/demo/entities.ts"
   },
   "scripts": {
     "test": "vitest run",

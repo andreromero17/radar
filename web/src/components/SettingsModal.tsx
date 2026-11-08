@@ -349,6 +349,24 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
               <Col sm={7} md={8} className="small text-muted">
                 Logs mais antigos são excluídos automaticamente todos os dias. Use <b>0</b> para nunca excluir.
               </Col>
+              <Col sm={5} md={4}>
+                <FloatingLabel label="Esvaziar lixeira após (dias)">
+                  <Form.Control
+                    type="number"
+                    min={0}
+                    max={3650}
+                    value={form.dias_lixeira}
+                    onChange={(e) => set('dias_lixeira', e.target.value === '' ? 0 : Number(e.target.value))}
+                    isInvalid={!!errors.dias_lixeira}
+                    placeholder="dias"
+                  />
+                  <Form.Control.Feedback type="invalid">{errors.dias_lixeira}</Form.Control.Feedback>
+                </FloatingLabel>
+              </Col>
+              <Col sm={7} md={8} className="small text-muted">
+                Registros excluídos ficam na lixeira por esse prazo e depois são apagados de vez. Use <b>0</b> para
+                manter para sempre.
+              </Col>
             </Row>
           </Modal.Body>
 

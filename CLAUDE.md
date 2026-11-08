@@ -5,7 +5,7 @@
 Frame genérico de aplicação web responsiva (menu, CRUD dirigido por configuração, dashboard,
 configurações) que serve de base para vários sistemas. Primeiro sistema em cima dele: gestão de
 finanças pessoais. Interface, mensagens e nomes de tabelas/campos em português do Brasil.
-Roadmap em `ROADMAP.md` (Fases 0 e 1 concluídas).
+Roadmap em `ROADMAP.md` (Fases 0, 1 e 2A concluídas).
 
 ## Stack
 
@@ -67,6 +67,11 @@ Roadmap em `ROADMAP.md` (Fases 0 e 1 concluídas).
   sempre um admin ativo, só admin gerencia admin, derrubar sessões).
 - **Campos especiais:** `password` nunca sai da API (removido em `present()` no CRUD), não é filtrável/ordenável,
   vai para o banco como hash e para o log só como "(alterada)". `permissions` é JSON normalizado.
+- **Motor de registros:** `server/src/services/records.ts` (listar com filtros/período/ordenação/totais, criar, editar,
+  lixeira, restaurar, opções de relação) — `routes/crud.ts` só valida permissão e chama o serviço. Exportação em
+  `services/export.ts`. Entidade com `lixeira: true` ganha a coluna `excluido_em` (via `tableFields` no diff).
+- **Módulo de demonstração:** `shared/src/demo/`, `server/src/demo/setup.ts`, `web/src/demo/menu.ts`; ligado por
+  `DEMO=true` no `.env` (o Vite lê o mesmo arquivo e define `__DEMO__`). Tabelas `demo_*` fora das migrações.
 - **Logs:** `addLog(db, entrada, actor)` com `diffRecord()` → coluna `alteracoes` `{ campo: { de, para } }`.
 - **Front:** `AuthContext` (`useAuth`), `RouteGuards` (`RequireAuth`, `PublicOnly`, `Guard`). A camada `lib/api.ts`
   dispara eventos em 401/TROCAR_SENHA. Relações no form usam `GET /api/:entidade/opcoes` (liberado a qualquer logado).

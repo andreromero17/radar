@@ -65,3 +65,18 @@ describe('versão e dispositivo', () => {
     expect(describeUserAgent(null)).toBe('Dispositivo desconhecido');
   });
 });
+
+describe('datas no fuso do Brasil (regressão)', () => {
+  it('data sem hora não vira o dia anterior', async () => {
+    const tz = process.env.TZ;
+    process.env.TZ = 'America/Sao_Paulo';
+    try {
+      const { fmtDate } = await import('../src/lib/format');
+      expect(fmtDate('2026-10-28')).toBe('28/10/2026');
+      expect(fmtDate('2026-01-01')).toBe('01/01/2026');
+      expect(fmtDate('2026-10-28 23:30:00', true)).toBe('28/10/2026, 23:30');
+    } finally {
+      process.env.TZ = tz;
+    }
+  });
+});

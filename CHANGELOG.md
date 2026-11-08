@@ -10,6 +10,8 @@ novidades, **CORREÇÃO** só corrige.
   (formulário, listagem, colunas, filtros, exportação, importação); filtrável pela URL
 - `createOnly` no campo: só no formulário de criação; ignorado nas atualizações
 - `server/src/app/maintenance.ts` (`appMaintenance`): manutenção diária da aplicação, no boot e a cada 24 h
+- **Correção:** datas sem hora apareciam um dia antes nas telas em fusos negativos (Brasil): `fmtDate` lia
+  `2026-10-28` como meia-noite UTC
 
 ## 0.5.1 — 08/11/2026
 

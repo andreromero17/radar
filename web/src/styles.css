@@ -667,6 +667,162 @@ a.bg-grad-yellow:hover {
   border-bottom: 0;
 }
 
+/* ---------- Sub-tabelas (master-detail) ---------- */
+.detail-section {
+  margin-top: 1.75rem;
+}
+.detail-table {
+  --bs-table-bg: transparent;
+}
+.detail-table th {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6b7280;
+  white-space: nowrap;
+  border-bottom-width: 1px;
+}
+.detail-table td {
+  vertical-align: top;
+  padding: 0.35rem 0.25rem;
+}
+.detail-table .col-num {
+  width: 2rem;
+  padding-top: 0.75rem;
+  text-align: center;
+}
+.detail-table .col-acao {
+  width: 2.75rem;
+}
+.detail-table .form-control,
+.detail-table .form-select {
+  font-size: 0.9rem;
+}
+.detail-table input[type='number'] {
+  text-align: right;
+}
+.detail-table tfoot .table-total td {
+  font-weight: 800;
+  padding-top: 0.6rem;
+  border-bottom: 0;
+}
+
+/* ---------- Anexos ---------- */
+.anexos-body {
+  transition: background 0.12s;
+}
+.anexos-body.dragging {
+  background: rgba(var(--brand-1-rgb), 0.06);
+  outline: 2px dashed var(--brand-1);
+  outline-offset: -6px;
+}
+.anexos-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid #f1f3f7;
+}
+.anexos-list li:last-child {
+  border-bottom: 0;
+}
+.min-w-0 {
+  min-width: 0;
+}
+.anexos-list a,
+.anexos-list .fw-semibold {
+  word-break: break-word;
+}
+
+/* ---------- Importação ---------- */
+.import-map {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.5rem 1.25rem;
+}
+.import-map-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.2fr);
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+.import-preview {
+  max-height: 340px;
+  overflow: auto;
+  border: 1px solid #eef0f5;
+  border-radius: 0.5rem;
+}
+.import-preview thead th {
+  position: sticky;
+  top: 0;
+  background: #f8f9fc;
+}
+
+/* ---------- Demonstração: cards de categoria ---------- */
+.categoria-card {
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s;
+}
+.categoria-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(31, 41, 55, 0.1);
+}
+
+/* Sub-tabela no celular: cada linha vira um card com os rótulos */
+@media (max-width: 767.98px) {
+  .detail-table thead {
+    display: none;
+  }
+  .detail-table,
+  .detail-table tbody,
+  .detail-table tfoot,
+  .detail-table tr,
+  .detail-table td {
+    display: block;
+    width: 100% !important;
+  }
+  .detail-table tbody tr {
+    position: relative;
+    border: 1px solid #eef0f5;
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem 0.25rem;
+    margin-bottom: 0.75rem;
+  }
+  .detail-table td {
+    border: 0;
+    padding: 0.25rem 0;
+  }
+  .detail-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 0.15rem;
+  }
+  .detail-table .col-num {
+    font-weight: 800;
+    text-align: left;
+    padding-top: 0;
+  }
+  .detail-table .col-acao {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.5rem;
+    width: auto !important;
+  }
+  .detail-table tfoot .col-num,
+  .detail-table tfoot .total-vazio,
+  .detail-table tfoot td:not([data-label]) {
+    display: none;
+  }
+  .detail-table tfoot td[data-label] {
+    display: flex;
+    justify-content: space-between;
+  }
+}
+
 /* ---------- Mobile ---------- */
 @media (max-width: 991.98px) {
   .list-actions {

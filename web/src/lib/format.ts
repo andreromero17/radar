@@ -13,10 +13,11 @@ export const fmtMoney = (v: unknown) =>
 export const fmtPercent = (v: unknown) =>
   v == null || v === '' ? '—' : `${Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
 
+/** Tamanho de arquivo: 512 B · 34 KB · 2,4 MB */
 export function fmtBytes(n: number): string {
   if (n < 1024) return `${n} B`;
-  if (n < 1024 ** 2) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 ** 2).toFixed(1)} MB`;
+  if (n < 1024 ** 2) return `${Math.round(n / 1024)} KB`;
+  return `${(n / 1024 ** 2).toFixed(1).replace('.', ',')} MB`;
 }
 
 /** Iniciais para o avatar: "Ana Souza" → "AS" */

@@ -23,6 +23,10 @@ interface Props {
   isNew?: boolean;
   /** Valores do formulário inteiro (para campos que dependem de outros) */
   values?: Record<string, FormValue>;
+  /** id do input (padrão: nome do campo); necessário quando o campo se repete, como nas sub-tabelas */
+  inputId?: string;
+  /** Só o controle, sem rótulo nem ajuda (células de sub-tabela) */
+  bare?: boolean;
 }
 
 /** Renderiza o input adequado ao tipo do campo definido nas entidades */
@@ -35,12 +39,15 @@ export default function FieldInput({
   disabled,
   isNew = true,
   values,
+  inputId,
+  bare,
 }: Props) {
+  const id = inputId ?? f.name;
   const set = (v: FormValue) => onChange(f.name, v);
   const text = value == null || typeof value === 'object' ? '' : String(value);
-  const isDisabled = disabled || f.readonly;
+  const isDisabled = disabled || f.readonly || !!f.compute;
   const required = !disabled && f.required && (f.type !== 'password' || isNew);
-  const common = { id: f.name, isInvalid: !!error, disabled: isDisabled, required };
+  const common = { id, isInvalid: !!error, disabled: isDisabled, required, ...(bare && { 'aria-label': f.label }) };
   let help = f.help;
 
   if (f.type === 'boolean') {
@@ -48,12 +55,13 @@ export default function FieldInput({
       <Form.Group>
         <Form.Check
           type="switch"
-          id={f.name}
-          label={f.label}
+          id={id}
+          label={bare ? undefined : f.label}
+          aria-label={bare ? f.label : undefined}
           checked={!!value}
           disabled={isDisabled}
           onChange={(e) => set(e.target.checked)}
-          className="mt-md-4 pt-md-2 fw-semibold"
+          className={bare ? '' : 'mt-md-4 pt-md-2 fw-semibold'}
         />
         {help && <Form.Text className="d-block">{help}</Form.Text>}
       </Form.Group>
@@ -94,7 +102,7 @@ export default function FieldInput({
     case 'money':
       input = (
         <MoneyInput
-          id={f.name}
+          id={id}
           value={value as number | null}
           onChange={set}
           isInvalid={!!error}
@@ -186,7 +194,7 @@ export default function FieldInput({
     case 'multiselect': {
       const sel = Array.isArray(value) ? (value as string[]) : [];
       input = (
-        <div className={`chip-select ${error ? 'is-invalid' : ''}`} role="group" aria-label={f.label} id={f.name}>
+        <div className={`chip-select ${error ? 'is-invalid' : ''}`} role="group" aria-label={f.label} id={id}>
           {f.options?.map((o) => {
             const on = sel.includes(o);
             const cor = f.colors?.[o];
@@ -215,7 +223,7 @@ export default function FieldInput({
       break;
     case 'datetime':
       input = f.readonly ? (
-        <Form.Control value={text ? fmtDate(text, true) : '—'} disabled id={f.name} />
+        <Form.Control value={text ? fmtDate(text, true) : '—'} disabled id={id} />
       ) : (
         <Form.Control
           type="datetime-local"
@@ -229,7 +237,7 @@ export default function FieldInput({
       if (!isNew) help = 'Preencha só se quiser definir uma nova senha.';
       input = (
         <PasswordInput
-          id={f.name}
+          id={id}
           value={text}
           onChange={set}
           isInvalid={!!error}
@@ -272,9 +280,17 @@ export default function FieldInput({
       );
   }
 
+  if (bare)
+    return (
+      <>
+        {input}
+        {error && <div className="invalid-feedback d-block small">{error}</div>}
+      </>
+    );
+
   return (
     <Form.Group>
-      <Label f={f} required={required} />
+      <Label f={f} required={required} id={id} />
       {input}
       {composite ? (
         error && <div className="invalid-feedback d-block">{error}</div>
@@ -286,9 +302,9 @@ export default function FieldInput({
   );
 }
 
-function Label({ f, required }: { f: FieldDef; required?: boolean }) {
+function Label({ f, required, id }: { f: FieldDef; required?: boolean; id?: string }) {
   return (
-    <Form.Label htmlFor={f.name} className="fw-semibold small">
+    <Form.Label htmlFor={id ?? f.name} className="fw-semibold small">
       {f.label} {required && <span className="text-danger">*</span>}
     </Form.Label>
   );

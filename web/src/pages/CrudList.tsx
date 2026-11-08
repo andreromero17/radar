@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Alert, Button, Card, Dropdown, Form, InputGroup, Pagination, Spinner, Table } from 'react-bootstrap';
 import {
+  canImport,
   getEntity,
   type BulkRequest,
   type BulkResponse,
@@ -10,7 +11,7 @@ import {
   type RelationOption,
   type Row,
 } from '@frame/shared';
-import { api, errorMessage } from '../lib/api';
+import { api, download, errorMessage } from '../lib/api';
 import { activeFilters, bulkEditableFields, filterableFields, listableFields, monthRange } from '../lib/listParams';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +25,7 @@ import PeriodNav from '../components/list/PeriodNav';
 import FilterPanel from '../components/list/FilterPanel';
 import ColumnChooser from '../components/list/ColumnChooser';
 import BulkEditModal from '../components/list/BulkEditModal';
+import ImportModal from '../components/list/ImportModal';
 
 const PAGE_SIZES = [10, 25, 50, 100];
 
@@ -48,8 +50,16 @@ function saveCols(key: string, cols: string[] | null) {
 
 type Confirm = { kind: 'excluir' | 'definitivo' | 'lote_excluir' | 'lote_definitivo'; row?: Row } | null;
 
-export default function CrudList() {
-  const { entity = '' } = useParams();
+interface Props {
+  /** Entidade (padrão: a da URL) — para telas próprias que reaproveitam a listagem genérica */
+  entity?: string;
+  /** Conteúdo extra entre o título e a tabela (cards, avisos, gráficos...) */
+  before?: ReactNode;
+}
+
+export default function CrudList(props: Props) {
+  const params0 = useParams();
+  const entity = props.entity ?? params0.entity ?? '';
   const ent = getEntity(entity);
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
@@ -70,6 +80,7 @@ export default function CrudList() {
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [bulkErrors, setBulkErrors] = useState<BulkResponse['erros']>([]);
   const [relOptions, setRelOptions] = useState<Record<string, Option[]>>({});
@@ -155,6 +166,7 @@ export default function CrudList() {
   const podeCriar = can(entity, 'criar');
   const podeEditar = can(entity, 'editar');
   const podeExcluir = can(entity, 'excluir');
+  const podeImportar = !trash && podeCriar && canImport(entity, ent);
 
   const colNames = (savedCols ?? defaultCols).filter((n) => available.some((f) => f.name === n));
   const cols = available.filter((f) => colNames.includes(f.name));
@@ -188,13 +200,7 @@ export default function CrudList() {
   };
 
   const exportar = (formato: 'csv' | 'xlsx') => {
-    const qs = queryString({ formato, colunas: colNames.join(',') });
-    const a = document.createElement('a');
-    a.href = `/api/${entity}/exportar?${qs}`;
-    a.rel = 'noopener';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    download(`/${entity}/exportar?${queryString({ formato, colunas: colNames.join(',') })}`);
   };
 
   const toggleRow = (id: number) =>
@@ -333,6 +339,8 @@ export default function CrudList() {
         </Alert>
       )}
 
+      {props.before}
+
       {bulkErrors.length > 0 && (
         <Alert variant="warning" dismissible onClose={() => setBulkErrors([])} className="small">
           <div className="fw-bold mb-1">Alguns registros não foram alterados:</div>
@@ -388,11 +396,17 @@ export default function CrudList() {
               }}
             />
             <Dropdown align="end">
-              <Dropdown.Toggle variant="light" size="sm" className="border" title="Exportar">
-                <i className="bi bi-download" />
-                <span className="d-none d-xl-inline ms-1">Exportar</span>
+              <Dropdown.Toggle
+                variant="light"
+                size="sm"
+                className="border"
+                title={podeImportar ? 'Exportar ou importar planilha' : 'Exportar'}
+              >
+                <i className={`bi bi-${podeImportar ? 'file-earmark-spreadsheet' : 'download'}`} />
+                <span className="d-none d-xl-inline ms-1">{podeImportar ? 'Planilha' : 'Exportar'}</span>
               </Dropdown.Toggle>
               <Dropdown.Menu>
+                <Dropdown.Header>Exportar o que está na tela</Dropdown.Header>
                 <Dropdown.Item onClick={() => exportar('xlsx')}>
                   <i className="bi bi-file-earmark-excel me-2 text-success" />
                   Excel (.xlsx)
@@ -401,6 +415,15 @@ export default function CrudList() {
                   <i className="bi bi-filetype-csv me-2" />
                   CSV
                 </Dropdown.Item>
+                {podeImportar && (
+                  <>
+                    <Dropdown.Divider />
+                    <Dropdown.Item onClick={() => setShowImport(true)}>
+                      <i className="bi bi-upload me-2" />
+                      Importar planilha...
+                    </Dropdown.Item>
+                  </>
+                )}
               </Dropdown.Menu>
             </Dropdown>
           </div>
@@ -637,6 +660,10 @@ export default function CrudList() {
         onApply={(next) => setParams(next)}
         relOptions={relOptions}
       />
+
+      {podeImportar && (
+        <ImportModal show={showImport} entity={entity} ent={ent} onHide={() => setShowImport(false)} onDone={load} />
+      )}
 
       <BulkEditModal
         show={showBulkEdit}

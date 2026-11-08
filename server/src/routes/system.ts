@@ -4,6 +4,7 @@ import path from 'node:path';
 import { Router, type Request } from 'express';
 import {
   entities,
+  mainEntities,
   settingsUpdateSchema,
   can,
   toFieldErrors,
@@ -49,8 +50,11 @@ export function systemRouter(db: Db, opts: { dbFile: string }) {
   router.get('/dashboard/resumo', async (req, res) => {
     const user = userOf(req);
     const totais = [];
-    for (const entidade of Object.keys(entities)) {
-      if (can(user, entidade, 'ver')) totais.push({ entidade, total: await count(db(entidade)) });
+    for (const [entidade, ent] of mainEntities()) {
+      if (!can(user, entidade, 'ver')) continue;
+      const q = db(entidade);
+      if (ent.lixeira) q.whereNull('excluido_em'); // fora da lixeira
+      totais.push({ entidade, total: await count(q) });
     }
     res.json({ totais } satisfies DashboardSummary);
   });

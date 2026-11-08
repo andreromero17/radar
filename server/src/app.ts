@@ -12,6 +12,7 @@ import { authRouter } from './routes/auth';
 import { crudRouter } from './routes/crud';
 import { systemRouter } from './routes/system';
 import type { Mailer } from './services/mailer';
+import { configureAnexos } from './services/anexos';
 import { getPublicSettings } from './services/settings';
 import { HttpError } from './utils/http';
 import { VERSION } from './version';
@@ -29,6 +30,9 @@ export interface AppOptions {
   cookieSecure?: boolean;
   /** Quantos proxies confiáveis na frente do servidor (IP real do cliente) */
   trustProxy?: number;
+  /** Pasta dos anexos e limite de tamanho (MB) de upload/importação */
+  uploadDir?: string;
+  uploadMaxMb?: number;
   /** Pasta do front buildado; servida quando existir (produção) */
   webDist?: string;
 }
@@ -38,6 +42,8 @@ export function createApp(opts: AppOptions) {
   const { db, logger, dbFile, corsOrigins = [], webDist } = opts;
   const session = { sessionHours: opts.sessionHours ?? 12, rememberDays: opts.rememberDays ?? 30 };
   const app = express();
+  const uploadMaxMb = opts.uploadMaxMb ?? 10;
+  if (opts.uploadDir) configureAnexos({ dir: opts.uploadDir, maxMb: uploadMaxMb });
 
   app.disable('x-powered-by');
   app.set('trust proxy', opts.trustProxy ?? 0);
@@ -103,7 +109,7 @@ export function createApp(opts: AppOptions) {
   app.use('/api', requireAuth);
   app.use('/api', systemRouter(db, { dbFile })); // antes do CRUD genérico
   app.use('/api', appRouter(db)); // rotas próprias da aplicação
-  app.use('/api', crudRouter(db));
+  app.use('/api', crudRouter(db, { uploadMaxMb }));
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Rota não encontrada' });
   });

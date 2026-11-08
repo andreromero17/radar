@@ -7,12 +7,18 @@ import './styles.css';
 import { registerEntities } from '@frame/shared';
 import { demoEntities } from '@frame/shared/demo';
 import App from './App';
+import { registerAppScreens } from './app/screens';
+import { registerDemoScreens } from './demo/screens';
 import { ToastProvider } from './context/ToastContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { AuthProvider } from './context/AuthContext';
 
 // Módulo de demonstração (DEMO=true no server/.env); some do build quando desligado
-if (__DEMO__) registerEntities(demoEntities);
+if (__DEMO__) {
+  registerEntities(demoEntities);
+  registerDemoScreens();
+}
+registerAppScreens();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

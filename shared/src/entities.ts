@@ -27,7 +27,17 @@ export function getEntity(name: string | undefined): EntityDef | undefined {
   return name && Object.hasOwn(entities, name) ? entities[name] : undefined;
 }
 
-/** Campos que o usuário pode preencher (exclui somente-leitura e gerados). */
+/** Campos do "pai" preenchidos pela soma das sub-tabelas */
+export const summedFields = (ent: EntityDef) => new Set((ent.details ?? []).flatMap((d) => Object.keys(d.sum ?? {})));
+
+/** Campos que o usuário pode preencher (exclui somente-leitura, gerados, calculados e somas). */
 export function editableFields(ent: EntityDef) {
-  return ent.fields.filter((f) => !f.readonly && !f.auto);
+  const somas = summedFields(ent);
+  return ent.fields.filter((f) => !f.readonly && !f.auto && !f.compute && !somas.has(f.name));
 }
+
+/** Entidades que aparecem como cadastro próprio (exclui sub-tabelas) */
+export const mainEntities = () => Object.entries(entities).filter(([, e]) => !e.detailOf);
+
+/** A entidade aceita importação de CSV/Excel? (padrão: sim, menos núcleo e sub-tabelas) */
+export const canImport = (name: string, ent: EntityDef) => ent.importar ?? (!isCoreEntity(name) && !ent.detailOf);

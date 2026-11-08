@@ -4,7 +4,7 @@
 // A mesma função `can()` decide no servidor (bloqueia a rota) e no front
 // (esconde menu e botões).
 // =============================================================================
-import { entities, isCoreEntity } from './entities';
+import { getEntity, isCoreEntity, mainEntities } from './entities';
 
 export const ACTIONS = ['ver', 'criar', 'editar', 'excluir'] as const;
 export type Action = (typeof ACTIONS)[number];
@@ -45,7 +45,7 @@ export const ADMIN_ONLY: Record<string, readonly Action[]> = {
 };
 
 export function resources(): ResourceDef[] {
-  const fromEntities = Object.entries(entities).map(([key, e]) => ({
+  const fromEntities = mainEntities().map(([key, e]) => ({
     key,
     label: e.label,
     icon: e.icon,
@@ -75,6 +75,9 @@ export function can(
 ): boolean {
   if (!user) return false;
   if (user.admin) return true;
+  // sub-tabela segue o "pai": ver → ver; criar/editar/excluir linhas → editar o pai
+  const pai = getEntity(resource)?.detailOf;
+  if (pai) return can(user, pai, action === 'ver' ? 'ver' : 'editar');
   if (ADMIN_ONLY[resource]?.includes(action)) return false;
   return user.permissoes[resource]?.includes(action) ?? false;
 }

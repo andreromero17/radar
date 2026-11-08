@@ -81,6 +81,26 @@ export interface FieldDef {
    * `param` é o campo na entidade de destino (padrão: o mesmo nome de `field`).
    */
   dependsOn?: { field: string; param?: string };
+  /**
+   * Campo calculado a partir dos outros do mesmo registro (fica somente leitura).
+   * A tela mostra o resultado enquanto o usuário digita e a API recalcula ao gravar.
+   * Ex.: valor do item = quantidade × preço → `compute: (v) => Number(v.quantidade) * Number(v.preco)`
+   */
+  compute?: (values: Record<string, unknown>) => number | null;
+}
+
+/** Sub-tabela de um registro (master-detail): ex.: orçamento → itens, lançamento → parcelas */
+export interface DetailDef {
+  /** Entidade das linhas (com `detailOf` apontando para a entidade "pai") */
+  entity: string;
+  /** Campo da entidade das linhas que aponta para o "pai" (relation) */
+  field: string;
+  /** Título da sub-tabela no formulário (padrão: label da entidade) */
+  label?: string;
+  /** Mínimo de linhas exigido */
+  min?: number;
+  /** Somas gravadas no "pai": { campo_do_pai: campo_da_linha } (o campo do pai fica somente leitura) */
+  sum?: Record<string, string>;
 }
 
 export interface EntityDef {
@@ -101,6 +121,17 @@ export interface EntityDef {
   defaultSort?: { field: string; dir: 'asc' | 'desc' };
   /** Grupo na matriz de permissões (padrão: "Cadastros" ou "Acesso" para o núcleo) */
   group?: string;
+  /** Sub-tabelas editadas e gravadas junto com o registro */
+  details?: DetailDef[];
+  /**
+   * Esta entidade é sub-tabela de outra: não aparece no menu "+ Novo", no dashboard nem na matriz de
+   * permissões; quem pode ver o "pai" vê as linhas, quem pode editar o "pai" altera as linhas.
+   */
+  detailOf?: string;
+  /** Permite anexar arquivos a cada registro */
+  anexos?: boolean;
+  /** Importação de CSV/Excel (padrão: ligada, exceto no núcleo e em sub-tabelas) */
+  importar?: boolean;
 }
 
 /** Registro genérico vindo da API */
@@ -189,4 +220,34 @@ export interface BulkRequest {
 export interface BulkResponse {
   ok: number;
   erros: { id: number; error: string }[];
+}
+
+/** Arquivo anexado a um registro */
+export interface Anexo {
+  id: number;
+  nome: string;
+  tipo: string;
+  tamanho: number;
+  usuario_nome?: string | null;
+  criado_em: string;
+}
+
+/** Prévia da importação: como cada linha do arquivo vai virar registro */
+export interface ImportPreview {
+  /** Colunas encontradas no arquivo */
+  colunas: string[];
+  /** Campos que podem receber dados */
+  campos: { name: string; label: string; required: boolean }[];
+  /** coluna do arquivo → campo ('' = ignorar) */
+  mapa: Record<string, string>;
+  total: number;
+  validas: number;
+  invalidas: number;
+  /** Primeiras linhas (até 200), com os erros de cada uma */
+  linhas: { linha: number; valores: Record<string, string>; erros: Record<string, string> }[];
+}
+
+export interface ImportResult {
+  importados: number;
+  erros: { linha: number; error: string }[];
 }

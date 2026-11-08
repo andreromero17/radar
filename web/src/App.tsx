@@ -2,8 +2,8 @@ import { Route, Routes } from 'react-router-dom';
 import Layout from './layout/Layout';
 import { Guard, PublicOnly, RequireAuth } from './components/RouteGuards';
 import Dashboard from './pages/Dashboard';
-import CrudList from './pages/CrudList';
-import CrudForm from './pages/CrudForm';
+import { EntityForm, EntityList } from './pages/EntityRoutes';
+import { customPages } from './lib/screens';
 import Logs from './pages/Logs';
 import Backup from './pages/Backup';
 import MeuPerfil from './pages/MeuPerfil';
@@ -48,10 +48,26 @@ export default function App() {
               </Guard>
             }
           />
-          {/* CRUD genérico: qualquer entidade de shared/src/entities.ts (permissões checadas na página) */}
-          <Route path=":entity" element={<CrudList />} />
-          <Route path=":entity/novo" element={<CrudForm />} />
-          <Route path=":entity/:id" element={<CrudForm />} />
+          {/* páginas próprias da aplicação (web/src/app/screens.tsx) */}
+          {customPages().map(({ path, component: Page, perm }) => (
+            <Route
+              key={path}
+              path={path}
+              element={
+                perm ? (
+                  <Guard resource={perm[0]} action={perm[1]}>
+                    <Page />
+                  </Guard>
+                ) : (
+                  <Page />
+                )
+              }
+            />
+          ))}
+          {/* CRUD: telas genéricas ou as registradas para a entidade (permissões checadas na página) */}
+          <Route path=":entity" element={<EntityList />} />
+          <Route path=":entity/novo" element={<EntityForm />} />
+          <Route path=":entity/:id" element={<EntityForm />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Route>

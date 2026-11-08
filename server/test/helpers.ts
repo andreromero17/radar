@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import pino from 'pino';
 import request from 'supertest';
 import { createApp } from '../src/app';
@@ -23,7 +26,10 @@ export async function makeTestApp() {
   await seed(db);
   await seedFixtures(db);
   const mailer = memoryMailer();
+  const uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-anexos-'));
   const app = createApp({
+    uploadDir,
+    uploadMaxMb: 1,
     db,
     logger: pino({ level: 'silent' }),
     dbFile: ':memory:',
@@ -43,6 +49,7 @@ export async function makeTestApp() {
     db,
     app,
     mailer,
+    uploadDir,
     login,
     admin: await login('admin@sistema.com', 'admin123'),
     operador: await login('ana@sistema.com', 'senha123'),

@@ -39,6 +39,12 @@ const schema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().default('Sistema <nao-responda@localhost>'),
 
+  // ---- Arquivos ----
+  /** Pasta dos anexos (relativa a server/) */
+  UPLOAD_DIR: z.string().min(1).default('./data/anexos'),
+  /** Tamanho máximo de um anexo ou arquivo importado, em MB */
+  UPLOAD_MAX_MB: z.coerce.number().positive().max(200).default(10),
+
   /** Módulo de demonstração (cadastros de exemplo com todos os recursos do motor) */
   DEMO: z.enum(['true', 'false']).default('false'),
 });
@@ -46,6 +52,7 @@ const schema = z.object({
 export type Config = Omit<z.infer<typeof schema>, 'COOKIE_SECURE' | 'SMTP_SECURE' | 'DEMO'> & {
   demo: boolean;
   dbFile: string;
+  uploadDir: string;
   corsOrigins: string[];
   cookieSecure: boolean;
   smtpSecure: boolean;
@@ -64,6 +71,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     cookieSecure: COOKIE_SECURE ? COOKIE_SECURE === 'true' : c.NODE_ENV === 'production',
     smtpSecure: SMTP_SECURE === 'true',
     demo: DEMO === 'true',
+    uploadDir: path.resolve(SERVER_ROOT, c.UPLOAD_DIR),
     dbFile: c.DB_PATH === ':memory:' ? ':memory:' : path.resolve(SERVER_ROOT, c.DB_PATH),
     corsOrigins: c.CORS_ORIGIN.split(',')
       .map((s) => s.trim())

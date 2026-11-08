@@ -51,14 +51,14 @@ _Aqui o frame passa a sustentar sistemas de verdade._
 - Formulário em seções e selects dependentes
 - Módulo de demonstração opcional (`DEMO=true`)
 
-### 2B
+### 2B (v0.5.0) ✅ concluída (08/11/2026)
 
-- **Master-detail:** formulário com sub-tabela (ex.: pedido → itens, lançamento → parcelas)
-- **Anexos:** upload de arquivo por registro
-- **Telas plugáveis:** cada entidade usa as telas genéricas por padrão, mas aceita lista/form/página customizados
-- **Importar CSV** para uma entidade (com prévia e validação linha a linha)
-- Hooks por entidade já existem (Fase 1); aqui eles passam a cobrir as regras de negócio do finanças (ex.: recalcular saldo)
-- **Pronto quando:** dá para modelar o finanças inteiro sem tocar no código do motor
+- Master-detail: sub-tabela no formulário, gravada junto (transação), somas no pai, campos calculados
+- Anexos por registro (disco local; S3/R2 fica para a Fase 6)
+- Importação de planilha (.xlsx/.csv) com mapeamento, prévia e validação linha a linha
+- Telas plugáveis: lista/form próprios por entidade, páginas novas com permissão, slots nas telas genéricas
+- **Resultado:** dá para modelar o finanças sem tocar no motor; as regras (saldo, transferência, parcelamento)
+  entram como hooks e rotas da aplicação na Fase 3
 
 ## Fase 3 — Finanças pessoais (MVP) ← primeiro sistema
 

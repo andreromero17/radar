@@ -17,11 +17,13 @@ export const AUTH_EXPIRED = 'auth:expired';
 export const AUTH_MUST_CHANGE_PASSWORD = 'auth:trocar-senha';
 
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
+  // arquivos vão crus no corpo (a API lê application/octet-stream)
+  const isFile = body instanceof Blob;
   const res = await fetch(`/api${url}`, {
     method,
     credentials: 'same-origin',
-    headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    headers: body === undefined ? {} : { 'Content-Type': isFile ? 'application/octet-stream' : 'application/json' },
+    body: body === undefined ? undefined : isFile ? body : JSON.stringify(body),
   });
   const data = res.status === 204 ? null : await res.json().catch(() => null);
   if (!res.ok) {
@@ -39,6 +41,18 @@ export const api = {
   post: <T>(url: string, body: unknown = {}) => request<T>('POST', url, body),
   put: <T>(url: string, body: unknown) => request<T>('PUT', url, body),
   del: <T = null>(url: string) => request<T>('DELETE', url),
+  /** Envia um arquivo (anexo, importação) */
+  upload: <T>(url: string, file: Blob) => request<T>('POST', url, file),
 };
+
+/** Baixa um arquivo da API (exportação, modelo, anexo) usando o cookie da sessão */
+export function download(url: string) {
+  const a = document.createElement('a');
+  a.href = `/api${url}`;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
 
 export const errorMessage = (e: unknown) => (e instanceof Error ? e.message : String(e));

@@ -1,9 +1,11 @@
-import { Router, type Request } from 'express';
+import express, { Router, type Request } from 'express';
 import { z } from 'zod';
-import { getEntity, toFieldErrors, type BulkResponse, type EntityDef } from '@frame/shared';
+import { canImport, getEntity, toFieldErrors, type BulkResponse, type EntityDef } from '@frame/shared';
 import { assertCan, userOf } from '../auth/middleware';
 import type { Db } from '../db/knex';
+import { anexoFile, INLINE_TYPES, listAnexos, removeAnexo, saveAnexo } from '../services/anexos';
 import { buildExport, exportColumns, type ExportFormat } from '../services/export';
+import { importTemplate, previewImport, runImport } from '../services/import';
 import {
   createRecord,
   getRecord,
@@ -28,11 +30,24 @@ import { nowLocal } from '../utils/time';
  *   PUT    /api/:entity/:id              atualiza (parcial)                                  [editar]
  *   DELETE /api/:entity/:id              exclui (ou envia à lixeira); ?definitivo=1          [excluir]
  *   POST   /api/:entity/:id/restaurar    tira da lixeira                                     [excluir]
+ *   GET    /api/:entity/importar/modelo  planilha modelo para importação                     [criar]
+ *   POST   /api/:entity/importar         arquivo no corpo; ?previa=1 só valida; ?mapa={...}  [criar]
+ *   GET    /api/:entity/:id/anexos       lista os anexos                                     [ver]
+ *   POST   /api/:entity/:id/anexos       arquivo no corpo, ?nome=arquivo.pdf                 [editar]
+ *   GET    /api/:entity/:id/anexos/:aid  baixa (?inline=1 abre imagens/PDF no navegador)     [ver]
+ *   DELETE /api/:entity/:id/anexos/:aid  exclui o anexo                                      [editar]
  * Filtros aceitos: veja applyFilters em services/records.ts.
  * Regras específicas de cada entidade ficam nos hooks.
  */
-export function crudRouter(db: Db) {
+export function crudRouter(db: Db, opts: { uploadMaxMb?: number } = {}) {
   const router = Router();
+  // arquivos chegam crus no corpo (application/octet-stream), sem multipart
+  const rawFile = express.raw({ type: () => true, limit: `${opts.uploadMaxMb ?? 10}mb` });
+  const fileBody = (req: Request) => {
+    if (!Buffer.isBuffer(req.body) || !req.body.length) throw badRequest('Envie o arquivo no corpo da requisição');
+    return req.body;
+  };
+  const fileName = (req: Request) => (typeof req.query.nome === 'string' && req.query.nome) || 'arquivo';
 
   const resolve = (req: Request): [string, EntityDef] => {
     const name = String(req.params.entity);
@@ -68,6 +83,39 @@ export function crudRouter(db: Db) {
     res.setHeader('Content-Type', file.mime);
     res.setHeader('Content-Disposition', `attachment; filename="${nome}"`);
     res.send(file.body);
+  });
+
+  // ---------- importação ----------
+  const importable = (req: Request) => {
+    const [table, ent] = resolve(req);
+    assertCan(req, table, 'criar');
+    if (!canImport(table, ent)) throw new HttpError(404, 'Esta entidade não aceita importação');
+    return [table, ent] as const;
+  };
+
+  router.get('/:entity/importar/modelo', async (req, res) => {
+    const [table, ent] = importable(req);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="modelo-${table}.xlsx"`);
+    res.send(await importTemplate(ent));
+  });
+
+  router.post('/:entity/importar', rawFile, async (req, res) => {
+    const [table, ent] = importable(req);
+    let mapa: unknown;
+    if (typeof req.query.mapa === 'string' && req.query.mapa) {
+      try {
+        mapa = JSON.parse(req.query.mapa);
+      } catch {
+        throw badRequest('Mapeamento de colunas inválido');
+      }
+    }
+    const previa = req.query.previa === '1' || req.query.previa === 'true';
+    res.json(
+      previa
+        ? await previewImport(db, ent, fileBody(req), fileName(req), mapa)
+        : await runImport(ctxOf(req), table, ent, fileBody(req), fileName(req), mapa),
+    );
   });
 
   const bulkSchema = z.object({
@@ -138,6 +186,49 @@ export function crudRouter(db: Db) {
     const [table, ent] = resolve(req);
     assertCan(req, table, 'excluir');
     res.json(await restoreRecord(ctxOf(req), table, ent, idParam(req)));
+  });
+
+  // ---------- anexos ----------
+  const withAnexos = async (req: Request, action: 'ver' | 'editar') => {
+    const [table, ent] = resolve(req);
+    assertCan(req, table, action);
+    if (!ent.anexos) throw new HttpError(404, 'Esta entidade não aceita anexos');
+    const id = idParam(req);
+    const row = await db(table)
+      .where({ id: Number.isInteger(id) ? id : 0 })
+      .first();
+    if (!row) throw new HttpError(404, 'Registro não encontrado');
+    if (action === 'editar' && ent.lixeira && row.excluido_em) throw new HttpError(409, 'Registro está na lixeira');
+    return [table, ent, id] as const;
+  };
+
+  router.get('/:entity/:id/anexos', async (req, res) => {
+    const [table, , id] = await withAnexos(req, 'ver');
+    res.json(await listAnexos(db, table, id));
+  });
+
+  router.post('/:entity/:id/anexos', rawFile, async (req, res) => {
+    const [table, ent, id] = await withAnexos(req, 'editar');
+    res.status(201).json(await saveAnexo(ctxOf(req), table, ent, id, fileName(req), fileBody(req)));
+  });
+
+  router.get('/:entity/:id/anexos/:aid', async (req, res) => {
+    const [table, , id] = await withAnexos(req, 'ver');
+    const a = await anexoFile(db, table, id, Number(req.params.aid));
+    const inline = (req.query.inline === '1' || req.query.inline === 'true') && INLINE_TYPES.has(a.tipo);
+    res.setHeader('Content-Type', a.tipo);
+    res.setHeader(
+      'Content-Disposition',
+      `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(a.nome)}`,
+    );
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.sendFile(a.file);
+  });
+
+  router.delete('/:entity/:id/anexos/:aid', async (req, res) => {
+    const [table, , id] = await withAnexos(req, 'editar');
+    await removeAnexo(ctxOf(req), table, id, Number(req.params.aid));
+    res.status(204).end();
   });
 
   return router;

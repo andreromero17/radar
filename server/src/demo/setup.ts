@@ -47,8 +47,19 @@ export async function setupDemo(db: Db): Promise<boolean> {
   for (const [table, ent] of Object.entries(demoEntities)) {
     if (!(await db.schema.hasTable(table))) await createEntityTable(db, table, ent);
   }
-  if ((await count(db('demo_clientes'))) > 0) return false;
+  let populou = false;
+  if ((await count(db('demo_clientes'))) === 0) {
+    await seedCadastros(db);
+    populou = true;
+  }
+  if ((await count(db('demo_orcamentos'))) === 0) {
+    await seedOrcamentos(db);
+    populou = true;
+  }
+  return populou;
+}
 
+async function seedCadastros(db: Db) {
   const agora = nowLocal();
   const categorias = [
     ['Salário', 'Receita', '#2b8a5a'],
@@ -120,5 +131,42 @@ export async function setupDemo(db: Db): Promise<boolean> {
     }
   }
   await db.batchInsert('demo_movimentos', movs, 50);
-  return true;
+}
+
+/** Orçamentos com itens (master-detail): o total é a soma dos itens */
+async function seedOrcamentos(db: Db) {
+  const agora = nowLocal();
+  const clientes = await db('demo_clientes').select('id').orderBy('id').limit(6);
+  if (!clientes.length) return;
+  const catalogo = [
+    ['Consultoria (hora)', 180],
+    ['Desenvolvimento (hora)', 150],
+    ['Licença mensal', 490],
+    ['Treinamento', 1200],
+    ['Suporte (pacote 10h)', 1300],
+    ['Hospedagem anual', 960],
+  ] as const;
+  const status = ['Aprovado', 'Enviado', 'Rascunho', 'Recusado', 'Aprovado', 'Enviado', 'Aprovado', 'Rascunho'];
+  const hoje = new Date();
+  for (let i = 0; i < 8; i++) {
+    const data = new Date(hoje.getFullYear(), hoje.getMonth() - (i % 3), 3 + i * 3);
+    const itens = Array.from({ length: 1 + (i % 4) }, (_, k) => {
+      const [descricao, preco] = catalogo[(i + k) % catalogo.length];
+      const quantidade = [1, 2, 10, 4][(i + k) % 4];
+      return { descricao, preco, quantidade, valor: preco * quantidade };
+    });
+    const [ins] = await db('demo_orcamentos')
+      .insert({
+        numero: generateCode('ORC', data),
+        cliente_id: clientes[i % clientes.length].id,
+        data: nowLocal(data).slice(0, 10),
+        validade: nowLocal(new Date(data.getTime() + 15 * 86_400_000)).slice(0, 10),
+        status: status[i],
+        total: itens.reduce((a, it) => a + it.valor, 0),
+        criado_em: agora,
+      })
+      .returning('id');
+    const orcamento_id = typeof ins === 'object' ? ins.id : ins;
+    await db('demo_orcamento_itens').insert(itens.map((it) => ({ ...it, orcamento_id, criado_em: agora })));
+  }
 }

@@ -4,6 +4,25 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.5.0 — 08/11/2026
+
+**Fase 2B: master-detail, anexos, importação e telas plugáveis**
+
+- Sub-tabelas (`details` / `detailOf`): linhas editadas no formulário do registro e gravadas juntas numa transação;
+  somas no "pai" (`sum`), mínimo de linhas (`min`), erros por linha; no celular, cada linha vira um card
+- Campos calculados (`compute`): a tela mostra enquanto digita e a API recalcula ao gravar
+- Sub-tabela segue as permissões do "pai" e fica fora do menu "+ Novo", do dashboard e da matriz de permissões
+- Anexos por registro (`anexos: true`): enviar (botão ou arrastar), abrir PDF/imagem, baixar, excluir, com log;
+  arquivos em `UPLOAD_DIR`, limite `UPLOAD_MAX_MB`; apagados junto com o registro
+- Importação de planilha `.xlsx`/`.csv` com mapeamento de colunas, prévia validada linha a linha, conversão do formato
+  brasileiro, nomes de relações e planilha modelo com instruções
+- Telas plugáveis: `registerScreens` (lista/form próprios por entidade), `registerPage` (páginas novas com permissão)
+  e slots `before`/`after` na listagem e no formulário genéricos
+- Demonstração: orçamentos com itens e anexos, movimentos com resumo do período, categorias em cards e página
+  "Resumo por categoria"
+- Dashboard não conta registros que estão na lixeira
+- Migração nova do núcleo: `20261109000000_anexos` (aplicada sozinha no `npm run dev`)
+
 ## 0.4.0 — 08/11/2026
 
 **Fase 2A: motor de CRUD maduro (listagem, campos e lixeira)**

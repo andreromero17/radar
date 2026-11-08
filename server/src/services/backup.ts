@@ -4,7 +4,7 @@ import type Database from 'better-sqlite3';
 import { entities, type BackupInfo } from '@frame/shared';
 import { count, isSqlite, type Db } from '../db/knex';
 
-const SYSTEM_TABLES = ['logs', 'configuracoes'];
+const SYSTEM_TABLES = ['logs', 'configuracoes', 'anexos'];
 
 export async function backupInfo(db: Db, dbFile: string): Promise<BackupInfo> {
   const stat = dbFile !== ':memory:' && fs.existsSync(dbFile) ? fs.statSync(dbFile) : null;

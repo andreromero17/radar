@@ -133,12 +133,61 @@ Opções úteis:
 | entidade | `periodField: 'data'`                         | seletor de mês na listagem, que abre no mês atual                                              |
 | entidade | `defaultSort: { field: 'data', dir: 'desc' }` | ordem padrão da listagem                                                                       |
 | entidade | `group: 'Financeiro'`                         | grupo na matriz de permissões                                                                  |
+| entidade | `details: [{ entity, field, sum, min }]`      | sub-tabelas gravadas junto (master-detail) — veja abaixo                                       |
+| entidade | `detailOf: 'pedidos'`                         | a entidade é sub-tabela de outra (segue as permissões do pai)                                  |
+| entidade | `anexos: true`                                | arquivos anexados a cada registro                                                              |
+| entidade | `importar: false`                             | desliga a importação de planilha (ligada por padrão, exceto núcleo e sub-tabelas)              |
+| campo    | `compute: (v) => ...`                         | campo calculado (somente leitura): a tela mostra e a API grava                                 |
 
 Filtros também funcionam pela URL (dá para fazer links prontos): `?tipo=Despesa&tipo=Receita`,
 `?data__de=2026-11-01&data__ate=2026-11-30`, `?valor__de=100`, `?descricao__contem=luz`.
 
+**Sub-tabelas (master-detail).** Um registro pode ter linhas filhas editadas no mesmo formulário e gravadas
+juntas (tudo ou nada): orçamento → itens, lançamento → parcelas. A entidade das linhas tem `detailOf` e um campo
+`relation` para o pai; o pai declara a sub-tabela e, se quiser, as somas que recebe:
+
+```ts
+orcamentos: {
+  /* ... */
+  details: [{ entity: 'orcamento_itens', field: 'orcamento_id', label: 'Itens', min: 1, sum: { total: 'valor' } }],
+},
+orcamento_itens: {
+  /* ... */ detailOf: 'orcamentos',
+  fields: [
+    { name: 'orcamento_id', label: 'Orçamento', type: 'relation', entity: 'orcamentos', required: true },
+    { name: 'quantidade', label: 'Qtd.', type: 'number', required: true },
+    { name: 'preco', label: 'Preço', type: 'money', required: true },
+    { name: 'valor', label: 'Valor', type: 'money', compute: (v) => Number(v.quantidade) * Number(v.preco) },
+  ],
+},
+```
+
+A API devolve as linhas em `GET /api/orcamentos/:id` (`{ ..., orcamento_itens: [...] }`) e recebe do mesmo jeito no
+POST/PUT: linha com `id` é atualizada, sem `id` é criada, e a que sumiu da lista é apagada. Sem a lista no corpo, as
+linhas não mudam. Excluir o pai de vez leva as linhas junto (a chave é criada com `ON DELETE CASCADE`).
+
+**Anexos.** Com `anexos: true`, o formulário de edição ganha o quadro "Anexos" (enviar, arrastar, baixar, excluir).
+Os arquivos ficam em `server/data/anexos/` (`UPLOAD_DIR`), com nome aleatório; o limite é `UPLOAD_MAX_MB` (10 MB).
+PDF e imagens abrem no navegador, o resto sempre baixa. **O backup da tela copia só o banco: copie a pasta de anexos
+junto.**
+
+**Importar planilha.** Na listagem, o menu **Planilha → Importar** aceita `.xlsx` ou `.csv` (separador `;` ou `,`).
+As colunas são ligadas aos campos pelo nome (dá para trocar), a prévia mostra os erros linha a linha e só as linhas
+válidas entram, com as mesmas regras do cadastro. Entende `1.234,56`, `31/12/2026`, `Sim/Não` e o nome dos registros
+relacionados ("Mercado" em vez do id). Tem planilha modelo com instruções.
+
+**Telas próprias.** Se a tela genérica não atende, registre outra em `web/src/app/screens.ts`:
+
+```ts
+registerScreens('lancamentos', { list: LancamentosComSaldo }); // troca a listagem (ou o form: `form`)
+registerPage({ path: 'relatorios/fluxo', component: Fluxo, perm: ['lancamentos', 'ver'] }); // página nova
+```
+
+A tela própria pode reaproveitar a genérica: `<CrudList entity="lancamentos" before={<Saldo />} />` ou
+`<CrudForm entity="lancamentos" after={...} />`. Exemplos funcionando em `web/src/demo/pages.tsx`.
+
 **Módulo de demonstração.** Com `DEMO=true` no `server/.env`, o sistema ganha o grupo "Demonstração" (clientes,
-categorias e movimentos de exemplo) mostrando todos esses recursos. As tabelas `demo_*` são criadas e populadas no
+categorias, movimentos, orçamentos com itens e um resumo por categoria) mostrando todos esses recursos. As tabelas `demo_*` são criadas e populadas no
 boot, fora das migrações; tirar a linha do `.env` esconde o módulo. As definições ficam em `shared/src/demo/`.
 
 A entidade nova entra sozinha na matriz de permissões. Libere-a nos perfis (o administrador já tem acesso). No menu, use `perm: ['contas', 'ver']` para esconder o item de quem não pode ver.

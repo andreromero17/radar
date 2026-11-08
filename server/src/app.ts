@@ -49,8 +49,11 @@ export function createApp(opts: AppOptions) {
           'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
           'img-src': ["'self'", 'data:'],
           'connect-src': ["'self'"],
+          // só força HTTPS quando o sistema roda em HTTPS (mesma chave do cookie seguro)
+          'upgrade-insecure-requests': opts.cookieSecure ? [] : null,
         },
       },
+      strictTransportSecurity: opts.cookieSecure ?? false,
     }),
   );
   app.use(cors({ origin: corsOrigins, credentials: true }));

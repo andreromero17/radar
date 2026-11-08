@@ -222,3 +222,11 @@ describe('proteções HTTP', () => {
     expect(res.headers['x-powered-by']).toBeUndefined();
   });
 });
+
+describe('HTTPS', () => {
+  it('sem HTTPS não força upgrade nem HSTS', async () => {
+    const res = await request(ctx.app).get('/api/health');
+    expect(res.headers['content-security-policy']).not.toContain('upgrade-insecure-requests');
+    expect(res.headers['strict-transport-security']).toBeUndefined();
+  });
+});

@@ -22,10 +22,9 @@ describe('tema', () => {
 describe('menu', () => {
   it('marca o item mais específico', () => {
     expect(activeMenuPath('/')).toBe('/');
-    expect(activeMenuPath('/chamados')).toBe('/chamados');
-    expect(activeMenuPath('/chamados/12')).toBe('/chamados');
-    expect(activeMenuPath('/chamados/novo')).toBe('/chamados/novo');
-    expect(activeMenuPath('/clientes/3')).toBe('/clientes');
+    expect(activeMenuPath('/usuarios')).toBe('/usuarios');
+    expect(activeMenuPath('/usuarios/12')).toBe('/usuarios');
+    expect(activeMenuPath('/perfis/novo')).toBe('/perfis');
   });
 });
 
@@ -40,10 +39,28 @@ describe('menu por permissão', () => {
   it('esconde itens sem permissão e grupos vazios', async () => {
     const { menu, visibleMenu } = await import('../src/config/menu');
     const { can } = await import('@frame/shared');
-    const leitura = { admin: false, permissoes: { chamados: ['ver'] as const } as never };
+    const leitura = { admin: false, permissoes: { logs: ['ver'] as const } as never };
     const labels = (items: { label: string; children?: { label: string }[] }[]): string[] =>
       items.flatMap((m) => [m.label, ...labels(m.children ?? [])]);
-    expect(labels(visibleMenu(menu, (r, a) => can(leitura, r, a)))).toEqual(['Dashboard', 'Chamados']);
+    expect(labels(visibleMenu(menu, (r, a) => can(leitura, r, a)))).toEqual(['Dashboard', 'Administração', 'Logs']);
+    expect(labels(visibleMenu(menu, () => false))).toEqual(['Dashboard']);
     expect(labels(visibleMenu(menu, () => true))).toContain('Perfis de acesso');
+  });
+});
+
+describe('versão e dispositivo', () => {
+  it('rótulo da versão', async () => {
+    const { versionLabel } = await import('../src/lib/version');
+    expect(versionLabel({ version: '1.2.3', commit: 'abc1234' })).toBe('v1.2.3 · abc1234');
+  });
+  it('descreve o navegador', async () => {
+    const { describeUserAgent } = await import('../src/lib/userAgent');
+    const mac =
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
+    const iphone =
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+    expect(describeUserAgent(mac)).toBe('Chrome no macOS');
+    expect(describeUserAgent(iphone)).toBe('Safari no iPhone');
+    expect(describeUserAgent(null)).toBe('Dispositivo desconhecido');
   });
 });

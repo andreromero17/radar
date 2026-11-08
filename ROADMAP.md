@@ -31,6 +31,13 @@
 - Antecipado da Fase 2: **hooks por entidade** (`beforeSave`/`afterSave`/`beforeDelete`)
 - Pendente para quando houver necessidade: 2FA, login social/SSO, tela de sessões ativas
 
+## Núcleo genérico (v0.3.0) ✅ concluído (08/11/2026)
+
+- Frame sem nada do sistema de chamados; separação núcleo × aplicação (pastas `app/` em shared, server e web)
+- Dashboard genérico, botão "+ Novo", versão no menu e em `/api/health` com aviso de nova versão
+- Meu perfil (nome, senha, sessões abertas), Central de Ajuda configurável, estilo do menu (colorido/claro)
+- Migrações reescritas numa única migração do núcleo; CHANGELOG
+
 ## Fase 2 — Motor de CRUD maduro
 
 _Aqui o frame passa a sustentar sistemas de verdade._

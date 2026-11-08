@@ -37,3 +37,22 @@ describe('Configurações', () => {
     expect(res.body).toEqual(DEFAULT_SETTINGS);
   });
 });
+
+describe('log das configurações', () => {
+  it('registra só os campos que mudaram, com antes e depois', async () => {
+    const atual = (await ctx.admin.get('/api/settings')).body;
+    await ctx.admin
+      .put('/api/settings')
+      .send({ ...atual, cor_primaria: '#10b981' })
+      .expect(200);
+    const log = (await ctx.admin.get('/api/logs?entidade=sistema')).body.rows[0];
+    expect(log.alteracoes).toEqual({ cor_primaria: { de: atual.cor_primaria, para: '#10b981' } });
+  });
+
+  it('salvar sem mudanças não gera log', async () => {
+    const antes = (await ctx.admin.get('/api/logs?entidade=sistema')).body.total;
+    const atual = (await ctx.admin.get('/api/settings')).body;
+    await ctx.admin.put('/api/settings').send(atual).expect(200);
+    expect((await ctx.admin.get('/api/logs?entidade=sistema')).body.total).toBe(antes);
+  });
+});

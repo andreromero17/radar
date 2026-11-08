@@ -3,6 +3,9 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import PermissionMatrix from '../src/components/PermissionMatrix';
 import FieldInput from '../src/components/FieldInput';
 import { entities } from '@frame/shared';
+import { registerFixtureEntities } from '../../shared/test/fixtures';
+
+registerFixtureEntities();
 
 describe('PermissionMatrix', () => {
   it('marcar uma ação também marca "ver"', () => {

@@ -1,5 +1,6 @@
 // Regras de negócio por entidade (o que não dá para declarar em entities.ts).
-// Para uma entidade nova, crie hooks/<entidade>.ts e registre aqui.
+// Aqui ficam as do núcleo; as da aplicação vão em server/src/app/hooks.ts.
+import { appHooks } from '../app/hooks';
 import { perfisHooks } from './perfis';
 import { usuariosHooks } from './usuarios';
 import type { EntityHooks } from './types';
@@ -7,6 +8,7 @@ import type { EntityHooks } from './types';
 export type { EntityHooks, HookContext } from './types';
 
 export const hooks: Record<string, EntityHooks> = {
+  ...appHooks,
   usuarios: usuariosHooks,
   perfis: perfisHooks,
 };

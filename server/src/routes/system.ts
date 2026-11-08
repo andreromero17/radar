@@ -5,9 +5,9 @@ import { Router, type Request } from 'express';
 import {
   entities,
   settingsUpdateSchema,
-  STATUS_CHAMADO,
+  can,
   toFieldErrors,
-  type DashboardData,
+  type DashboardSummary,
   type ListResponse,
   type LogRow,
 } from '@frame/shared';
@@ -16,7 +16,6 @@ import { count, type Db } from '../db/knex';
 import { addLog, type Actor } from '../services/logs';
 import { backupInfo, createBackup } from '../services/backup';
 import { getSettings, resetSettings, saveSettings } from '../services/settings';
-import { monthPrefix } from '../utils/time';
 
 /** Rotas do sistema: metadados, configurações, dashboard, logs e backup (todas exigem login). */
 export function systemRouter(db: Db, opts: { dbFile: string }) {
@@ -45,30 +44,15 @@ export function systemRouter(db: Db, opts: { dbFile: string }) {
   });
 
   // ---------- Dashboard ----------
-  router.get('/dashboard', requirePermission('chamados', 'ver'), async (_req, res) => {
-    const ativos = () => db('chamados').whereNotIn('status', ['Resolvido', 'Fechado']);
-    const status = (s: string | string[]) => db('chamados').whereIn('status', Array.isArray(s) ? s : [s]);
-
-    const data: DashboardData = {
-      cards: {
-        abertos: await count(ativos()),
-        urgentes: await count(ativos().where('prioridade', 'Urgente')),
-        aguardando: await count(status('Aguardando cliente')),
-        emAtendimento: await count(status('Em atendimento')),
-        concluidos: await count(status(['Resolvido', 'Fechado'])),
-        semResponsavel: await count(ativos().whereNull('responsavel_id')),
-        clientesAtivos: await count(db('clientes').whereIn('ativo', [1, true])),
-        noMes: await count(db('chamados').where('criado_em', 'like', `${monthPrefix()}%`)),
-      },
-      porStatus: [],
-      ultimos: await db('chamados as c')
-        .leftJoin('clientes as cl', 'cl.id', 'c.cliente_id')
-        .select('c.id', 'c.protocolo', 'c.assunto', 'c.status', 'cl.nome as cliente')
-        .orderBy('c.id', 'desc')
-        .limit(6),
-    };
-    for (const s of STATUS_CHAMADO) data.porStatus.push({ status: s, total: await count(status(s)) });
-    res.json(data);
+  // Resumo genérico: total de registros de cada cadastro que o usuário pode ver.
+  // Cada sistema pode criar o seu próprio painel em server/src/app/routes.ts.
+  router.get('/dashboard/resumo', async (req, res) => {
+    const user = userOf(req);
+    const totais = [];
+    for (const entidade of Object.keys(entities)) {
+      if (can(user, entidade, 'ver')) totais.push({ entidade, total: await count(db(entidade)) });
+    }
+    res.json({ totais } satisfies DashboardSummary);
   });
 
   // ---------- Logs ----------

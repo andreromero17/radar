@@ -22,19 +22,22 @@ Roadmap em `ROADMAP.md` (Fases 0 e 1 concluídas).
 - `npm test` / `npm run lint` / `npm run typecheck` / `npm run format`
 - `npm run db:migrate | db:rollback | db:status | db:diff -- descricao | db:seed | db:reset`
 - `npm run db:admin -- email "Nome"` — cria/recupera administrador (senha provisória)
-- Logins de dev (seed): admin@sistema.com/admin123, ana@sistema.com/senha123 (Operador), bruno@sistema.com/senha123 (Leitura)
+- Login de dev (seed): admin@sistema.com / admin123
 - `npm run build` + `npm start` — produção (Express serve a API e o front buildado)
 
 ## Arquitetura (importante)
 
-- **Dirigido por configuração.** `shared/src/entities.ts` é a fonte da verdade: define campos,
+- **Núcleo × aplicação.** O frame (núcleo) não tem regra de negócio. O sistema construído sobre ele vive só nas
+  pastas `app/`: `shared/src/app/entities.ts`, `server/src/app/` (hooks.ts, routes.ts, seed.ts) e `web/src/app/`
+  (menu.ts, dashboard.tsx). Não coloque nada de negócio no núcleo; se algo genérico faltar, evolua o núcleo.
+- **Dirigido por configuração.** `shared/src/entities.ts` (= app + core) é a fonte da verdade: define campos,
   validações, rotas CRUD (`/api/:entity`) e as telas genéricas. É importado direto pelo server e pelo web.
 - **Validação única:** `shared/src/schema.ts` gera schemas Zod a partir das entidades
   (`validateEntity`). O form valida antes de enviar e a API valida de novo com a mesma função.
   Configurações usam `settingsSchema` (`shared/src/settings.ts`) do mesmo jeito.
 - **Nova entidade/campo:** editar `entities.ts` → `npm run db:diff -- descricao` (gera a migração em
   `server/src/db/migrations/` e registra no `index.ts`) → revisar → `npm run db:migrate` → item em
-  `web/src/config/menu.ts`. Não criar telas específicas se a genérica atende.
+  `web/src/app/menu.ts` (com `perm`). Não criar telas específicas se a genérica atende.
 - **Migrações:** nunca editar migração já aplicada; criar nova. O diff só gera tabela/coluna nova;
   renomear/remover é escrito à mão (o diff avisa colunas órfãs). Migrações ficam registradas em código
   (`migrations/index.ts`), não lidas da pasta. No SQLite as FKs são desligadas durante a migração
@@ -59,7 +62,7 @@ Roadmap em `ROADMAP.md` (Fases 0 e 1 concluídas).
   usado no servidor (`assertCan`/`requirePermission`) e no front (`useAuth().can`). O CRUD genérico já checa
   ver/criar/editar/excluir; rota nova de sistema precisa de `requirePermission`. `ADMIN_ONLY` reserva ações a
   administradores (gerenciar perfis). Itens de menu usam `perm: [recurso, ação]`.
-- **Hooks** (`server/src/hooks/`): `beforeSave`/`afterSave`/`beforeDelete` por entidade; lançar `HttpError`
+- **Hooks** (núcleo em `server/src/hooks/`, aplicação registrada em `server/src/app/hooks.ts`): `beforeSave`/`afterSave`/`beforeDelete` por entidade; lançar `HttpError`
   (`badRequest`, `forbidden`, `conflict` de `utils/http.ts`). Regras de usuários e perfis estão lá (e-mail único,
   sempre um admin ativo, só admin gerencia admin, derrubar sessões).
 - **Campos especiais:** `password` nunca sai da API (removido em `present()` no CRUD), não é filtrável/ordenável,
@@ -80,3 +83,15 @@ Roadmap em `ROADMAP.md` (Fases 0 e 1 concluídas).
 - Erros da API: `{ error, errors?: { campo: mensagem } }`; 422 para validação, 404, 400 (JSON inválido).
 - Commits: Conventional Commits em português (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`).
   O pre-commit roda ESLint + Prettier nos arquivos alterados.
+
+## Versão
+
+- Número em `package.json` da raiz (manter os workspaces iguais); commit do git (ou `APP_COMMIT`). Front: `__APP_VERSION__`/
+  `__APP_COMMIT__` (vite define, `web/src/lib/version.ts`); API: `server/src/version.ts` → `/api/health`.
+- Ao fechar uma entrega: subir a versão (semver) e registrar no `CHANGELOG.md`.
+
+## Testes de entidades
+
+- O frame não tem entidades de negócio; os testes do motor genérico usam entidades de exemplo em
+  `shared/test/fixtures.ts` (`registerFixtureEntities()`), com tabelas criadas por `createEntityTable` e dados em
+  `server/test/fixtures.ts`.

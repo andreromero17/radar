@@ -5,6 +5,8 @@ import { activeMenuPath, menu, visibleMenu, type MenuItem } from '../config/menu
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import BrandMark from '../components/BrandMark';
+import NewButton from '../components/NewButton';
+import { APP_VERSION, versionLabel } from '../lib/version';
 
 function MenuLink({ item, active, collapsed }: { item: MenuItem; active: boolean; collapsed: boolean }) {
   return (
@@ -79,6 +81,10 @@ export default function Sidebar({ collapsed, mobileOpen, onToggle, onClose }: Si
           </button>
         </div>
 
+        <div className="sidebar-new">
+          <NewButton collapsed={collapsed} />
+        </div>
+
         <nav className="sidebar-nav">
           {visibleMenu(menu, can).map((item) =>
             item.children ? (
@@ -90,10 +96,30 @@ export default function Sidebar({ collapsed, mobileOpen, onToggle, onClose }: Si
         </nav>
 
         <div className="sidebar-footer">
-          <button type="button" className="nav-link-item" onClick={() => void logout()}>
+          {settings.url_ajuda && (
+            <a
+              href={settings.url_ajuda}
+              target="_blank"
+              rel="noreferrer"
+              className="nav-link-item"
+              title={collapsed ? 'Central de Ajuda' : undefined}
+            >
+              <i className="bi bi-question-circle" />
+              <span className="nav-label">Central de Ajuda</span>
+            </a>
+          )}
+          <button
+            type="button"
+            className="nav-link-item"
+            onClick={() => void logout()}
+            title={collapsed ? 'Sair' : undefined}
+          >
             <i className="bi bi-box-arrow-left" />
             <span className="nav-label">Sair</span>
           </button>
+          <div className="app-version" title={`Versão ${APP_VERSION.version} (commit ${APP_VERSION.commit})`}>
+            {collapsed ? `v${APP_VERSION.version}` : versionLabel()}
+          </div>
         </div>
       </aside>
       {mobileOpen && <div className="sidebar-backdrop d-lg-none" onClick={onClose} />}

@@ -7,12 +7,14 @@ import type { Logger } from 'pino';
 import { SERVER_ROOT } from './config';
 import { authenticate, originGuard, requireAuth } from './auth/middleware';
 import type { Db } from './db/knex';
+import { appRouter } from './app/routes';
 import { authRouter } from './routes/auth';
 import { crudRouter } from './routes/crud';
 import { systemRouter } from './routes/system';
 import type { Mailer } from './services/mailer';
 import { getPublicSettings } from './services/settings';
 import { HttpError } from './utils/http';
+import { VERSION } from './version';
 
 export interface AppOptions {
   db: Db;
@@ -82,7 +84,7 @@ export function createApp(opts: AppOptions) {
 
   // públicas
   app.get('/api/health', (_req, res) => {
-    res.json({ ok: true });
+    res.json({ ok: true, ...VERSION });
   });
   app.get('/api/settings/publicas', async (_req, res) => {
     res.json(await getPublicSettings(db));
@@ -100,6 +102,7 @@ export function createApp(opts: AppOptions) {
   // daqui para baixo: só com login (e senha em dia)
   app.use('/api', requireAuth);
   app.use('/api', systemRouter(db, { dbFile })); // antes do CRUD genérico
+  app.use('/api', appRouter(db)); // rotas próprias da aplicação
   app.use('/api', crudRouter(db));
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Rota não encontrada' });

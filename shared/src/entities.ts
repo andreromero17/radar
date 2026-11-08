@@ -1,165 +1,26 @@
 // =============================================================================
-// Definição das entidades do sistema.
-// O frame é "dirigido por configuração": cada entidade descrita aqui ganha
-// automaticamente rotas CRUD na API, validação (form e API) e telas de
-// lista/formulário no front. Para refletir mudanças no banco, rode
-// `npm run db:diff -- descricao` (gera a migração) e `npm run db:migrate`.
-//
-// Tipos de campo suportados: text, email, textarea, number, money, date,
-// datetime, select (com options), boolean, relation (com entity -> outra
-// entidade), password (gravada como hash, nunca sai da API) e permissions.
-//
-// Propriedades úteis:
-//   required  -> obrigatório        list   -> aparece na listagem
-//   search    -> entra na busca     col    -> largura no formulário (1-12)
-//   default   -> valor inicial      colors -> cor do badge por opção (select)
-//   readonly  -> não editável       auto   -> gerado pelo servidor
-//   help      -> texto de ajuda     disabledWhen -> desabilita se o booleano indicado estiver marcado
-//
-// Regras de negócio que não cabem aqui (ex.: e-mail único) ficam nos hooks do
-// servidor: server/src/hooks/.
+// Registro de entidades = aplicação (app/entities.ts) + núcleo (core/entities.ts).
+// Todo o resto do frame (API, telas, permissões, migrações) lê daqui.
 // =============================================================================
+import { appEntities } from './app/entities';
+import { coreEntities } from './core/entities';
 import type { EntityDef } from './types';
 
-export const STATUS_CHAMADO = [
-  'Aberto',
-  'Em análise',
-  'Em atendimento',
-  'Aguardando cliente',
-  'Resolvido',
-  'Fechado',
-] as const;
+export const entities: Record<string, EntityDef> = { ...appEntities, ...coreEntities };
 
-export const entities: Record<string, EntityDef> = {
-  clientes: {
-    label: 'Clientes',
-    singular: 'Cliente',
-    icon: 'people',
-    labelField: 'nome',
-    fields: [
-      { name: 'nome', label: 'Nome', type: 'text', required: true, list: true, search: true, maxLength: 120 },
-      { name: 'email', label: 'E-mail', type: 'email', list: true, search: true },
-      { name: 'telefone', label: 'Telefone', type: 'text', list: true },
-      { name: 'documento', label: 'CPF/CNPJ', type: 'text', search: true },
-      { name: 'ativo', label: 'Ativo', type: 'boolean', list: true, default: true },
-      { name: 'observacoes', label: 'Observações', type: 'textarea', col: 12 },
-    ],
-  },
+/** Entidades que pertencem ao núcleo do frame */
+export const isCoreEntity = (name: string) => Object.hasOwn(coreEntities, name);
 
-  usuarios: {
-    label: 'Usuários',
-    singular: 'Usuário',
-    icon: 'person-gear',
-    labelField: 'nome',
-    fields: [
-      { name: 'nome', label: 'Nome', type: 'text', required: true, list: true, search: true, maxLength: 120 },
-      { name: 'email', label: 'E-mail', type: 'email', required: true, list: true, search: true },
-      { name: 'perfil_id', label: 'Perfil', type: 'relation', entity: 'perfis', required: true, list: true },
-      {
-        name: 'senha',
-        label: 'Senha',
-        type: 'password',
-        required: true,
-        help: 'Mínimo de 8 caracteres, com letras e números.',
-      },
-      { name: 'ativo', label: 'Ativo', type: 'boolean', list: true, default: true },
-      {
-        name: 'trocar_senha',
-        label: 'Exigir troca de senha no próximo acesso',
-        type: 'boolean',
-        default: true,
-      },
-      { name: 'ultimo_acesso', label: 'Último acesso', type: 'datetime', list: true, readonly: true },
-    ],
-  },
-
-  perfis: {
-    label: 'Perfis de acesso',
-    singular: 'Perfil',
-    icon: 'shield-lock',
-    labelField: 'nome',
-    fields: [
-      { name: 'nome', label: 'Nome', type: 'text', required: true, list: true, search: true, maxLength: 60, col: 6 },
-      { name: 'descricao', label: 'Descrição', type: 'text', list: true, maxLength: 200, col: 6 },
-      {
-        name: 'admin',
-        label: 'Acesso total (administrador)',
-        type: 'boolean',
-        list: true,
-        default: false,
-        col: 12,
-        help: 'Administradores podem tudo, inclusive gerenciar perfis e usuários administradores.',
-      },
-      { name: 'permissoes', label: 'Permissões', type: 'permissions', col: 12, disabledWhen: 'admin' },
-    ],
-  },
-
-  chamados: {
-    label: 'Chamados',
-    singular: 'Chamado',
-    icon: 'ticket-perforated',
-    labelField: 'assunto',
-    fields: [
-      {
-        name: 'protocolo',
-        label: 'Protocolo',
-        type: 'text',
-        list: true,
-        search: true,
-        readonly: true,
-        auto: 'protocol',
-      },
-      {
-        name: 'assunto',
-        label: 'Assunto',
-        type: 'text',
-        required: true,
-        list: true,
-        search: true,
-        col: 8,
-        maxLength: 150,
-      },
-      {
-        name: 'prioridade',
-        label: 'Prioridade',
-        type: 'select',
-        options: ['Baixa', 'Média', 'Alta', 'Urgente'],
-        default: 'Média',
-        list: true,
-        col: 4,
-        colors: { Baixa: '#7a8290', Média: '#2f6fed', Alta: '#f08c2e', Urgente: '#e03e3e' },
-      },
-      {
-        name: 'cliente_id',
-        label: 'Cliente',
-        type: 'relation',
-        entity: 'clientes',
-        required: true,
-        list: true,
-        col: 4,
-      },
-      { name: 'responsavel_id', label: 'Responsável', type: 'relation', entity: 'usuarios', col: 4 },
-      {
-        name: 'status',
-        label: 'Status',
-        type: 'select',
-        options: STATUS_CHAMADO,
-        default: 'Aberto',
-        list: true,
-        col: 4,
-        colors: {
-          Aberto: '#2f6fed',
-          'Em análise': '#7048e8',
-          'Em atendimento': '#38c3a0',
-          'Aguardando cliente': '#f08c2e',
-          Resolvido: '#2b8a5a',
-          Fechado: '#7a8290',
-        },
-      },
-      { name: 'descricao', label: 'Descrição', type: 'textarea', col: 12 },
-    ],
-  },
-};
+/**
+ * Registra entidades em tempo de execução (ex.: entidades de exemplo nos testes,
+ * módulos carregados dinamicamente). Não substitui uma entidade já existente.
+ */
+export function registerEntities(defs: Record<string, EntityDef>) {
+  for (const [k, v] of Object.entries(defs)) {
+    if (Object.hasOwn(entities, k)) throw new Error(`Entidade "${k}" já registrada`);
+    entities[k] = v;
+  }
+}
 
 /** Retorna a definição da entidade ou `undefined` se não existir. */
 export function getEntity(name: string | undefined): EntityDef | undefined {

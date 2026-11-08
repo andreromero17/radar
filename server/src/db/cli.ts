@@ -9,6 +9,7 @@
 //   admin     cria/recupera um administrador com senha provisória
 //             ex.: npm run db:admin -- voce@email.com "Seu Nome"
 // =============================================================================
+import fs from 'node:fs';
 import { entities } from '@frame/shared';
 import { hashPassword, randomPassword } from '../auth/password';
 import { deleteUserSessions } from '../auth/sessions';
@@ -21,7 +22,7 @@ import { migrateLatest, migrationStatus, rollback } from './migrator';
 import { seed, SEED_LOGINS } from './seed';
 
 const [command = 'status', ...args] = process.argv.slice(2);
-const db = createDb(config.dbFile);
+let db = createDb(config.dbFile);
 const list = (items: string[]) => (items.length ? items.map((i) => `   • ${i}`).join('\n') : '   (nenhuma)');
 
 try {
@@ -74,7 +75,14 @@ try {
     }
     case 'reset': {
       if (config.NODE_ENV === 'production') throw new Error('reset bloqueado em produção');
-      await rollback(db, true);
+      // SQLite: apaga o arquivo (funciona mesmo se o histórico de migrações mudou)
+      if (config.dbFile !== ':memory:') {
+        await db.destroy();
+        for (const f of [config.dbFile, `${config.dbFile}-wal`, `${config.dbFile}-shm`]) fs.rmSync(f, { force: true });
+        db = createDb(config.dbFile);
+      } else {
+        await rollback(db, true);
+      }
       await migrateLatest(db);
       await seed(db);
       console.log('✔ Banco recriado com dados de exemplo. Acessos de teste:');

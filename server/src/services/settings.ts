@@ -24,18 +24,27 @@ export async function getSettings(db: Db): Promise<Settings> {
 }
 
 export async function saveSettings(db: Db, data: Partial<Settings>, actor: Actor = SYSTEM_ACTOR): Promise<Settings> {
-  const entries = Object.entries(data).filter(([, v]) => v !== undefined);
+  const atual = await getSettings(db);
+  // só o que realmente mudou (o modal envia o formulário inteiro)
+  const entries = Object.entries(data).filter(
+    ([k, v]) => v !== undefined && String(v) !== String(atual[k as keyof Settings]),
+  );
   if (entries.length) {
     await db('configuracoes')
       .insert(entries.map(([chave, valor]) => ({ chave, valor: String(valor) })))
       .onConflict('chave')
       .merge();
+    // imagem em base64 não vai para o log, só a indicação
+    const resumo = (k: string, v: unknown) => (k === 'logo' ? (v ? '(imagem)' : '(sem logo)') : v);
     await addLog(
       db,
       {
         entidade: 'sistema',
         acao: 'configuração',
         detalhe: `Alterado: ${entries.map(([k]) => k).join(', ')}`,
+        alteracoes: Object.fromEntries(
+          entries.map(([k, v]) => [k, { de: resumo(k, atual[k as keyof Settings]), para: resumo(k, v) }]),
+        ),
       },
       actor,
     );

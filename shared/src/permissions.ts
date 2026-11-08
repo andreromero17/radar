@@ -4,7 +4,7 @@
 // A mesma função `can()` decide no servidor (bloqueia a rota) e no front
 // (esconde menu e botões).
 // =============================================================================
-import { entities } from './entities';
+import { entities, isCoreEntity } from './entities';
 
 export const ACTIONS = ['ver', 'criar', 'editar', 'excluir'] as const;
 export type Action = (typeof ACTIONS)[number];
@@ -23,7 +23,7 @@ export interface ResourceDef {
   key: string;
   label: string;
   icon: string;
-  group: 'Cadastros' | 'Sistema';
+  group: 'Cadastros' | 'Acesso' | 'Sistema';
   /** Ações que fazem sentido para o recurso (colunas da matriz) */
   actions: readonly Action[];
 }
@@ -49,7 +49,7 @@ export function resources(): ResourceDef[] {
     key,
     label: e.label,
     icon: e.icon,
-    group: 'Cadastros' as const,
+    group: isCoreEntity(key) ? ('Acesso' as const) : ('Cadastros' as const),
     actions: ACTIONS.filter((a) => !ADMIN_ONLY[key]?.includes(a)),
   }));
   return [...fromEntities, ...SYSTEM_RESOURCES];

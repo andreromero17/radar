@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { can, DEFAULT_SETTINGS, entities, settingsSchema, validateEntity } from '../src';
 
+import { registerFixtureEntities } from './fixtures';
+
+registerFixtureEntities();
 const clientes = entities.clientes;
 const chamados = entities.chamados;
 
@@ -14,7 +17,7 @@ describe('validateEntity', () => {
     const r = validateEntity(clientes, { nome: '  Ana ', email: '', ativo: '1' });
     expect(r).toEqual({
       ok: true,
-      data: { nome: 'Ana', email: null, telefone: null, documento: null, ativo: true, observacoes: null },
+      data: { nome: 'Ana', email: null, telefone: null, documento: null, limite: null, ativo: true, observacoes: null },
     });
   });
 

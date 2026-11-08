@@ -686,3 +686,201 @@ a.bg-grad-yellow:hover {
   font-size: 0.75rem;
   color: #6b7280;
 }
+
+/* ---------- Botão "+ Novo" ---------- */
+.sidebar-new {
+  padding: 1rem 0.8rem 0;
+}
+.sidebar-new .dropdown {
+  width: 100%;
+}
+.new-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  border: 0;
+  font-weight: 800;
+  background: #fff;
+  color: var(--brand-1);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+}
+.new-button:hover,
+.new-button:focus,
+.new-button.show {
+  background: #fff;
+  color: var(--brand-1-dark);
+}
+.new-button i {
+  font-size: 1.1rem;
+}
+.app-sidebar.collapsed .new-button {
+  padding: 0.7rem 0;
+}
+
+/* ---------- Versão ---------- */
+.app-version {
+  padding: 0.5rem 0.95rem 0.1rem;
+  font-size: 0.72rem;
+  opacity: 0.65;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.app-sidebar.collapsed .app-version {
+  text-align: center;
+  padding-inline: 0;
+}
+.new-version-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 1.5rem;
+  background: var(--brand-1);
+  color: var(--brand-contrast);
+  font-size: 0.9rem;
+}
+.new-version-bar .btn {
+  margin-left: auto;
+}
+
+/* ---------- Topo ---------- */
+.topbar-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+/* ---------- Menu claro ---------- */
+.menu-claro .app-sidebar {
+  background: #fff;
+  color: #374151;
+  border-right: 1px solid #e9ecf3;
+}
+.menu-claro .sidebar-brand,
+.menu-claro .sidebar-footer {
+  border-color: #eef0f5;
+}
+.menu-claro .brand-icon {
+  background: var(--sidebar-grad);
+  color: #fff;
+}
+.menu-claro .brand-logo {
+  background: #fff;
+  border: 1px solid #e3e7ef;
+}
+.menu-claro .brand-text {
+  color: var(--brand-1);
+}
+.menu-claro .nav-link-item {
+  color: #4b5563;
+}
+.menu-claro .nav-link-item:hover {
+  background: #f3f5fa;
+  color: #111827;
+}
+.menu-claro .nav-link-item.active {
+  background: var(--brand-1-soft);
+  color: var(--brand-1);
+  box-shadow: none;
+}
+.menu-claro .new-button {
+  background: var(--brand-1);
+  color: var(--brand-contrast);
+  box-shadow: 0 6px 16px rgba(var(--brand-1-rgb), 0.35);
+}
+.menu-claro .new-button:hover,
+.menu-claro .new-button.show {
+  background: var(--brand-1-dark);
+  color: var(--brand-contrast);
+}
+.menu-claro .app-version {
+  color: #6b7280;
+}
+
+/* opções de estilo no modal de configurações */
+.menu-style-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem;
+  border: 1px solid #e3e7ef;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #4b5563;
+}
+.menu-style-option.active {
+  border-color: var(--brand-1);
+  box-shadow: 0 0 0 2px rgba(var(--brand-1-rgb), 0.25);
+}
+.menu-style-preview {
+  width: 92px;
+  height: 58px;
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border: 1px solid #e3e7ef;
+}
+.menu-style-preview span {
+  height: 6px;
+  border-radius: 3px;
+  width: 70%;
+}
+.menu-style-preview.colorido {
+  background: var(--sidebar-grad);
+}
+.menu-style-preview.colorido span {
+  background: rgba(255, 255, 255, 0.6);
+}
+.menu-style-preview.claro {
+  background: #fff;
+}
+.menu-style-preview.claro span {
+  background: #d7dbe5;
+}
+.menu-style-preview.claro span:first-child {
+  background: var(--brand-1);
+}
+
+/* ---------- Dashboard / Meu perfil ---------- */
+.text-capitalize-first::first-letter {
+  text-transform: uppercase;
+}
+.min-w-0 {
+  min-width: 0;
+}
+.activity-list,
+.session-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.activity-list li,
+.session-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.8rem 1.25rem;
+  border-bottom: 1px solid #f0f2f7;
+}
+.activity-list li:last-child,
+.session-list li:last-child {
+  border-bottom: 0;
+}
+.activity-list li > i {
+  font-size: 1.1rem;
+}
+.avatar-lg {
+  width: 56px;
+  height: 56px;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}

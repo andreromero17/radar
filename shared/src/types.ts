@@ -36,8 +36,10 @@ export interface FieldDef {
   default?: string | number | boolean;
   /** Exibido mas não editável */
   readonly?: boolean;
-  /** Gerado pelo servidor na criação */
-  auto?: 'protocol';
+  /** Gerado pelo servidor na criação. 'code' = código legível, ex.: PED20261108-4F2A9 */
+  auto?: 'code';
+  /** Prefixo do código gerado (auto: 'code') */
+  prefix?: string;
   /** Opções de um campo `select` */
   options?: readonly string[];
   /** Cor do badge por opção (campos `select`) */
@@ -94,20 +96,26 @@ export interface RelationOption {
   label: string;
 }
 
-export interface DashboardData {
-  cards: Record<
-    | 'abertos'
-    | 'urgentes'
-    | 'aguardando'
-    | 'emAtendimento'
-    | 'concluidos'
-    | 'semResponsavel'
-    | 'clientesAtivos'
-    | 'noMes',
-    number
-  >;
-  porStatus: { status: string; total: number }[];
-  ultimos: { id: number; protocolo: string; assunto: string; status: string; cliente: string | null }[];
+/** Resumo genérico do dashboard: total por cadastro que o usuário pode ver */
+export interface DashboardSummary {
+  totais: { entidade: string; total: number }[];
+}
+
+/** Sessão aberta do usuário (página Meu perfil) */
+export interface SessionInfo {
+  id: string;
+  atual: boolean;
+  lembrar: boolean;
+  criado_em: string;
+  ultimo_uso: string;
+  ip: string | null;
+  user_agent: string | null;
+}
+
+/** Versão do sistema (GET /api/health) */
+export interface VersionInfo {
+  version: string;
+  commit: string;
 }
 
 export interface LogRow {

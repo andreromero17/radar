@@ -1,68 +1,13 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import type { DashboardData } from '@frame/shared';
-import { Dropdown, Form, InputGroup } from 'react-bootstrap';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { api } from '../lib/api';
+import { useState } from 'react';
+import { Dropdown } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 import SettingsModal from '../components/SettingsModal';
 import { useAuth } from '../context/AuthContext';
-
-interface Alert {
-  icon: string;
-  text: string;
-  to: string;
-}
+import { initials } from '../lib/format';
 
 export default function Topbar({ onMenu }: { onMenu: () => void }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [term, setTerm] = useState('');
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [showSettings, setShowSettings] = useState(false);
-
   const { user, can, logout } = useAuth();
-  const podeVerChamados = can('chamados', 'ver');
-  const iniciais = (user?.nome ?? '?')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0].toUpperCase())
-    .join('');
-
-  // Notificações simples derivadas do dashboard (trocar por um endpoint próprio depois)
-  useEffect(() => {
-    if (!podeVerChamados) return setAlerts([]);
-    api
-      .get<DashboardData>('/dashboard')
-      .then(({ cards }) => {
-        const a: Alert[] = [];
-        if (cards.urgentes)
-          a.push({
-            icon: 'exclamation-triangle text-danger',
-            text: `${cards.urgentes} chamado(s) urgente(s) ativo(s)`,
-            to: '/chamados?prioridade=Urgente',
-          });
-        if (cards.semResponsavel)
-          a.push({
-            icon: 'person-x text-warning',
-            text: `${cards.semResponsavel} chamado(s) sem responsável`,
-            to: '/chamados',
-          });
-        if (cards.aguardando)
-          a.push({
-            icon: 'hourglass-split text-primary',
-            text: `${cards.aguardando} aguardando cliente`,
-            to: '/chamados?status=Aguardando cliente',
-          });
-        setAlerts(a);
-      })
-      .catch(() => {});
-  }, [location.pathname, podeVerChamados]);
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    navigate(`/chamados?q=${encodeURIComponent(term.trim())}`);
-    setTerm('');
-  };
+  const [showSettings, setShowSettings] = useState(false);
 
   return (
     <header className="app-topbar">
@@ -70,45 +15,12 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
         <i className="bi bi-list fs-5" />
       </button>
 
-      {podeVerChamados ? (
-        <>
-          <Form className="topbar-search" onSubmit={submit}>
-            <InputGroup>
-              <InputGroup.Text className="bg-white">
-                <i className="bi bi-search" />
-              </InputGroup.Text>
-              <Form.Control placeholder="Buscar protocolo..." value={term} onChange={(e) => setTerm(e.target.value)} />
-            </InputGroup>
-          </Form>
-
-          <Dropdown align="end">
-            <Dropdown.Toggle variant="light" className="position-relative no-caret" aria-label="Notificações">
-              <i className="bi bi-bell fs-5" />
-              {alerts.length > 0 && (
-                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                  {alerts.length}
-                </span>
-              )}
-            </Dropdown.Toggle>
-            <Dropdown.Menu className="shadow-sm" style={{ minWidth: 290 }}>
-              <Dropdown.Header>Notificações</Dropdown.Header>
-              {alerts.length === 0 && <Dropdown.ItemText className="text-muted">Nada por aqui 🎉</Dropdown.ItemText>}
-              {alerts.map((a) => (
-                <Dropdown.Item key={a.text} as={Link} to={a.to} className="d-flex gap-2 align-items-center py-2">
-                  <i className={`bi bi-${a.icon}`} />
-                  {a.text}
-                </Dropdown.Item>
-              ))}
-            </Dropdown.Menu>
-          </Dropdown>
-        </>
-      ) : (
-        <div className="ms-auto" />
-      )}
+      {/* espaço para filtros globais da aplicação (ex.: seletor de período) */}
+      <div className="topbar-center" id="topbar-slot" />
 
       <Dropdown align="end">
-        <Dropdown.Toggle variant="light" className="d-flex align-items-center gap-2">
-          <span className="avatar">{iniciais}</span>
+        <Dropdown.Toggle variant="light" className="d-flex align-items-center gap-2" aria-label="Menu do usuário">
+          <span className="avatar">{initials(user?.nome)}</span>
           <span className="fw-bold d-none d-md-inline">{user?.nome}</span>
         </Dropdown.Toggle>
         <Dropdown.Menu className="shadow-sm" style={{ minWidth: 240 }}>
@@ -120,6 +32,10 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
               {user?.perfil}
             </span>
           </div>
+          <Dropdown.Item as={Link} to="/perfil">
+            <i className="bi bi-person me-2" />
+            Meu perfil
+          </Dropdown.Item>
           <Dropdown.Item as={Link} to="/trocar-senha">
             <i className="bi bi-key me-2" />
             Alterar senha

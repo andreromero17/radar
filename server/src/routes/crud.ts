@@ -7,7 +7,7 @@ import { count, toDbValue, type Db } from '../db/knex';
 import { hooks } from '../hooks';
 import { addLog, diffRecord, type Actor } from '../services/logs';
 import { badRequest, HttpError } from '../utils/http';
-import { nowLocal, protocolo } from '../utils/time';
+import { generateCode, nowLocal } from '../utils/time';
 
 /**
  * CRUD genérico para qualquer entidade de shared/src/entities.ts
@@ -146,7 +146,7 @@ export function crudRouter(db: Db) {
     const { data, ctx } = await prepare(req, table, ent, 'create');
 
     const record: Record<string, unknown> = { ...data, criado_em: nowLocal() };
-    for (const f of ent.fields) if (f.auto === 'protocol') record[f.name] = protocolo();
+    for (const f of ent.fields) if (f.auto === 'code') record[f.name] = generateCode(f.prefix);
 
     const [inserted] = await db(table).insert(serialize(ent, record)).returning('id');
     const id = typeof inserted === 'object' ? inserted.id : inserted;

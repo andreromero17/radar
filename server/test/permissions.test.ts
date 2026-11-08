@@ -135,7 +135,7 @@ describe('perfis', () => {
   });
 
   it('não exclui perfil em uso', async () => {
-    const res = await ctx.admin.delete('/api/perfis/2');
+    const res = await ctx.admin.delete('/api/perfis/3');
     expect(res.status).toBe(409);
     expect(res.body.error).toMatch(/em uso/);
   });

@@ -135,3 +135,32 @@ export function writeMigration(diff: SchemaDiff, description: string, dir = MIGR
   fs.writeFileSync(indexPath, index);
   return name;
 }
+
+/** Adiciona a coluna equivalente a `columnCode` (versão programática, usada em testes e ferramentas) */
+export function addColumn(t: Knex.CreateTableBuilder, f: FieldDef) {
+  switch (f.type) {
+    case 'number':
+      return t.double(f.name);
+    case 'money':
+      return t.decimal(f.name, 15, 2);
+    case 'boolean':
+      return t.boolean(f.name);
+    case 'date':
+      return t.date(f.name);
+    case 'relation':
+      t.index([f.name]);
+      return t.integer(f.name).references('id').inTable(String(f.entity)).onDelete('SET NULL');
+    default:
+      return t.text(f.name);
+  }
+}
+
+/** Cria a tabela de uma entidade direto, sem arquivo de migração (testes/protótipos) */
+export async function createEntityTable(db: Knex, table: string, ent: EntityDef) {
+  await db.schema.createTable(table, (t) => {
+    t.increments('id');
+    ent.fields.forEach((f) => addColumn(t, f));
+    t.text('criado_em');
+    t.text('atualizado_em');
+  });
+}

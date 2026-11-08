@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { entities, type EntityDef } from '@frame/shared';
 import { createDb, type Db } from '../src/db/knex';
 import { computeDiff, isEmptyDiff, renderMigration } from '../src/db/diff';
-import { migrateLatest, migrationStatus, withForeignKeysOff } from '../src/db/migrator';
+import { migrateLatest, migrationStatus, OutdatedHistoryError, withForeignKeysOff } from '../src/db/migrator';
 import { seed } from '../src/db/seed';
 
 let db: Db;
@@ -21,10 +21,10 @@ describe('Migrações', () => {
     await migrateLatest(db);
     const changed: Record<string, EntityDef> = {
       ...entities,
-      clientes: {
-        ...entities.clientes,
+      usuarios: {
+        ...entities.usuarios,
         fields: [
-          ...entities.clientes.fields.filter((f) => f.name !== 'observacoes'),
+          ...entities.usuarios.fields.filter((f) => f.name !== 'ultimo_acesso'),
           { name: 'cidade', label: 'Cidade', type: 'text' },
         ],
       },
@@ -38,25 +38,38 @@ describe('Migrações', () => {
     };
     const diff = await computeDiff(db, changed);
     expect(diff.createTables.map((t) => t.table)).toEqual(['contas']);
-    expect(diff.addColumns.map((c) => `${c.table}.${c.field.name}`)).toEqual(['clientes.cidade']);
-    expect(diff.orphanColumns).toEqual([{ table: 'clientes', column: 'observacoes' }]);
+    expect(diff.addColumns.map((c) => `${c.table}.${c.field.name}`)).toEqual(['usuarios.cidade']);
+    expect(diff.orphanColumns).toEqual([{ table: 'usuarios', column: 'ultimo_acesso' }]);
 
     const code = renderMigration(diff, 'x');
     expect(code).toContain("createTable('contas'");
     expect(code).toContain("t.text('cidade');");
-    expect(code).toContain('clientes.observacoes existe no banco');
+    expect(code).toContain('usuarios.ultimo_acesso existe no banco');
   });
 
   it('alterar tabela pai no SQLite não apaga vínculos das tabelas filhas', async () => {
     db = createDb(':memory:');
     await migrateLatest(db);
     await seed(db);
-    const vinculados = async () =>
-      Number((await db('chamados').whereNotNull('cliente_id').count({ n: '*' }).first())?.n);
-    expect(await vinculados()).toBe(40);
+    await db('logs').insert({ entidade: 'x', acao: 'teste', usuario_id: 1, criado_em: '2026-01-01 00:00:00' });
+    const vinculados = async () => Number((await db('logs').whereNotNull('usuario_id').count({ n: '*' }).first())?.n);
+    expect(await vinculados()).toBe(1);
 
-    // dropColumn no SQLite faz o Knex recriar a tabela `clientes`
-    await withForeignKeysOff(db, () => db.schema.alterTable('clientes', (t) => t.dropColumn('observacoes')));
-    expect(await vinculados()).toBe(40);
+    // alterar coluna no SQLite faz o Knex recriar a tabela `usuarios` (pai de logs, com ON DELETE SET NULL)
+    await withForeignKeysOff(db, async () => {
+      await db.schema.alterTable('usuarios', (t) => t.text('temp'));
+      await db.schema.alterTable('usuarios', (t) => t.dropColumn('temp'));
+    });
+    expect(await vinculados()).toBe(1);
+  });
+});
+
+describe('histórico de migrações desatualizado', () => {
+  it('explica o problema e a solução em vez de um erro técnico', async () => {
+    db = createDb(':memory:');
+    await migrateLatest(db);
+    await db('knex_migrations').insert({ name: '20200101000000_antiga', batch: 9, migration_time: new Date() });
+    await expect(migrationStatus(db)).rejects.toBeInstanceOf(OutdatedHistoryError);
+    await expect(migrationStatus(db)).rejects.toThrow(/npm run db:reset/);
   });
 });

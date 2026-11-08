@@ -37,7 +37,15 @@ describe('login e sessão', () => {
   it('rotas públicas funcionam sem login', async () => {
     expect((await request(ctx.app).get('/api/health')).status).toBe(200);
     const pub = await request(ctx.app).get('/api/settings/publicas');
-    expect(Object.keys(pub.body).sort()).toEqual(['cor_primaria', 'cor_secundaria', 'icone', 'logo', 'nome_sistema']);
+    expect(Object.keys(pub.body).sort()).toEqual([
+      'cor_primaria',
+      'cor_secundaria',
+      'estilo_menu',
+      'icone',
+      'logo',
+      'nome_sistema',
+    ]);
+    expect(pub.body).not.toHaveProperty('url_ajuda');
   });
 
   it('login cria cookie httpOnly e devolve o usuário com permissões', async () => {
@@ -228,5 +236,56 @@ describe('HTTPS', () => {
     const res = await request(ctx.app).get('/api/health');
     expect(res.headers['content-security-policy']).not.toContain('upgrade-insecure-requests');
     expect(res.headers['strict-transport-security']).toBeUndefined();
+  });
+});
+
+describe('meu perfil', () => {
+  it('altera o próprio nome e registra no log', async () => {
+    const ana = await ctx.login('ana@sistema.com', 'senha123');
+    const res = await ana.put('/api/auth/perfil').send({ nome: '  Ana S. Souza ' });
+    expect(res.body.nome).toBe('Ana S. Souza');
+    const log = await ctx.db('logs').where({ entidade: 'usuarios', registro_id: 2 }).orderBy('id', 'desc').first();
+    expect(JSON.parse(log.alteracoes).nome.para).toBe('Ana S. Souza');
+    expect((await ana.put('/api/auth/perfil').send({ nome: '' })).status).toBe(422);
+    await ana.put('/api/auth/perfil').send({ nome: 'Ana Souza' }).expect(200);
+  });
+
+  it('lista as próprias sessões, marca a atual e não expõe o token', async () => {
+    const a = await ctx.login('ana@sistema.com', 'senha123');
+    await ctx.login('ana@sistema.com', 'senha123');
+    const { body } = await a.get('/api/auth/sessoes');
+    expect(body.length).toBeGreaterThanOrEqual(2);
+    expect(body.filter((s: { atual: boolean }) => s.atual)).toHaveLength(1);
+    expect(body[0].id).toMatch(/^[0-9a-f]{16}$/);
+  });
+
+  it('encerra uma sessão específica e "todas as outras"', async () => {
+    const a = await ctx.login('ana@sistema.com', 'senha123');
+    const b = await ctx.login('ana@sistema.com', 'senha123');
+    const c = await ctx.login('ana@sistema.com', 'senha123');
+    const sessoes = (await a.get('/api/auth/sessoes')).body as { id: string; atual: boolean }[];
+    const daB = (await b.get('/api/auth/sessoes')).body.find((s: { atual: boolean }) => s.atual).id;
+    await a.delete(`/api/auth/sessoes/${daB}`).expect(204);
+    expect((await b.get('/api/auth/me')).status).toBe(401);
+    expect(sessoes.length).toBeGreaterThan(2);
+
+    const r = await a.delete('/api/auth/sessoes');
+    expect(r.body.encerradas).toBeGreaterThan(0);
+    expect((await c.get('/api/auth/me')).status).toBe(401);
+    expect((await a.get('/api/auth/me')).status).toBe(200);
+  });
+
+  it('não encerra sessão de outro usuário', async () => {
+    const admin = await ctx.login('admin@sistema.com', 'admin123');
+    const doAdmin = (await admin.get('/api/auth/sessoes')).body[0].id;
+    const ana = await ctx.login('ana@sistema.com', 'senha123');
+    expect((await ana.delete(`/api/auth/sessoes/${doAdmin}`)).status).toBe(404);
+    expect((await admin.get('/api/auth/me')).status).toBe(200);
+  });
+});
+
+describe('limite por IP', () => {
+  it('logins bem-sucedidos não contam para o bloqueio do IP', async () => {
+    for (let i = 0; i < 35; i++) await ctx.login('admin@sistema.com', 'admin123');
   });
 });

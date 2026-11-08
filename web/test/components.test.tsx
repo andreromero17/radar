@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { entities } from '@frame/shared';
+import { registerFixtureEntities } from '../../shared/test/fixtures';
+
+registerFixtureEntities();
 import FieldInput from '../src/components/FieldInput';
 import ValueBadge from '../src/components/ValueBadge';
 

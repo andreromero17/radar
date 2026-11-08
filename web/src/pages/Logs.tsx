@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { Card, Form, Pagination, Spinner, Table } from 'react-bootstrap';
-import { entities, getEntity, type ListResponse, type LogRow } from '@frame/shared';
+import { getEntity, type ListResponse, type LogRow } from '@frame/shared';
+import { areaLabel, areas } from '../lib/areas';
 import { api, errorMessage } from '../lib/api';
 import { fmtDate } from '../lib/format';
 import { useToast } from '../context/ToastContext';
@@ -20,17 +21,13 @@ const ACAO_COLORS: Record<string, string> = {
   'acesso recuperado': '#f08c2e',
   backup: '#7048e8',
   seed: '#7a8290',
+  'sessões encerradas': '#64748b',
   configuração: '#f08c2e',
 };
 const PAGE_SIZE = 15;
 
-const ENTIDADES = [
-  ...Object.entries(entities).map(([k, e]) => ({ value: k, label: e.label })),
-  { value: 'auth', label: 'Acessos (login/senha)' },
-  { value: 'sistema', label: 'Sistema' },
-];
-
-const entityLabel = (key: string | null) => ENTIDADES.find((e) => e.value === key)?.label ?? key ?? '—';
+const ENTIDADES = areas();
+const entityLabel = areaLabel;
 
 function fmtValue(v: unknown): string {
   if (v === undefined || v === null || v === '') return '—';

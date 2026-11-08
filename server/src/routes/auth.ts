@@ -1,6 +1,6 @@
 import { Router, type CookieOptions, type Request, type Response } from 'express';
 import { z } from 'zod';
-import { passwordSchema, toFieldErrors } from '@frame/shared';
+import { passwordSchema, toFieldErrors, type SessionInfo } from '@frame/shared';
 import { COOKIE_NAME, parseCookies, userOf } from '../auth/middleware';
 import { hashPassword, verifyPassword } from '../auth/password';
 import { minutes, RateLimiter } from '../auth/rateLimit';
@@ -50,12 +50,17 @@ const parse = <T extends z.ZodType>(schema: T, body: unknown): z.infer<T> => {
  *   POST /api/auth/esqueci            envia link de redefinição por e-mail
  *   POST /api/auth/redefinir/validar  confere se o link ainda vale
  *   POST /api/auth/redefinir          define nova senha pelo link
+ *   PUT  /api/auth/perfil             altera o próprio nome
+ *   GET  /api/auth/sessoes            sessões abertas do próprio usuário
+ *   DELETE /api/auth/sessoes/:id      encerra uma sessão
+ *   DELETE /api/auth/sessoes          encerra todas as outras
  */
 export function authRouter(db: Db, opts: AuthOptions) {
   const router = Router();
 
   // Limites de tentativa (por instância do servidor)
-  const loginPorIp = new RateLimiter(30, 15 * 60_000);
+  // por IP conta só falhas: vários usuários legítimos podem sair do mesmo IP (empresa, casa)
+  const falhasPorIp = new RateLimiter(30, 15 * 60_000);
   const falhasPorEmail = new RateLimiter(5, 15 * 60_000);
   const esqueciPorIp = new RateLimiter(5, 60 * 60_000);
   const esqueciPorEmail = new RateLimiter(3, 60 * 60_000);
@@ -79,7 +84,7 @@ export function authRouter(db: Db, opts: AuthOptions) {
 
   router.post('/login', async (req: Request, res: Response) => {
     const ip = req.ip ?? 'desconhecido';
-    const blockedIp = loginPorIp.hit(ip);
+    const blockedIp = falhasPorIp.blockedFor(ip);
     if (blockedIp) throw tooMany(blockedIp);
 
     const { email, senha, lembrar } = parse(loginSchema, req.body);
@@ -90,6 +95,7 @@ export function authRouter(db: Db, opts: AuthOptions) {
     const ok = await verifyPassword(senha, user?.senha); // sempre gasta o mesmo tempo
     if (!user || !ok) {
       falhasPorEmail.hit(email);
+      falhasPorIp.hit(ip);
       await addLog(db, { entidade: 'auth', acao: 'login falhou', detalhe: email }, actor(req, user));
       throw new HttpError(401, GENERIC_LOGIN_ERROR);
     }
@@ -223,6 +229,74 @@ export function authRouter(db: Db, opts: AuthOptions) {
       actor(req, { id: t.usuario_id, nome: t.nome }),
     );
     res.json({ ok: true });
+  });
+
+  // ---------- Meu perfil ----------
+  /** id público da sessão: começo do hash (suficiente para identificar, inútil para entrar) */
+  const publicId = (hash: string) => hash.slice(0, 16);
+
+  router.put('/perfil', async (req, res) => {
+    const me = userOf(req);
+    const { nome } = parse(
+      z.object({ nome: z.string().trim().min(1, 'Informe o nome').max(120, 'Máximo de 120 caracteres') }),
+      req.body,
+    );
+    if (nome !== me.nome) {
+      await db('usuarios').where({ id: me.id }).update({ nome, atualizado_em: nowLocal() });
+      await addLog(
+        db,
+        {
+          entidade: 'usuarios',
+          registro_id: me.id,
+          acao: 'alteração',
+          detalhe: nome,
+          alteracoes: { nome: { de: me.nome, para: nome } },
+        },
+        actor(req, { id: me.id, nome }),
+      );
+    }
+    res.json(await loadAuthUser(db, me.id));
+  });
+
+  router.get('/sessoes', async (req, res) => {
+    const me = userOf(req);
+    const rows = await db('sessoes')
+      .where({ usuario_id: me.id })
+      .where('expira_em', '>', nowLocal())
+      .orderBy('ultimo_uso', 'desc')
+      .select('id', 'lembrar', 'criado_em', 'ultimo_uso', 'ip', 'user_agent');
+    res.json(
+      rows.map((r) => ({
+        ...r,
+        id: publicId(r.id),
+        atual: r.id === req.auth?.sessionId,
+        lembrar: !!r.lembrar,
+      })) satisfies SessionInfo[],
+    );
+  });
+
+  /** Encerra uma sessão específica do próprio usuário */
+  router.delete('/sessoes/:id', async (req, res) => {
+    const me = userOf(req);
+    const id = String(req.params.id);
+    if (!/^[0-9a-f]{16}$/.test(id)) throw new HttpError(404, 'Sessão não encontrada');
+    const removidas = await db('sessoes').where({ usuario_id: me.id }).where('id', 'like', `${id}%`).del();
+    if (!removidas) throw new HttpError(404, 'Sessão não encontrada');
+    res.status(204).end();
+  });
+
+  /** Encerra todas as outras sessões (mantém a atual) */
+  router.delete('/sessoes', async (req, res) => {
+    const me = userOf(req);
+    const n = await deleteUserSessions(db, me.id, req.auth?.sessionId);
+    if (n) {
+      await addLog(
+        db,
+        { entidade: 'auth', registro_id: me.id, acao: 'sessões encerradas', detalhe: `${n} sessão(ões)` },
+        actor(req, me),
+      );
+    }
+    res.json({ encerradas: n });
   });
 
   return router;

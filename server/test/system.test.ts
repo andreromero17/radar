@@ -9,13 +9,23 @@ beforeAll(async () => {
 afterAll(() => ctx.db.destroy());
 
 describe('Dashboard, logs e backup', () => {
-  it('dashboard com contagens coerentes', async () => {
-    const { body } = await ctx.admin.get('/api/dashboard');
-    const somaStatus = body.porStatus.reduce((s: number, p: { total: number }) => s + p.total, 0);
-    expect(somaStatus).toBe(40);
-    expect(body.cards.abertos + body.cards.concluidos).toBe(40);
-    expect(body.cards.clientesAtivos).toBe(4);
-    expect(body.ultimos).toHaveLength(6);
+  it('resumo do dashboard traz o total de cada cadastro que o usuário pode ver', async () => {
+    const admin = (await ctx.admin.get('/api/dashboard/resumo')).body.totais;
+    expect(admin).toEqual(
+      expect.arrayContaining([
+        { entidade: 'chamados', total: 40 },
+        { entidade: 'clientes', total: 5 },
+        { entidade: 'usuarios', total: 4 },
+      ]),
+    );
+    const leitura = (await ctx.leitura.get('/api/dashboard/resumo')).body.totais;
+    expect(leitura.map((t: { entidade: string }) => t.entidade).sort()).toEqual(['chamados', 'clientes']);
+  });
+
+  it('health informa a versão', async () => {
+    const { body } = await ctx.admin.get('/api/health');
+    expect(body.version).toMatch(/^\d+\.\d+\.\d+/);
+    expect(body.commit).toBeTruthy();
   });
 
   it('logs paginados, mais recentes primeiro', async () => {
@@ -40,9 +50,5 @@ describe('Dashboard, logs e backup', () => {
     expect(body.tabelas.map((t: { tabela: string }) => t.tabela)).toEqual(
       expect.arrayContaining(['clientes', 'chamados', 'logs', 'configuracoes']),
     );
-  });
-
-  it('health check', async () => {
-    expect((await ctx.admin.get('/api/health')).body).toEqual({ ok: true });
   });
 });

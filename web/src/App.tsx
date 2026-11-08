@@ -6,6 +6,7 @@ import CrudList from './pages/CrudList';
 import CrudForm from './pages/CrudForm';
 import Logs from './pages/Logs';
 import Backup from './pages/Backup';
+import MeuPerfil from './pages/MeuPerfil';
 import NotFound from './pages/NotFound';
 import Login from './pages/auth/Login';
 import EsqueciSenha from './pages/auth/EsqueciSenha';
@@ -30,6 +31,7 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
+          <Route path="perfil" element={<MeuPerfil />} />
           <Route
             path="logs"
             element={

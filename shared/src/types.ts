@@ -13,6 +13,16 @@ export type FieldType =
   | 'select'
   | 'boolean'
   | 'relation'
+  /** CPF e/ou CNPJ com máscara e validação dos dígitos (veja `docType`) */
+  | 'document'
+  /** Telefone brasileiro com DDD: (51) 99999-0000 */
+  | 'phone'
+  /** Cor #RRGGBB com seletor */
+  | 'color'
+  /** Várias opções de `options`, gravadas como lista JSON */
+  | 'multiselect'
+  /** Número exibido como porcentagem (12,5 → 12,5%) */
+  | 'percent'
   /** Senha: nunca sai da API; gravada como hash; em branco na edição = manter */
   | 'password'
   /** Matriz de permissões (recurso × ação), gravada como JSON */
@@ -52,6 +62,25 @@ export interface FieldDef {
   help?: string;
   /** Desabilita o campo no formulário quando o campo booleano indicado estiver marcado */
   disabledWhen?: string;
+  /** Agrupa o campo sob um título no formulário (seções na ordem em que aparecem) */
+  section?: string;
+  /** Limites para number, money e percent */
+  min?: number;
+  max?: number;
+  /** money/number: valor negativo em vermelho e positivo em verde na listagem */
+  signColors?: boolean;
+  /** Mostra a soma da coluna no rodapé da listagem (considera todos os filtros, não só a página) */
+  total?: 'sum';
+  /** Aparece no painel de filtros da listagem (padrão: campos select, multiselect, boolean, relation e data) */
+  filter?: boolean;
+  /** document: só CPF, só CNPJ ou ambos (padrão) */
+  docType?: 'cpf' | 'cnpj' | 'cpf_cnpj';
+  /**
+   * relation dependente de outro campo do formulário: as opções são filtradas pelo valor dele.
+   * Ex.: categoria depende do tipo → { field: 'tipo' } busca categorias com tipo = valor escolhido.
+   * `param` é o campo na entidade de destino (padrão: o mesmo nome de `field`).
+   */
+  dependsOn?: { field: string; param?: string };
 }
 
 export interface EntityDef {
@@ -64,6 +93,14 @@ export interface EntityDef {
   /** Campo usado como "nome" do registro em relações, logs e confirmações */
   labelField: string;
   fields: FieldDef[];
+  /** Exclusão vai para a lixeira (coluna `excluido_em`), de onde dá para restaurar */
+  lixeira?: boolean;
+  /** Campo de data usado no seletor de período da listagem (ex.: mês a mês) */
+  periodField?: string;
+  /** Ordenação padrão da listagem (padrão: id decrescente) */
+  defaultSort?: { field: string; dir: 'asc' | 'desc' };
+  /** Grupo na matriz de permissões (padrão: "Cadastros" ou "Acesso" para o núcleo) */
+  group?: string;
 }
 
 /** Registro genérico vindo da API */
@@ -77,6 +114,8 @@ export type Row = {
 export interface ListResponse<T = Row> {
   rows: T[];
   total: number;
+  /** Somas das colunas com `total: 'sum'` (sobre todos os registros filtrados) */
+  totais?: Record<string, number>;
   page: number;
   pageSize: number;
 }
@@ -137,4 +176,17 @@ export interface BackupInfo {
   tamanho: number;
   modificado: string | null;
   tabelas: { tabela: string; registros: number }[];
+}
+
+/** Ação em lote (POST /api/:entity/lote) */
+export interface BulkRequest {
+  acao: 'excluir' | 'restaurar' | 'editar' | 'excluir_definitivo';
+  ids: number[];
+  /** Para 'editar': campos e valores a aplicar em todos */
+  dados?: Record<string, unknown>;
+}
+
+export interface BulkResponse {
+  ok: number;
+  erros: { id: number; error: string }[];
 }

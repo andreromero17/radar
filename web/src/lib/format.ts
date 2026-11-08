@@ -10,6 +10,9 @@ export function fmtDate(v: unknown, withTime = false): string {
 export const fmtMoney = (v: unknown) =>
   v == null || v === '' ? '—' : Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+export const fmtPercent = (v: unknown) =>
+  v == null || v === '' ? '—' : `${Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
+
 export function fmtBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 ** 2) return `${(n / 1024).toFixed(1)} KB`;

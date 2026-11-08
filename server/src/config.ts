@@ -38,9 +38,13 @@ const schema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().default('Sistema <nao-responda@localhost>'),
+
+  /** Módulo de demonstração (cadastros de exemplo com todos os recursos do motor) */
+  DEMO: z.enum(['true', 'false']).default('false'),
 });
 
-export type Config = Omit<z.infer<typeof schema>, 'COOKIE_SECURE' | 'SMTP_SECURE'> & {
+export type Config = Omit<z.infer<typeof schema>, 'COOKIE_SECURE' | 'SMTP_SECURE' | 'DEMO'> & {
+  demo: boolean;
   dbFile: string;
   corsOrigins: string[];
   cookieSecure: boolean;
@@ -54,11 +58,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     console.error(`\n✖ Configuração inválida em server/.env:\n${lines}\n`);
     process.exit(1);
   }
-  const { COOKIE_SECURE, SMTP_SECURE, ...c } = parsed.data;
+  const { COOKIE_SECURE, SMTP_SECURE, DEMO, ...c } = parsed.data;
   return {
     ...c,
     cookieSecure: COOKIE_SECURE ? COOKIE_SECURE === 'true' : c.NODE_ENV === 'production',
     smtpSecure: SMTP_SECURE === 'true',
+    demo: DEMO === 'true',
     dbFile: c.DB_PATH === ':memory:' ? ':memory:' : path.resolve(SERVER_ROOT, c.DB_PATH),
     corsOrigins: c.CORS_ORIGIN.split(',')
       .map((s) => s.trim())

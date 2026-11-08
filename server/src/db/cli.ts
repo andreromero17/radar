@@ -20,6 +20,7 @@ import { createDb } from './knex';
 import { computeDiff, isEmptyDiff, writeMigration } from './diff';
 import { migrateLatest, migrationStatus, rollback } from './migrator';
 import { seed, SEED_LOGINS } from './seed';
+import { setupDemo } from '../demo/setup';
 
 const [command = 'status', ...args] = process.argv.slice(2);
 let db = createDb(config.dbFile);
@@ -65,6 +66,7 @@ try {
       break;
     }
     case 'seed': {
+      if (config.demo && (await setupDemo(db))) console.log('🌱 Módulo de demonstração populado');
       if (await seed(db)) {
         console.log('🌱 Dados de exemplo inseridos. Acessos de teste:');
         for (const l of SEED_LOGINS) console.log(`   • ${l.email.padEnd(20)} ${l.senha.padEnd(10)} (${l.perfil})`);
@@ -85,7 +87,8 @@ try {
       }
       await migrateLatest(db);
       await seed(db);
-      console.log('✔ Banco recriado com dados de exemplo. Acessos de teste:');
+      if (config.demo) await setupDemo(db);
+      console.log(`✔ Banco recriado com dados de exemplo${config.demo ? ' (+ demonstração)' : ''}. Acessos de teste:`);
       for (const l of SEED_LOGINS) console.log(`   • ${l.email.padEnd(20)} ${l.senha.padEnd(10)} (${l.perfil})`);
       break;
     }

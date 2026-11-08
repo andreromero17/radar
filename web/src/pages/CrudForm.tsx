@@ -5,6 +5,7 @@ import {
   getEntity,
   validateEntity,
   type EntityDef,
+  type FieldDef,
   type FieldErrors,
   type RelationOption,
   type Row,
@@ -20,7 +21,8 @@ import Forbidden from './Forbidden';
 
 type Values = Record<string, FormValue>;
 
-const empty = (type: string): FormValue => (type === 'boolean' ? false : type === 'permissions' ? {} : '');
+const empty = (type: string): FormValue =>
+  type === 'boolean' ? false : type === 'permissions' ? {} : type === 'multiselect' ? [] : '';
 
 const defaults = (ent: EntityDef): Values =>
   Object.fromEntries(ent.fields.map((f) => [f.name, f.default ?? empty(f.type)]));
@@ -29,6 +31,17 @@ const fromRow = (ent: EntityDef, r: Row): Values =>
   Object.fromEntries(
     ent.fields.map((f) => [f.name, f.type === 'boolean' ? !!r[f.name] : ((r[f.name] as FormValue) ?? empty(f.type))]),
   );
+
+/** Agrupa os campos por `section`, na ordem em que as seções aparecem */
+function sections(fields: FieldDef[]): [string | undefined, FieldDef[]][] {
+  const out: [string | undefined, FieldDef[]][] = [];
+  for (const f of fields) {
+    const existing = out.find(([s]) => s === f.section);
+    if (existing) existing[1].push(f);
+    else out.push([f.section, [f]]);
+  }
+  return out;
+}
 
 export default function CrudForm() {
   const { entity = '', id } = useParams();
@@ -72,13 +85,41 @@ export default function CrudForm() {
   useEffect(() => {
     if (!ent || !allowed) return;
     for (const f of ent.fields) {
-      if (f.type !== 'relation' || !getEntity(f.entity)) continue;
+      if (f.type !== 'relation' || f.dependsOn || !getEntity(f.entity)) continue;
       api
         .get<RelationOption[]>(`/${f.entity}/opcoes`)
         .then((opts) => setRelOptions((o) => ({ ...o, [f.name]: opts })))
         .catch(() => {});
     }
   }, [ent, allowed]);
+
+  // Selects dependentes (ex.: categoria conforme o tipo): recarrega quando o campo "pai" muda
+  const dependents = ent?.fields.filter((f) => f.type === 'relation' && f.dependsOn && getEntity(f.entity)) ?? [];
+  const parentKey = dependents.map((f) => `${f.name}=${String(values[f.dependsOn!.field] ?? '')}`).join('&');
+  useEffect(() => {
+    if (!allowed || loading) return;
+    for (const f of dependents) {
+      const dep = f.dependsOn!;
+      const pai = values[dep.field];
+      const qs = new URLSearchParams();
+      if (pai !== '' && pai != null) qs.set(dep.param ?? dep.field, String(pai));
+      const atual = values[f.name];
+      if (atual !== '' && atual != null) qs.set('incluir', String(atual));
+      api
+        .get<RelationOption[]>(`/${f.entity}/opcoes?${qs}`)
+        .then((opts) => {
+          setRelOptions((o) => ({ ...o, [f.name]: opts }));
+          // a opção escolhida não combina mais com o pai: limpa
+          setValues((v) => {
+            const cur = v[f.name];
+            if (cur === '' || cur == null || pai === '' || pai == null) return v;
+            return opts.some((op) => String(op.value) === String(cur)) ? v : { ...v, [f.name]: '' };
+          });
+        })
+        .catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parentKey, allowed, loading]);
 
   if (!ent) return <NotFound />;
   if (!allowed) return <Forbidden />;
@@ -129,25 +170,29 @@ export default function CrudForm() {
             </div>
           ) : (
             <Form noValidate onSubmit={submit}>
-              <BsRow className="g-3">
-                {ent.fields
-                  .filter((f) => !(isNew && f.readonly))
-                  .filter((f) => !(readOnly && f.type === 'password'))
-                  .map((f) => (
-                    <Col key={f.name} xs={12} md={f.col || (f.type === 'textarea' ? 12 : 6)}>
-                      <FieldInput
-                        field={f}
-                        value={values[f.name]}
-                        onChange={onChange}
-                        error={errors[f.name]}
-                        options={relOptions[f.name]}
-                        isNew={isNew}
-                        values={values}
-                        disabled={readOnly || !!(f.disabledWhen && values[f.disabledWhen])}
-                      />
-                    </Col>
-                  ))}
-              </BsRow>
+              {sections(
+                ent.fields.filter((f) => !(isNew && f.readonly)).filter((f) => !(readOnly && f.type === 'password')),
+              ).map(([section, fields], i) => (
+                <fieldset key={section ?? i} className={section ? 'form-section' : undefined}>
+                  {section && <legend className="form-section-title">{section}</legend>}
+                  <BsRow className="g-3">
+                    {fields.map((f) => (
+                      <Col key={f.name} xs={12} md={f.col || (f.type === 'textarea' ? 12 : 6)}>
+                        <FieldInput
+                          field={f}
+                          value={values[f.name]}
+                          onChange={onChange}
+                          error={errors[f.name]}
+                          options={relOptions[f.name]}
+                          isNew={isNew}
+                          values={values}
+                          disabled={readOnly || !!(f.disabledWhen && values[f.disabledWhen])}
+                        />
+                      </Col>
+                    ))}
+                  </BsRow>
+                </fieldset>
+              ))}
               <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
                 <Button variant="light" onClick={() => navigate(`/${entity}`)}>
                   {readOnly ? 'Voltar' : 'Cancelar'}

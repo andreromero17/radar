@@ -113,9 +113,33 @@ npm run db:migrate
 { label: 'Contas', icon: 'bank', to: '/contas', perm: ['contas', 'ver'] },
 ```
 
-Pronto. A entidade ganha API REST, validação (no form e na API), listagem com busca, filtros e paginação, formulário e log de alterações.
+Pronto. A entidade ganha API REST, validação (no form e na API), listagem com busca, filtros, ordenação, exportação e ações em lote, formulário e log de alterações.
 
-Tipos de campo: `text`, `email`, `textarea`, `number`, `money`, `date`, `datetime`, `select`, `boolean`, `relation`, `password` e `permissions`.
+Tipos de campo: `text`, `email`, `textarea`, `number`, `money`, `percent`, `date`, `datetime`, `select`,
+`multiselect`, `boolean`, `relation`, `document` (CPF/CNPJ), `phone`, `color`, `password` e `permissions`.
+
+Opções úteis:
+
+| Onde     | Opção                                         | O que faz                                                                                      |
+| -------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| campo    | `section: 'Contato'`                          | agrupa o formulário em seções                                                                  |
+| campo    | `min` / `max`                                 | limites de `number`, `money` e `percent`                                                       |
+| campo    | `signColors: true`                            | valor negativo em vermelho, positivo em verde                                                  |
+| campo    | `total: 'sum'`                                | soma na linha de totais da listagem (e no Excel)                                               |
+| campo    | `filter: true/false`                          | mostra ou esconde no painel de filtros (padrão: select, multiselect, boolean, relação e datas) |
+| campo    | `docType: 'cpf' \| 'cnpj' \| 'cpf_cnpj'`      | o que o campo `document` aceita                                                                |
+| campo    | `dependsOn: { field: 'tipo' }`                | relação filtrada pelo valor de outro campo (ex.: categoria conforme o tipo)                    |
+| entidade | `lixeira: true`                               | excluir envia para a lixeira (restaurável); cria a coluna `excluido_em`                        |
+| entidade | `periodField: 'data'`                         | seletor de mês na listagem, que abre no mês atual                                              |
+| entidade | `defaultSort: { field: 'data', dir: 'desc' }` | ordem padrão da listagem                                                                       |
+| entidade | `group: 'Financeiro'`                         | grupo na matriz de permissões                                                                  |
+
+Filtros também funcionam pela URL (dá para fazer links prontos): `?tipo=Despesa&tipo=Receita`,
+`?data__de=2026-11-01&data__ate=2026-11-30`, `?valor__de=100`, `?descricao__contem=luz`.
+
+**Módulo de demonstração.** Com `DEMO=true` no `server/.env`, o sistema ganha o grupo "Demonstração" (clientes,
+categorias e movimentos de exemplo) mostrando todos esses recursos. As tabelas `demo_*` são criadas e populadas no
+boot, fora das migrações; tirar a linha do `.env` esconde o módulo. As definições ficam em `shared/src/demo/`.
 
 A entidade nova entra sozinha na matriz de permissões. Libere-a nos perfis (o administrador já tem acesso). No menu, use `perm: ['contas', 'ver']` para esconder o item de quem não pode ver.
 

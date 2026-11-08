@@ -23,7 +23,7 @@ export interface ResourceDef {
   key: string;
   label: string;
   icon: string;
-  group: 'Cadastros' | 'Acesso' | 'Sistema';
+  group: string;
   /** Ações que fazem sentido para o recurso (colunas da matriz) */
   actions: readonly Action[];
 }
@@ -49,7 +49,7 @@ export function resources(): ResourceDef[] {
     key,
     label: e.label,
     icon: e.icon,
-    group: isCoreEntity(key) ? ('Acesso' as const) : ('Cadastros' as const),
+    group: e.group ?? (isCoreEntity(key) ? 'Acesso' : 'Cadastros'),
     actions: ACTIONS.filter((a) => !ADMIN_ONLY[key]?.includes(a)),
   }));
   return [...fromEntities, ...SYSTEM_RESOURCES];

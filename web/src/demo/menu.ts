@@ -1,0 +1,14 @@
+// Menu do módulo de demonstração (só aparece com DEMO=true no server/.env)
+import type { MenuItem } from '../config/menu';
+
+export const demoMenu: MenuItem[] = [
+  {
+    label: 'Demonstração',
+    icon: 'stars',
+    children: [
+      { label: 'Movimentos', icon: 'arrow-left-right', to: '/demo_movimentos', perm: ['demo_movimentos', 'ver'] },
+      { label: 'Clientes', icon: 'people', to: '/demo_clientes', perm: ['demo_clientes', 'ver'] },
+      { label: 'Categorias', icon: 'tags', to: '/demo_categorias', perm: ['demo_categorias', 'ver'] },
+    ],
+  },
+];

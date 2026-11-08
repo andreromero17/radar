@@ -11,6 +11,12 @@ import type { Knex } from 'knex';
 import type { EntityDef, FieldDef } from '@frame/shared';
 
 const SYSTEM_COLUMNS = new Set(['id', 'criado_em', 'atualizado_em']);
+
+/** Coluna da lixeira, criada para entidades com `lixeira: true` */
+const TRASH_FIELD: FieldDef = { name: 'excluido_em', label: 'Excluído em', type: 'datetime' };
+
+/** Colunas da tabela além das de sistema: campos da entidade (+ lixeira) */
+export const tableFields = (ent: EntityDef): FieldDef[] => (ent.lixeira ? [...ent.fields, TRASH_FIELD] : ent.fields);
 const MIGRATIONS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
 
 export interface SchemaDiff {
@@ -30,9 +36,10 @@ export async function computeDiff(db: Knex, entities: Record<string, EntityDef>)
       continue;
     }
     const existing = Object.keys(await db(table).columnInfo());
-    for (const field of entity.fields) if (!existing.includes(field.name)) diff.addColumns.push({ table, field });
+    const fields = tableFields(entity);
+    for (const field of fields) if (!existing.includes(field.name)) diff.addColumns.push({ table, field });
     for (const column of existing) {
-      if (!SYSTEM_COLUMNS.has(column) && !entity.fields.some((f) => f.name === column))
+      if (!SYSTEM_COLUMNS.has(column) && !fields.some((f) => f.name === column))
         diff.orphanColumns.push({ table, column });
     }
   }
@@ -44,6 +51,7 @@ export function columnCode(f: FieldDef): string {
   const n = `'${f.name}'`;
   switch (f.type) {
     case 'number':
+    case 'percent':
       return `t.double(${n});`;
     case 'money':
       return `t.decimal(${n}, 15, 2);`;
@@ -69,7 +77,7 @@ export function renderMigration(diff: SchemaDiff, name: string): string {
   for (const { table, entity } of diff.createTables) {
     const cols = [
       "t.increments('id');",
-      ...entity.fields.map(columnCode),
+      ...tableFields(entity).map(columnCode),
       "t.text('criado_em');",
       "t.text('atualizado_em');",
     ];
@@ -140,6 +148,7 @@ export function writeMigration(diff: SchemaDiff, description: string, dir = MIGR
 export function addColumn(t: Knex.CreateTableBuilder, f: FieldDef) {
   switch (f.type) {
     case 'number':
+    case 'percent':
       return t.double(f.name);
     case 'money':
       return t.decimal(f.name, 15, 2);
@@ -159,7 +168,7 @@ export function addColumn(t: Knex.CreateTableBuilder, f: FieldDef) {
 export async function createEntityTable(db: Knex, table: string, ent: EntityDef) {
   await db.schema.createTable(table, (t) => {
     t.increments('id');
-    ent.fields.forEach((f) => addColumn(t, f));
+    tableFields(ent).forEach((f) => addColumn(t, f));
     t.text('criado_em');
     t.text('atualizado_em');
   });

@@ -38,6 +38,8 @@ export const settingsSchema = z.object({
     .refine((v) => v === '' || EMAIL.test(v), 'E-mail inválido'),
   endereco: z.string().trim().max(200, 'Máximo de 200 caracteres'),
   dias_logs: z.coerce.number({ error: dias }).int(dias).min(0, dias).max(3650, dias),
+  /** Registros na lixeira são apagados de vez após X dias (0 = nunca) */
+  dias_lixeira: z.coerce.number({ error: dias }).int(dias).min(0, dias).max(3650, dias),
   /** Link da Central de Ajuda; vazio = item não aparece no menu */
   url_ajuda: z
     .string()
@@ -62,6 +64,7 @@ export const DEFAULT_SETTINGS: Settings = {
   email: '',
   endereco: '',
   dias_logs: 90, // 0 = nunca excluir
+  dias_lixeira: 30, // 0 = nunca esvaziar
   url_ajuda: '',
   estilo_menu: 'colorido',
 };

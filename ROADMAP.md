@@ -42,17 +42,22 @@
 
 _Aqui o frame passa a sustentar sistemas de verdade._
 
-- **Novos tipos de campo:**
-  - moeda BRL com máscara, CPF/CNPJ com validação, telefone, data/hora
-  - upload de arquivo/anexo, multiselect, cor
+### 2A (v0.4.0) ✅ concluída (08/11/2026)
+
+- Campos: moeda BRL com máscara e cores por sinal, CPF/CNPJ com validação, telefone, cor, multiselect, percentual
+- Listagem: ordenação clicável, painel de filtros, período (mês), totais, exportar CSV/Excel, ações em lote,
+  colunas visíveis por usuário, itens por página
+- Lixeira (soft delete), restauração e esvaziamento automático
+- Formulário em seções e selects dependentes
+- Módulo de demonstração opcional (`DEMO=true`)
+
+### 2B
+
 - **Master-detail:** formulário com sub-tabela (ex.: pedido → itens, lançamento → parcelas)
-- Hooks por entidade já existem (Fase 1); aqui eles passam a cobrir as regras de negócio do finanças (ex.: recalcular saldo)
+- **Anexos:** upload de arquivo por registro
 - **Telas plugáveis:** cada entidade usa as telas genéricas por padrão, mas aceita lista/form/página customizados
-- **Listagem:**
-  - filtros por coluna, ordenação clicável
-  - exportar CSV/Excel, ações em lote
-  - colunas visíveis por usuário
-- **Lixeira** (soft delete) e restauração
+- **Importar CSV** para uma entidade (com prévia e validação linha a linha)
+- Hooks por entidade já existem (Fase 1); aqui eles passam a cobrir as regras de negócio do finanças (ex.: recalcular saldo)
 - **Pronto quando:** dá para modelar o finanças inteiro sem tocar no código do motor
 
 ## Fase 3 — Finanças pessoais (MVP) ← primeiro sistema

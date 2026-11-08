@@ -4,6 +4,7 @@
 // =============================================================================
 import { z } from 'zod';
 import { editableFields } from './entities';
+import { isValidCNPJ, isValidCPF, isValidPhone, maskDocument, maskPhone, onlyDigits, parseMoney } from './masks';
 import { ACTIONS, normalizePermissions, type Permissions } from './permissions';
 import type { EntityDef, FieldDef, FieldErrors } from './types';
 
@@ -56,13 +57,82 @@ const emptyToNull = (v: unknown) => {
 
 const toBool = (v: unknown) => v === true || v === 1 || v === '1' || v === 'true';
 
+const fmtLimit = (f: FieldDef, n: number) =>
+  f.type === 'money'
+    ? n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    : f.type === 'percent'
+      ? `${n.toLocaleString('pt-BR')}%`
+      : n.toLocaleString('pt-BR');
+
+/** Número com limites min/max; dinheiro aceita "1.234,56" e é arredondado a centavos */
+function numberSchema(f: FieldDef): z.ZodType {
+  let n = z.number({ error: 'Valor numérico inválido' }).refine(Number.isFinite, 'Valor numérico inválido');
+  if (f.min !== undefined) n = n.refine((v) => v >= f.min!, `Mínimo: ${fmtLimit(f, f.min)}`);
+  if (f.max !== undefined) n = n.refine((v) => v <= f.max!, `Máximo: ${fmtLimit(f, f.max)}`);
+  const parse = (v: unknown) => {
+    const x = f.type === 'money' || typeof v === 'string' ? parseMoney(v) : Number(v);
+    return f.type === 'money' && Number.isFinite(x) ? Math.round(x * 100) / 100 : x;
+  };
+  return z.preprocess(parse, n);
+}
+
+function documentSchema(f: FieldDef): z.ZodType {
+  const kind = f.docType ?? 'cpf_cnpj';
+  const label = kind === 'cpf' ? 'CPF' : kind === 'cnpj' ? 'CNPJ' : 'CPF/CNPJ';
+  return z
+    .string()
+    .refine((v) => {
+      const d = onlyDigits(v);
+      if (d.length === 11 && kind !== 'cnpj') return isValidCPF(d);
+      if (d.length === 14 && kind !== 'cpf') return isValidCNPJ(d);
+      return false;
+    }, `${label} inválido`)
+    .transform((v) => maskDocument(v, onlyDigits(v).length === 14 ? 'cnpj' : 'cpf'));
+}
+
+/** Aceita lista, JSON ou texto separado por vírgula; mantém a ordem das opções */
+function multiselectSchema(f: FieldDef): z.ZodType {
+  const options = (f.options ?? []) as [string, ...string[]];
+  return z.preprocess(
+    (v) => {
+      if (v == null || v === '') return [];
+      if (Array.isArray(v)) return v;
+      const t = String(v).trim();
+      if (t.startsWith('[')) {
+        try {
+          return JSON.parse(t);
+        } catch {
+          return t;
+        }
+      }
+      return t.split(',').map((x) => x.trim());
+    },
+    z
+      .array(z.enum(options, { error: 'Opção inválida' }), { error: 'Opções inválidas' })
+      .transform((arr) => options.filter((o) => arr.includes(o))),
+  );
+}
+
 function baseSchema(f: FieldDef): z.ZodType {
   switch (f.type) {
     case 'email':
       return z.string().regex(EMAIL, 'E-mail inválido');
     case 'number':
     case 'money':
-      return z.coerce.number({ error: 'Valor numérico inválido' });
+    case 'percent':
+      return numberSchema(f);
+    case 'document':
+      return documentSchema(f);
+    case 'phone':
+      return z
+        .string()
+        .refine(isValidPhone, 'Telefone inválido (use DDD + número)')
+        .transform((v) => maskPhone(v));
+    case 'color':
+      return z
+        .string()
+        .regex(/^#[0-9a-f]{6}$/i, 'Use o formato #RRGGBB')
+        .transform((v) => v.toLowerCase());
     case 'relation':
       return z.coerce.number({ error: 'Seleção inválida' }).int('Seleção inválida').positive('Seleção inválida');
     case 'select':
@@ -85,6 +155,10 @@ function baseSchema(f: FieldDef): z.ZodType {
 export function fieldSchema(f: FieldDef, mode: 'create' | 'update' = 'create'): z.ZodType {
   if (f.type === 'boolean') return z.preprocess(toBool, z.boolean());
   if (f.type === 'permissions') return permissionsSchema;
+  if (f.type === 'multiselect') {
+    const m = multiselectSchema(f);
+    return f.required ? m.refine((v) => (v as string[]).length > 0, { message: `Escolha ao menos uma opção` }) : m;
+  }
   if (f.type === 'password') {
     // vazio = "não informar" (na edição, mantém a senha atual)
     const clean = (v: unknown) => (v == null || v === '' ? undefined : v);

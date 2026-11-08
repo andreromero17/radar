@@ -6,13 +6,18 @@
 // `npm run db:diff -- descricao` (gera a migração) e `npm run db:migrate`.
 //
 // Tipos de campo suportados: text, email, textarea, number, money, date,
-// select (com options), boolean, relation (com entity -> outra entidade).
+// datetime, select (com options), boolean, relation (com entity -> outra
+// entidade), password (gravada como hash, nunca sai da API) e permissions.
 //
 // Propriedades úteis:
 //   required  -> obrigatório        list   -> aparece na listagem
 //   search    -> entra na busca     col    -> largura no formulário (1-12)
 //   default   -> valor inicial      colors -> cor do badge por opção (select)
 //   readonly  -> não editável       auto   -> gerado pelo servidor
+//   help      -> texto de ajuda     disabledWhen -> desabilita se o booleano indicado estiver marcado
+//
+// Regras de negócio que não cabem aqui (ex.: e-mail único) ficam nos hooks do
+// servidor: server/src/hooks/.
 // =============================================================================
 import type { EntityDef } from './types';
 
@@ -49,16 +54,43 @@ export const entities: Record<string, EntityDef> = {
     fields: [
       { name: 'nome', label: 'Nome', type: 'text', required: true, list: true, search: true, maxLength: 120 },
       { name: 'email', label: 'E-mail', type: 'email', required: true, list: true, search: true },
+      { name: 'perfil_id', label: 'Perfil', type: 'relation', entity: 'perfis', required: true, list: true },
       {
-        name: 'perfil',
-        label: 'Perfil',
-        type: 'select',
-        options: ['Administrador', 'Operador', 'Leitura'],
-        default: 'Operador',
-        list: true,
-        colors: { Administrador: '#7048e8', Operador: '#2f6fed', Leitura: '#7a8290' },
+        name: 'senha',
+        label: 'Senha',
+        type: 'password',
+        required: true,
+        help: 'Mínimo de 8 caracteres, com letras e números.',
       },
       { name: 'ativo', label: 'Ativo', type: 'boolean', list: true, default: true },
+      {
+        name: 'trocar_senha',
+        label: 'Exigir troca de senha no próximo acesso',
+        type: 'boolean',
+        default: true,
+      },
+      { name: 'ultimo_acesso', label: 'Último acesso', type: 'datetime', list: true, readonly: true },
+    ],
+  },
+
+  perfis: {
+    label: 'Perfis de acesso',
+    singular: 'Perfil',
+    icon: 'shield-lock',
+    labelField: 'nome',
+    fields: [
+      { name: 'nome', label: 'Nome', type: 'text', required: true, list: true, search: true, maxLength: 60, col: 6 },
+      { name: 'descricao', label: 'Descrição', type: 'text', list: true, maxLength: 200, col: 6 },
+      {
+        name: 'admin',
+        label: 'Acesso total (administrador)',
+        type: 'boolean',
+        list: true,
+        default: false,
+        col: 12,
+        help: 'Administradores podem tudo, inclusive gerenciar perfis e usuários administradores.',
+      },
+      { name: 'permissoes', label: 'Permissões', type: 'permissions', col: 12, disabledWhen: 'admin' },
     ],
   },
 

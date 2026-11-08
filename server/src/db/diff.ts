@@ -51,6 +51,10 @@ export function columnCode(f: FieldDef): string {
       return `t.boolean(${n});`;
     case 'date':
       return `t.date(${n});`;
+    case 'datetime':
+    case 'password':
+    case 'permissions':
+      return `t.text(${n});`;
     case 'relation':
       return `t.integer(${n}).references('id').inTable('${f.entity}').onDelete('SET NULL');\n    t.index([${n}]);`;
     default:

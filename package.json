@@ -30,7 +30,8 @@
     "db:status": "npm run db -w server -- status",
     "db:diff": "npm run db -w server -- diff",
     "db:seed": "npm run db -w server -- seed",
-    "db:reset": "npm run db -w server -- reset"
+    "db:reset": "npm run db -w server -- reset",
+    "db:admin": "npm run db -w server -- admin"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs}": [

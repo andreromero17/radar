@@ -54,3 +54,7 @@ export const DEFAULT_SETTINGS: Settings = {
   endereco: '',
   dias_logs: 90, // 0 = nunca excluir
 };
+
+/** Campos visíveis sem login (identidade visual da tela de entrada) */
+export const PUBLIC_SETTINGS_KEYS = ['nome_sistema', 'icone', 'logo', 'cor_primaria', 'cor_secundaria'] as const;
+export type PublicSettings = Pick<Settings, (typeof PUBLIC_SETTINGS_KEYS)[number]>;

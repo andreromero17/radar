@@ -1,6 +1,14 @@
 import { STATUS_CHAMADO } from '@frame/shared';
+import { hashPassword } from '../auth/password';
 import { nowLocal, protocolo } from '../utils/time';
 import { count, toDbValue, type Db } from './knex';
+
+/** Acessos de exemplo criados pelo seed (somente desenvolvimento!) */
+export const SEED_LOGINS = [
+  { email: 'admin@sistema.com', senha: 'admin123', perfil: 'Administrador' },
+  { email: 'ana@sistema.com', senha: 'senha123', perfil: 'Operador' },
+  { email: 'bruno@sistema.com', senha: 'senha123', perfil: 'Leitura' },
+] as const;
 
 /** Popula o banco com dados de exemplo. Não faz nada se já houver clientes. */
 export async function seed(db: Db): Promise<boolean> {
@@ -14,11 +22,16 @@ export async function seed(db: Db): Promise<boolean> {
     ['Loja Antiga Ltda', 'loja@antiga.com', '(48) 3000-0000', '11.222.333/0001-44', false],
   ] as const;
   const usuarios = [
-    ['Usuário Administrador', 'admin@sistema.com', 'Administrador', true],
-    ['Ana Souza', 'ana@sistema.com', 'Operador', true],
-    ['Bruno Lima', 'bruno@sistema.com', 'Operador', true],
-    ['Carla Dias', 'carla@sistema.com', 'Leitura', false],
+    ['Usuário Administrador', 'admin@sistema.com', 'Administrador', true, 'admin123'],
+    ['Ana Souza', 'ana@sistema.com', 'Operador', true, 'senha123'],
+    ['Bruno Lima', 'bruno@sistema.com', 'Leitura', true, 'senha123'],
+    ['Carla Dias', 'carla@sistema.com', 'Operador', false, 'senha123'],
   ] as const;
+  const perfis = Object.fromEntries(
+    ((await db('perfis').select('id', 'nome')) as { id: number; nome: string }[]).map((p) => [p.nome, p.id]),
+  );
+  const hashes = new Map<string, string>();
+  for (const [, , , , senha] of usuarios) if (!hashes.has(senha)) hashes.set(senha, await hashPassword(senha));
   const assuntos = [
     'Teste chamado',
     'Novo chamado hoje',
@@ -52,10 +65,12 @@ export async function seed(db: Db): Promise<boolean> {
       })),
     );
     await trx('usuarios').insert(
-      usuarios.map(([nome, email, perfil, ativo]) => ({
+      usuarios.map(([nome, email, perfil, ativo, senha]) => ({
         nome,
         email,
-        perfil,
+        perfil_id: perfis[perfil],
+        senha: hashes.get(senha),
+        trocar_senha: toDbValue(db, false),
         ativo: toDbValue(db, ativo),
         criado_em: agora,
       })),

@@ -2,7 +2,21 @@
 // Tipos compartilhados entre API (server) e interface (web).
 // =============================================================================
 
-export type FieldType = 'text' | 'email' | 'textarea' | 'number' | 'money' | 'date' | 'select' | 'boolean' | 'relation';
+export type FieldType =
+  | 'text'
+  | 'email'
+  | 'textarea'
+  | 'number'
+  | 'money'
+  | 'date'
+  | 'datetime'
+  | 'select'
+  | 'boolean'
+  | 'relation'
+  /** Senha: nunca sai da API; gravada como hash; em branco na edição = manter */
+  | 'password'
+  /** Matriz de permissões (recurso × ação), gravada como JSON */
+  | 'permissions';
 
 export interface FieldDef {
   /** Nome da coluna no banco (snake_case) */
@@ -32,6 +46,10 @@ export interface FieldDef {
   entity?: string;
   /** Tamanho máximo para campos de texto */
   maxLength?: number;
+  /** Texto de ajuda exibido abaixo do campo */
+  help?: string;
+  /** Desabilita o campo no formulário quando o campo booleano indicado estiver marcado */
+  disabledWhen?: string;
 }
 
 export interface EntityDef {
@@ -91,6 +109,10 @@ export interface LogRow {
   acao: string;
   detalhe: string | null;
   usuario: string | null;
+  usuario_id: number | null;
+  ip: string | null;
+  /** Diferença campo a campo: { campo: { de, para } } */
+  alteracoes: Record<string, { de?: unknown; para?: unknown }> | null;
   criado_em: string;
 }
 

@@ -57,6 +57,9 @@ _Começa assim que a Fase 2 tiver o essencial; as duas andam juntas._
 - Dashboard: saldo consolidado, receitas × despesas, gastos por categoria, orçamento × realizado
 - Importação de extrato OFX/CSV com categorização assistida
 - **Pronto quando:** você usa no dia a dia por um mês sem planilha paralela
+- Referência visual/funcional (Mobills, 08/11): menu Contas · Transações · Cartões de crédito · Planejamento ·
+  Relatórios; botão "+ Novo" para lançar rápido; seletor de mês no topo; cards Saldo atual / Receitas / Despesas;
+  gráficos de despesas e receitas por categoria
 
 ## Fase 4 — Dashboards e relatórios configuráveis
 

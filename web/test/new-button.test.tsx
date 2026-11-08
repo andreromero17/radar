@@ -28,7 +28,10 @@ describe('Botão + Novo', () => {
       .getAllByRole('button')
       .map((b) => b.textContent?.trim())
       .filter(Boolean);
-    expect(itens.slice(1)).toEqual(['Cliente', 'Chamado', 'Usuário', 'Perfil']);
+    // só as entidades de exemplo + núcleo (num sistema derivado, as da aplicação também aparecem antes do núcleo)
+    const conhecidos = ['Cliente', 'Chamado', 'Usuário', 'Perfil'];
+    expect(itens.filter((i) => conhecidos.includes(i!))).toEqual(conhecidos);
+    expect(itens.indexOf('Usuário')).toBe(itens.length - 2);
   });
 
   it('com uma opção só vira link direto', () => {

@@ -7,6 +7,9 @@ configurações) que serve de base para vários sistemas. Primeiro sistema em ci
 finanças pessoais. Interface, mensagens e nomes de tabelas/campos em português do Brasil.
 Roadmap em `ROADMAP.md` (Fases 0, 1 e 2 concluídas).
 
+Cada sistema é um repositório derivado deste (remoto `upstream` = frame-app). Regras e contexto do sistema
+derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
+
 ## Stack
 
 - Monorepo com npm workspaces: `shared/`, `server/`, `web/` — tudo em TypeScript (strict)
@@ -29,16 +32,19 @@ Roadmap em `ROADMAP.md` (Fases 0, 1 e 2 concluídas).
 
 - **Núcleo × aplicação.** O frame (núcleo) não tem regra de negócio. O sistema construído sobre ele vive só nas
   pastas `app/`: `shared/src/app/entities.ts`, `server/src/app/` (hooks.ts, routes.ts, seed.ts) e `web/src/app/`
-  (menu.ts, dashboard.tsx, screens.ts). Não coloque nada de negócio no núcleo; se algo genérico faltar, evolua o núcleo.
+  (menu.ts, dashboard.tsx, screens.ts), mais `shared/src/app/info.ts` (nome/versão do sistema),
+  `server/src/app/migrations/` e `docs/app/`. Não coloque nada de negócio no núcleo; se algo genérico faltar,
+  evolua o núcleo **no repositório do frame** (PR lá) e traga com `git pull upstream main`.
 - **Dirigido por configuração.** `shared/src/entities.ts` (= app + core) é a fonte da verdade: define campos,
   validações, rotas CRUD (`/api/:entity`) e as telas genéricas. É importado direto pelo server e pelo web.
 - **Validação única:** `shared/src/schema.ts` gera schemas Zod a partir das entidades
   (`validateEntity`). O form valida antes de enviar e a API valida de novo com a mesma função.
   Configurações usam `settingsSchema` (`shared/src/settings.ts`) do mesmo jeito.
-- **Nova entidade/campo:** editar `entities.ts` → `npm run db:diff -- descricao` (gera a migração em
-  `server/src/db/migrations/` e registra no `index.ts`) → revisar → `npm run db:migrate` → item em
+- **Nova entidade/campo:** editar `shared/src/app/entities.ts` → `npm run db:diff -- descricao` (gera a migração em
+  `server/src/app/migrations/` e registra no `index.ts`) → revisar → `npm run db:migrate` → item em
   `web/src/app/menu.ts` (com `perm`). Não criar telas específicas se a genérica atende.
-- **Migrações:** nunca editar migração já aplicada; criar nova. O diff só gera tabela/coluna nova;
+- **Migrações:** núcleo em `server/src/db/migrations/` (à mão), aplicação em `server/src/app/migrations/`
+  (geradas pelo `db:diff`); `allMigrations()` junta as duas em ordem de nome. Nunca editar migração já aplicada; criar nova. O diff só gera tabela/coluna nova;
   renomear/remover é escrito à mão (o diff avisa colunas órfãs). Migrações ficam registradas em código
   (`migrations/index.ts`), não lidas da pasta. No SQLite as FKs são desligadas durante a migração
   (`withForeignKeysOff`) porque o Knex recria tabelas e o `ON DELETE SET NULL` apagaria vínculos.
@@ -101,9 +107,11 @@ Roadmap em `ROADMAP.md` (Fases 0, 1 e 2 concluídas).
 
 ## Versão
 
-- Número em `package.json` da raiz (manter os workspaces iguais); commit do git (ou `APP_COMMIT`). Front: `__APP_VERSION__`/
+- Número do frame em `package.json` da raiz (manter os workspaces iguais); versão do sistema derivado em
+  `shared/src/app/info.ts` (o `package.json` fica com a do frame). Commit do git (ou `APP_COMMIT`). Front: `__APP_VERSION__`/
   `__APP_COMMIT__` (vite define, `web/src/lib/version.ts`); API: `server/src/version.ts` → `/api/health`.
-- Ao fechar uma entrega: subir a versão (semver) e registrar no `CHANGELOG.md`.
+- Ao fechar uma entrega: subir a versão (semver) e registrar no `CHANGELOG.md` (no sistema derivado:
+  `app/info.ts` e `docs/app/CHANGELOG.md`).
 
 ## Testes de entidades
 

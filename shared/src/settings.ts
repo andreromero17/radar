@@ -4,6 +4,7 @@
 // valida de novo ao receber.
 // =============================================================================
 import { z } from 'zod';
+import { appInfo } from './app/info';
 
 const HEX = /^#[0-9a-f]{6}$/i;
 const EMAIL = /^\S+@\S+\.\S+$/;
@@ -54,8 +55,9 @@ export const settingsUpdateSchema = settingsSchema.partial();
 export type Settings = z.infer<typeof settingsSchema>;
 
 export const DEFAULT_SETTINGS: Settings = {
-  nome_sistema: 'Meu Sistema',
-  icone: 'box-seam',
+  // o sistema derivado define nome e ícone padrão em app/info.ts
+  nome_sistema: appInfo.nome ?? 'Meu Sistema',
+  icone: appInfo.icone ?? 'box-seam',
   logo: '', // data URL; se preenchido, substitui o ícone
   cor_primaria: '#4f6ef7',
   cor_secundaria: '#7b4fd6',

@@ -1,5 +1,5 @@
 // Linhas das sub-tabelas (master-detail) no formulário
-import type { FieldDef, Row } from '@frame/shared';
+import { defaultValue, type FieldDef, type Row } from '@frame/shared';
 import type { FormValue } from '../components/FieldInput';
 
 export type DetailRow = Record<string, FormValue> & { id?: number; _key: string };
@@ -9,7 +9,7 @@ let seq = 0;
 export const rowKey = () => `n${++seq}`;
 
 const emptyValue = (f: FieldDef): FormValue =>
-  f.default ?? (f.type === 'boolean' ? false : f.type === 'multiselect' ? [] : '');
+  defaultValue(f) ?? (f.type === 'boolean' ? false : f.type === 'multiselect' ? [] : '');
 
 export function newDetailRow(fields: FieldDef[]): DetailRow {
   return { _key: rowKey(), ...Object.fromEntries(fields.map((f) => [f.name, emptyValue(f)])) };

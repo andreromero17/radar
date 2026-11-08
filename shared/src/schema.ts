@@ -3,7 +3,7 @@
 // no navegador e a requisição na API, então as regras nunca divergem.
 // =============================================================================
 import { z } from 'zod';
-import { editableFields, getEntity } from './entities';
+import { defaultValue, editableFields, getEntity } from './entities';
 import { isValidCNPJ, isValidCPF, isValidPhone, maskDocument, maskPhone, onlyDigits, parseMoney } from './masks';
 import { ACTIONS, normalizePermissions, type Permissions } from './permissions';
 import type { EntityDef, FieldDef, FieldErrors } from './types';
@@ -203,7 +203,7 @@ export function validateEntity(
   const src: Record<string, unknown> = { ...input };
   if (mode === 'create') {
     for (const f of editableFields(ent))
-      if (src[f.name] === undefined && f.default !== undefined) src[f.name] = f.default;
+      if (src[f.name] === undefined && f.default !== undefined) src[f.name] = defaultValue(f);
   }
   const result = entitySchema(ent, mode).safeParse(src);
   if (!result.success) return { ok: false, errors: toFieldErrors(result.error) };

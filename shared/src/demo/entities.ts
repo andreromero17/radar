@@ -17,6 +17,7 @@ export const demoEntities: Record<string, EntityDef> = {
     group: 'Demonstração',
     lixeira: true,
     anexos: true,
+    activeField: 'ativo',
     defaultSort: { field: 'nome', dir: 'asc' },
     fields: [
       {
@@ -122,7 +123,7 @@ export const demoEntities: Record<string, EntityDef> = {
         maxLength: 150,
         col: 8,
       },
-      { name: 'data', label: 'Data', type: 'date', required: true, list: true, col: 4 },
+      { name: 'data', label: 'Data', type: 'date', required: true, default: 'hoje', list: true, col: 4 },
       {
         name: 'tipo',
         label: 'Tipo',
@@ -204,7 +205,7 @@ export const demoEntities: Record<string, EntityDef> = {
         list: true,
         col: 6,
       },
-      { name: 'data', label: 'Data', type: 'date', required: true, list: true, col: 3 },
+      { name: 'data', label: 'Data', type: 'date', required: true, default: 'hoje', list: true, col: 3 },
       { name: 'validade', label: 'Válido até', type: 'date', col: 3 },
       {
         name: 'status',

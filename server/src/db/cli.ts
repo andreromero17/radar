@@ -59,7 +59,7 @@ try {
       }
       const name = writeMigration(diff, args.join(' ') || 'ajustes');
       console.log(
-        `✔ Migração criada: server/src/db/migrations/${name}.ts\n` +
+        `✔ Migração criada: server/src/app/migrations/${name}.ts\n` +
           `  ${diff.createTables.length} tabela(s) nova(s), ${diff.addColumns.length} coluna(s) nova(s).\n` +
           '  Revise o arquivo e rode `npm run db:migrate`.',
       );

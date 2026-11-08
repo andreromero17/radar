@@ -17,7 +17,8 @@ const TRASH_FIELD: FieldDef = { name: 'excluido_em', label: 'Excluído em', type
 
 /** Colunas da tabela além das de sistema: campos da entidade (+ lixeira) */
 export const tableFields = (ent: EntityDef): FieldDef[] => (ent.lixeira ? [...ent.fields, TRASH_FIELD] : ent.fields);
-const MIGRATIONS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
+/** Migrações geradas pelo diff são da aplicação (as do núcleo são escritas à mão em db/migrations) */
+const MIGRATIONS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../app/migrations');
 
 export interface SchemaDiff {
   createTables: { table: string; entity: EntityDef }[];
@@ -139,7 +140,7 @@ const stamp = (d = new Date()) =>
     .map((n, i) => String(n).padStart(i === 0 ? 4 : 2, '0'))
     .join('');
 
-/** Grava o arquivo da migração e registra em migrations/index.ts */
+/** Grava o arquivo da migração e registra no index.ts da pasta (app/migrations) */
 export function writeMigration(diff: SchemaDiff, description: string, dir = MIGRATIONS_DIR): string {
   const id = stamp();
   const name = `${id}_${slug(description)}`;

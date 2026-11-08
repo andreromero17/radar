@@ -6,7 +6,7 @@ import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import BrandMark from '../components/BrandMark';
 import NewButton from '../components/NewButton';
-import { APP_VERSION, versionLabel } from '../lib/version';
+import { APP_VERSION, versionLabel, versionTitle } from '../lib/version';
 
 function MenuLink({ item, active, collapsed }: { item: MenuItem; active: boolean; collapsed: boolean }) {
   return (
@@ -117,7 +117,7 @@ export default function Sidebar({ collapsed, mobileOpen, onToggle, onClose }: Si
             <i className="bi bi-box-arrow-left" />
             <span className="nav-label">Sair</span>
           </button>
-          <div className="app-version" title={`Versão ${APP_VERSION.version} (commit ${APP_VERSION.commit})`}>
+          <div className="app-version" title={versionTitle()}>
             {collapsed ? `v${APP_VERSION.version}` : versionLabel()}
           </div>
         </div>

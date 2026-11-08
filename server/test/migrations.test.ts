@@ -28,7 +28,7 @@ describe('Migrações', () => {
           { name: 'cidade', label: 'Cidade', type: 'text' },
         ],
       },
-      contas: {
+      x_tabela_nova: {
         label: 'Contas',
         singular: 'Conta',
         icon: 'bank',
@@ -37,12 +37,12 @@ describe('Migrações', () => {
       },
     };
     const diff = await computeDiff(db, changed);
-    expect(diff.createTables.map((t) => t.table)).toEqual(['contas']);
+    expect(diff.createTables.map((t) => t.table)).toEqual(['x_tabela_nova']);
     expect(diff.addColumns.map((c) => `${c.table}.${c.field.name}`)).toEqual(['usuarios.cidade']);
     expect(diff.orphanColumns).toEqual([{ table: 'usuarios', column: 'ultimo_acesso' }]);
 
     const code = renderMigration(diff, 'x');
-    expect(code).toContain("createTable('contas'");
+    expect(code).toContain("createTable('x_tabela_nova'");
     expect(code).toContain("t.text('cidade');");
     expect(code).toContain('usuarios.ultimo_acesso existe no banco');
   });

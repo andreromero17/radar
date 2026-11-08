@@ -42,7 +42,7 @@ export interface FieldDef {
   search?: boolean;
   /** Largura no formulário, de 1 a 12 (grid do Bootstrap) */
   col?: number;
-  /** Valor inicial ao criar um registro */
+  /** Valor inicial ao criar um registro. Em data: 'hoje'; em data e hora: 'agora' (calculados na hora) */
   default?: string | number | boolean;
   /** Exibido mas não editável */
   readonly?: boolean;
@@ -132,6 +132,11 @@ export interface EntityDef {
   anexos?: boolean;
   /** Importação de CSV/Excel (padrão: ligada, exceto no núcleo e em sub-tabelas) */
   importar?: boolean;
+  /**
+   * Campo booleano que diz se o registro está ativo (ex.: 'ativa'). Inativos somem dos selects de relação
+   * dos outros cadastros — menos o valor que o registro já tem — mas continuam nos filtros e na listagem.
+   */
+  activeField?: string;
 }
 
 /** Registro genérico vindo da API */
@@ -183,9 +188,22 @@ export interface SessionInfo {
 }
 
 /** Versão do sistema (GET /api/health) */
+/** Identidade do sistema derivado (shared/src/app/info.ts) */
+export interface AppInfo {
+  /** Nome do sistema: padrão do nome nas Configurações e no tooltip da versão */
+  nome?: string;
+  /** Versão do sistema (a do frame fica no package.json da raiz) */
+  versao?: string;
+  /** Ícone padrão (Bootstrap Icons, sem "bi-") nas Configurações */
+  icone?: string;
+}
+
 export interface VersionInfo {
+  /** Versão do sistema (a do frame quando não há sistema próprio) */
   version: string;
   commit: string;
+  /** Versão do frame (package.json da raiz) */
+  frame?: string;
 }
 
 export interface LogRow {

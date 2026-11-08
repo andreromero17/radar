@@ -581,3 +581,108 @@ a.bg-grad-yellow:hover {
     font-size: 4.2rem;
   }
 }
+
+/* ---------- Telas de acesso (login, senha) ---------- */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background: radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.18), transparent 40%), var(--sidebar-grad);
+}
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 2rem;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+}
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1.5rem;
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+.auth-brand .brand-icon {
+  background: var(--sidebar-grad);
+  color: #fff;
+}
+.auth-brand .brand-logo {
+  background: #fff;
+  border: 1px solid #e3e7ef;
+}
+.auth-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+}
+.auth-subtitle {
+  color: #6b7280;
+  font-size: 0.92rem;
+  margin-bottom: 1.25rem;
+}
+.auth-footer {
+  margin-top: 1.25rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.8rem;
+}
+@media (max-width: 575.98px) {
+  .auth-card {
+    padding: 1.5rem 1.25rem;
+  }
+}
+
+.password-rules {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: #8a93a3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 1rem;
+}
+.password-rules li.ok {
+  color: #2b8a5a;
+}
+
+/* ---------- Matriz de permissões ---------- */
+.permission-matrix {
+  border: 1px solid #e9ecf3;
+  border-radius: 12px;
+  padding: 0.25rem 0.75rem 0.5rem;
+}
+.permission-matrix th {
+  font-size: 0.8rem;
+  color: #4b5563;
+  font-weight: 800;
+}
+.permission-matrix .group-row td {
+  background: #f7f8fc;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+.permission-matrix.is-disabled {
+  opacity: 0.6;
+}
+
+/* ---------- Logs ---------- */
+.changes-row td {
+  background: #f9fafc;
+}
+.changes-table {
+  max-width: 760px;
+  font-size: 0.85rem;
+}
+.changes-table th {
+  font-size: 0.75rem;
+  color: #6b7280;
+}

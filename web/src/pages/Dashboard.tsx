@@ -6,6 +6,8 @@ import { Doughnut } from 'react-chartjs-2';
 import { getEntity, type DashboardData } from '@frame/shared';
 import { api, errorMessage } from '../lib/api';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
+import { menu, visibleMenu } from '../config/menu';
 import StatCard, { type StatCardProps } from '../components/StatCard';
 import ValueBadge from '../components/ValueBadge';
 
@@ -42,7 +44,39 @@ const CARDS: (Omit<StatCardProps, 'value'> & { id: keyof DashboardData['cards'] 
   { id: 'noMes', label: 'Chamados no Mês', icon: 'calendar3', color: 'teal' },
 ];
 
+/** Início para quem não tem acesso aos indicadores: atalhos do que o perfil permite */
+function Welcome() {
+  const { user, can } = useAuth();
+  const atalhos = visibleMenu(menu, can)
+    .flatMap((m) => m.children ?? [m])
+    .filter((m) => m.to && m.to !== '/');
+  return (
+    <Card className="card-app">
+      <Card.Body className="p-4">
+        <h1 className="page-title mb-1">Olá, {user?.nome.split(' ')[0]}!</h1>
+        <p className="text-muted">Seu perfil é {user?.perfil}. Estes são os atalhos disponíveis para você:</p>
+        {atalhos.length ? (
+          <div className="d-flex flex-wrap gap-2">
+            {atalhos.map((m) => (
+              <Link key={m.to} to={m.to!} className="btn btn-outline-primary">
+                <i className={`bi bi-${m.icon} me-1`} /> {m.label}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="mb-0">Seu perfil ainda não tem permissões. Fale com o administrador do sistema.</p>
+        )}
+      </Card.Body>
+    </Card>
+  );
+}
+
 export default function Dashboard() {
+  const { can } = useAuth();
+  return can('chamados', 'ver') ? <Indicadores /> : <Welcome />;
+}
+
+function Indicadores() {
   const statusColors = getEntity('chamados')?.fields.find((f) => f.name === 'status')?.colors ?? {};
   const [data, setData] = useState<DashboardData | null>(null);
   const toast = useToast();

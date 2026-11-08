@@ -35,3 +35,15 @@ describe('formatação', () => {
     expect(fmtBytes(2048)).toBe('2.0 KB');
   });
 });
+
+describe('menu por permissão', () => {
+  it('esconde itens sem permissão e grupos vazios', async () => {
+    const { menu, visibleMenu } = await import('../src/config/menu');
+    const { can } = await import('@frame/shared');
+    const leitura = { admin: false, permissoes: { chamados: ['ver'] as const } as never };
+    const labels = (items: { label: string; children?: { label: string }[] }[]): string[] =>
+      items.flatMap((m) => [m.label, ...labels(m.children ?? [])]);
+    expect(labels(visibleMenu(menu, (r, a) => can(leitura, r, a)))).toEqual(['Dashboard', 'Chamados']);
+    expect(labels(visibleMenu(menu, () => true))).toContain('Perfis de acesso');
+  });
+});

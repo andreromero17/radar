@@ -5,6 +5,8 @@ import { getEntity, type FieldDef, type ListResponse, type Row } from '@frame/sh
 import { api, errorMessage } from '../lib/api';
 import { fmtDate, fmtMoney } from '../lib/format';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
+import Forbidden from './Forbidden';
 import PageHeader from '../components/PageHeader';
 import ValueBadge from '../components/ValueBadge';
 import ConfirmModal from '../components/ConfirmModal';
@@ -26,6 +28,8 @@ function renderCell(f: FieldDef, row: Row) {
       return fmtMoney(v);
     case 'date':
       return fmtDate(v);
+    case 'datetime':
+      return v ? fmtDate(v, true) : <span className="text-muted">—</span>;
     default:
       return v == null || v === '' ? <span className="text-muted">—</span> : String(v);
   }
@@ -37,6 +41,8 @@ export default function CrudList() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { can } = useAuth();
+  const allowed = !!ent && can(entity, 'ver');
 
   const q = params.get('q') || '';
   const page = Number(params.get('page')) || 1;
@@ -60,10 +66,14 @@ export default function CrudList() {
   }, [entity, params, page, toast]);
 
   useEffect(() => {
-    if (ent) load();
-  }, [ent, load]);
+    if (allowed) load();
+  }, [allowed, load]);
 
   if (!ent) return <NotFound />;
+  if (!allowed) return <Forbidden />;
+  const podeCriar = can(entity, 'criar');
+  const podeEditar = can(entity, 'editar');
+  const podeExcluir = can(entity, 'excluir');
 
   const cols = ent.fields.filter((f) => f.list);
   const pages = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
@@ -93,9 +103,11 @@ export default function CrudList() {
   return (
     <>
       <PageHeader title={ent.label} icon={ent.icon} subtitle={`${data.total} registro(s)`}>
-        <Link to={`/${entity}/novo`} className="btn btn-primary">
-          <i className="bi bi-plus-lg me-1" /> Novo {ent.singular.toLowerCase()}
-        </Link>
+        {podeCriar && (
+          <Link to={`/${entity}/novo`} className="btn btn-primary">
+            <i className="bi bi-plus-lg me-1" /> Novo {ent.singular.toLowerCase()}
+          </Link>
+        )}
       </PageHeader>
 
       <Card className="card-app">
@@ -159,18 +171,24 @@ export default function CrudList() {
                       <td key={f.name}>{renderCell(f, row)}</td>
                     ))}
                     <td className="text-end pe-4 text-nowrap" onClick={(e) => e.stopPropagation()}>
-                      <Link to={`/${entity}/${row.id}`} className="btn btn-sm btn-light me-1" title="Editar">
-                        <i className="bi bi-pencil" />
-                      </Link>
-                      <Button
-                        size="sm"
-                        variant="light"
-                        className="text-danger"
-                        title="Excluir"
-                        onClick={() => setToDelete(row)}
+                      <Link
+                        to={`/${entity}/${row.id}`}
+                        className="btn btn-sm btn-light me-1"
+                        title={podeEditar ? 'Editar' : 'Visualizar'}
                       >
-                        <i className="bi bi-trash" />
-                      </Button>
+                        <i className={`bi bi-${podeEditar ? 'pencil' : 'eye'}`} />
+                      </Link>
+                      {podeExcluir && (
+                        <Button
+                          size="sm"
+                          variant="light"
+                          className="text-danger"
+                          title="Excluir"
+                          onClick={() => setToDelete(row)}
+                        >
+                          <i className="bi bi-trash" />
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -4,6 +4,7 @@ import { Dropdown, Form, InputGroup } from 'react-bootstrap';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import SettingsModal from '../components/SettingsModal';
+import { useAuth } from '../context/AuthContext';
 
 interface Alert {
   icon: string;
@@ -18,8 +19,18 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [showSettings, setShowSettings] = useState(false);
 
+  const { user, can, logout } = useAuth();
+  const podeVerChamados = can('chamados', 'ver');
+  const iniciais = (user?.nome ?? '?')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0].toUpperCase())
+    .join('');
+
   // Notificações simples derivadas do dashboard (trocar por um endpoint próprio depois)
   useEffect(() => {
+    if (!podeVerChamados) return setAlerts([]);
     api
       .get<DashboardData>('/dashboard')
       .then(({ cards }) => {
@@ -45,7 +56,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
         setAlerts(a);
       })
       .catch(() => {});
-  }, [location.pathname]);
+  }, [location.pathname, podeVerChamados]);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -59,52 +70,68 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
         <i className="bi bi-list fs-5" />
       </button>
 
-      <Form className="topbar-search" onSubmit={submit}>
-        <InputGroup>
-          <InputGroup.Text className="bg-white">
-            <i className="bi bi-search" />
-          </InputGroup.Text>
-          <Form.Control placeholder="Buscar protocolo..." value={term} onChange={(e) => setTerm(e.target.value)} />
-        </InputGroup>
-      </Form>
+      {podeVerChamados ? (
+        <>
+          <Form className="topbar-search" onSubmit={submit}>
+            <InputGroup>
+              <InputGroup.Text className="bg-white">
+                <i className="bi bi-search" />
+              </InputGroup.Text>
+              <Form.Control placeholder="Buscar protocolo..." value={term} onChange={(e) => setTerm(e.target.value)} />
+            </InputGroup>
+          </Form>
 
-      <Dropdown align="end">
-        <Dropdown.Toggle variant="light" className="position-relative no-caret" aria-label="Notificações">
-          <i className="bi bi-bell fs-5" />
-          {alerts.length > 0 && (
-            <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-              {alerts.length}
-            </span>
-          )}
-        </Dropdown.Toggle>
-        <Dropdown.Menu className="shadow-sm" style={{ minWidth: 290 }}>
-          <Dropdown.Header>Notificações</Dropdown.Header>
-          {alerts.length === 0 && <Dropdown.ItemText className="text-muted">Nada por aqui 🎉</Dropdown.ItemText>}
-          {alerts.map((a) => (
-            <Dropdown.Item key={a.text} as={Link} to={a.to} className="d-flex gap-2 align-items-center py-2">
-              <i className={`bi bi-${a.icon}`} />
-              {a.text}
-            </Dropdown.Item>
-          ))}
-        </Dropdown.Menu>
-      </Dropdown>
+          <Dropdown align="end">
+            <Dropdown.Toggle variant="light" className="position-relative no-caret" aria-label="Notificações">
+              <i className="bi bi-bell fs-5" />
+              {alerts.length > 0 && (
+                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                  {alerts.length}
+                </span>
+              )}
+            </Dropdown.Toggle>
+            <Dropdown.Menu className="shadow-sm" style={{ minWidth: 290 }}>
+              <Dropdown.Header>Notificações</Dropdown.Header>
+              {alerts.length === 0 && <Dropdown.ItemText className="text-muted">Nada por aqui 🎉</Dropdown.ItemText>}
+              {alerts.map((a) => (
+                <Dropdown.Item key={a.text} as={Link} to={a.to} className="d-flex gap-2 align-items-center py-2">
+                  <i className={`bi bi-${a.icon}`} />
+                  {a.text}
+                </Dropdown.Item>
+              ))}
+            </Dropdown.Menu>
+          </Dropdown>
+        </>
+      ) : (
+        <div className="ms-auto" />
+      )}
 
       <Dropdown align="end">
         <Dropdown.Toggle variant="light" className="d-flex align-items-center gap-2">
-          <span className="avatar">UA</span>
-          <span className="fw-bold d-none d-md-inline">Usuário Administrador</span>
+          <span className="avatar">{iniciais}</span>
+          <span className="fw-bold d-none d-md-inline">{user?.nome}</span>
         </Dropdown.Toggle>
-        <Dropdown.Menu className="shadow-sm">
-          <Dropdown.Item as={Link} to="/usuarios/1">
-            <i className="bi bi-person me-2" />
-            Meu perfil
+        <Dropdown.Menu className="shadow-sm" style={{ minWidth: 240 }}>
+          <div className="px-3 py-2 border-bottom mb-1">
+            <div className="fw-bold text-truncate">{user?.nome}</div>
+            <div className="small text-muted text-truncate">{user?.email}</div>
+            <span className="badge rounded-pill text-bg-light border mt-1">
+              <i className="bi bi-shield-lock me-1" />
+              {user?.perfil}
+            </span>
+          </div>
+          <Dropdown.Item as={Link} to="/trocar-senha">
+            <i className="bi bi-key me-2" />
+            Alterar senha
           </Dropdown.Item>
-          <Dropdown.Item onClick={() => setShowSettings(true)}>
-            <i className="bi bi-gear me-2" />
-            Configurações
-          </Dropdown.Item>
+          {can('configuracoes', 'editar') && (
+            <Dropdown.Item onClick={() => setShowSettings(true)}>
+              <i className="bi bi-gear me-2" />
+              Configurações
+            </Dropdown.Item>
+          )}
           <Dropdown.Divider />
-          <Dropdown.Item onClick={() => alert('Autenticação entra numa próxima etapa 🙂')}>
+          <Dropdown.Item onClick={() => void logout()}>
             <i className="bi bi-box-arrow-left me-2" />
             Sair
           </Dropdown.Item>

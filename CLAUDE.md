@@ -5,7 +5,7 @@
 Frame genérico de aplicação web responsiva (menu, CRUD dirigido por configuração, dashboard,
 configurações) que serve de base para vários sistemas. Primeiro sistema em cima dele: gestão de
 finanças pessoais. Interface, mensagens e nomes de tabelas/campos em português do Brasil.
-Roadmap em `ROADMAP.md` (Fase 0 concluída).
+Roadmap em `ROADMAP.md` (Fases 0 e 1 concluídas).
 
 ## Stack
 
@@ -21,6 +21,8 @@ Roadmap em `ROADMAP.md` (Fase 0 concluída).
 - `npm run check` — lint + formatação + tipos + testes (rode antes de dar algo por pronto)
 - `npm test` / `npm run lint` / `npm run typecheck` / `npm run format`
 - `npm run db:migrate | db:rollback | db:status | db:diff -- descricao | db:seed | db:reset`
+- `npm run db:admin -- email "Nome"` — cria/recupera administrador (senha provisória)
+- Logins de dev (seed): admin@sistema.com/admin123, ana@sistema.com/senha123 (Operador), bruno@sistema.com/senha123 (Leitura)
 - `npm run build` + `npm start` — produção (Express serve a API e o front buildado)
 
 ## Arquitetura (importante)
@@ -48,6 +50,23 @@ Roadmap em `ROADMAP.md` (Fase 0 concluída).
   tabela `configuracoes`. O front aplica via `web/src/lib/theme.ts` nas variáveis CSS `--brand-*`.
   Nunca usar cor de marca fixa no CSS: `var(--brand-1)`, `var(--brand-2)`, `rgba(var(--brand-1-rgb), x)`.
 - **Segredos** (SMTP, tokens) vão no `.env`, nunca na tabela de configurações nem no git.
+- **Acesso:** toda rota de `/api` exige login, exceto `/api/health`, `/api/settings/publicas` e `/api/auth/*`
+  (ordem em `app.ts`: helmet → originGuard → authenticate → públicas → requireAuth → system → CRUD).
+  Sessão em cookie `sid` httpOnly; tabela `sessoes` guarda só o hash do token. Senhas: scrypt
+  (`server/src/auth/password.ts`), política em `passwordSchema` (shared). `requireAuth` bloqueia com
+  403 `code: TROCAR_SENHA` quem precisa trocar a senha.
+- **Permissões:** `shared/src/permissions.ts` — recursos = entidades + `SYSTEM_RESOURCES`; `can(user, recurso, ação)`
+  usado no servidor (`assertCan`/`requirePermission`) e no front (`useAuth().can`). O CRUD genérico já checa
+  ver/criar/editar/excluir; rota nova de sistema precisa de `requirePermission`. `ADMIN_ONLY` reserva ações a
+  administradores (gerenciar perfis). Itens de menu usam `perm: [recurso, ação]`.
+- **Hooks** (`server/src/hooks/`): `beforeSave`/`afterSave`/`beforeDelete` por entidade; lançar `HttpError`
+  (`badRequest`, `forbidden`, `conflict` de `utils/http.ts`). Regras de usuários e perfis estão lá (e-mail único,
+  sempre um admin ativo, só admin gerencia admin, derrubar sessões).
+- **Campos especiais:** `password` nunca sai da API (removido em `present()` no CRUD), não é filtrável/ordenável,
+  vai para o banco como hash e para o log só como "(alterada)". `permissions` é JSON normalizado.
+- **Logs:** `addLog(db, entrada, actor)` com `diffRecord()` → coluna `alteracoes` `{ campo: { de, para } }`.
+- **Front:** `AuthContext` (`useAuth`), `RouteGuards` (`RequireAuth`, `PublicOnly`, `Guard`). A camada `lib/api.ts`
+  dispara eventos em 401/TROCAR_SENHA. Relações no form usam `GET /api/:entidade/opcoes` (liberado a qualquer logado).
 
 ## Testes
 

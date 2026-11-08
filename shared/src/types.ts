@@ -84,6 +84,14 @@ export type FieldErrors = Record<string, string>;
 export interface ApiErrorBody {
   error: string;
   errors?: FieldErrors;
+  /** Código para o front reagir (ex.: TROCAR_SENHA) */
+  code?: string;
+}
+
+/** Item de select de relação (GET /api/:entity/opcoes) */
+export interface RelationOption {
+  value: number;
+  label: string;
 }
 
 export interface DashboardData {

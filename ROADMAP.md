@@ -17,15 +17,19 @@
 - ESLint + Prettier, pre-commit (husky + lint-staged), 39 testes (Vitest + Supertest)
 - CI no GitHub Actions (antecipado da Fase 6): lint, tipos, testes, build e migração do zero
 
-## Fase 1 — Segurança e acesso
+## Fase 1 — Segurança e acesso ✅ concluída (08/11/2026)
 
-- Login com sessão em cookie `httpOnly`, senha com hash (argon2/bcrypt)
-- Usuários reais; o "Usuário Administrador" fixo sai de cena
-- **Permissões por perfil × entidade × ação** (ver/criar/editar/excluir), declaradas em `entities`. Menu e botões respeitam as permissões.
-- Logs com o usuário real, IP e diff do que mudou (antes/depois)
-- Recuperação de senha por e-mail (SMTP via `.env`)
-- Hardening: helmet, rate limit no login, CORS restrito, validação de entrada em tudo
-- **Pronto quando:** nenhuma rota responde sem login e um perfil "Leitura" não consegue alterar nada
+- Login com sessão em cookie `httpOnly`/`SameSite` (token em hash no banco), "manter conectado", expiração por inatividade
+- Senhas com scrypt (nativo do Node), política única no form e na API
+- Troca de senha (obrigatória no primeiro acesso, se o admin quiser) e recuperação por e-mail com link de uso único
+  (SMTP via `.env`; sem SMTP, o e-mail vai para o log)
+- **Perfis editáveis** com matriz recurso × ação; menu, botões e rotas respeitam as permissões; mudanças valem na hora
+- Proteções contra lockout e escalada: sempre um admin ativo; só admin gerencia perfis e usuários administradores
+- Logs com usuário real, IP e antes/depois de cada campo (tela com detalhe expansível)
+- Hardening: helmet/CSP, bloqueio de origem (CSRF), limite de tentativas, mensagens que não revelam e-mails cadastrados
+- `db:admin` para criar/recuperar administrador em produção
+- Antecipado da Fase 2: **hooks por entidade** (`beforeSave`/`afterSave`/`beforeDelete`)
+- Pendente para quando houver necessidade: 2FA, login social/SSO, tela de sessões ativas
 
 ## Fase 2 — Motor de CRUD maduro
 
@@ -35,7 +39,7 @@ _Aqui o frame passa a sustentar sistemas de verdade._
   - moeda BRL com máscara, CPF/CNPJ com validação, telefone, data/hora
   - upload de arquivo/anexo, multiselect, cor
 - **Master-detail:** formulário com sub-tabela (ex.: pedido → itens, lançamento → parcelas)
-- **Hooks por entidade** (`beforeSave`, `afterSave`, `beforeDelete`), onde vivem as regras de negócio (ex.: recalcular saldo)
+- Hooks por entidade já existem (Fase 1); aqui eles passam a cobrir as regras de negócio do finanças (ex.: recalcular saldo)
 - **Telas plugáveis:** cada entidade usa as telas genéricas por padrão, mas aceita lista/form/página customizados
 - **Listagem:**
   - filtros por coluna, ordenação clicável

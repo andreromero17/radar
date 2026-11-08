@@ -6,24 +6,28 @@ import {
   validateEntity,
   type EntityDef,
   type FieldErrors,
-  type ListResponse,
+  type RelationOption,
   type Row,
 } from '@frame/shared';
 import { api, ApiError, errorMessage } from '../lib/api';
 import { fmtDate } from '../lib/format';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import PageHeader from '../components/PageHeader';
 import FieldInput, { type FormValue, type Option } from '../components/FieldInput';
 import NotFound from './NotFound';
+import Forbidden from './Forbidden';
 
 type Values = Record<string, FormValue>;
 
+const empty = (type: string): FormValue => (type === 'boolean' ? false : type === 'permissions' ? {} : '');
+
 const defaults = (ent: EntityDef): Values =>
-  Object.fromEntries(ent.fields.map((f) => [f.name, f.default ?? (f.type === 'boolean' ? false : '')]));
+  Object.fromEntries(ent.fields.map((f) => [f.name, f.default ?? empty(f.type)]));
 
 const fromRow = (ent: EntityDef, r: Row): Values =>
   Object.fromEntries(
-    ent.fields.map((f) => [f.name, f.type === 'boolean' ? !!r[f.name] : ((r[f.name] as FormValue) ?? '')]),
+    ent.fields.map((f) => [f.name, f.type === 'boolean' ? !!r[f.name] : ((r[f.name] as FormValue) ?? empty(f.type))]),
   );
 
 export default function CrudForm() {
@@ -32,6 +36,9 @@ export default function CrudForm() {
   const ent = getEntity(entity);
   const navigate = useNavigate();
   const toast = useToast();
+  const { can } = useAuth();
+  const allowed = !!ent && can(entity, isNew ? 'criar' : 'ver');
+  const readOnly = !isNew && !can(entity, 'editar');
 
   const [values, setValues] = useState<Values>(() => (ent ? defaults(ent) : {}));
   const [record, setRecord] = useState<Row | null>(null);
@@ -42,7 +49,7 @@ export default function CrudForm() {
 
   // Carrega o registro (edição) ou reinicia o formulário (novo)
   useEffect(() => {
-    if (!ent) return;
+    if (!ent || !allowed) return;
     setErrors({});
     if (isNew) {
       setValues(defaults(ent));
@@ -59,27 +66,22 @@ export default function CrudForm() {
       })
       .catch((e) => toast.error(errorMessage(e)))
       .finally(() => setLoading(false));
-  }, [entity, id, ent, isNew, toast]);
+  }, [entity, id, ent, isNew, toast, allowed]);
 
-  // Carrega as opções dos campos de relacionamento
+  // Carrega as opções dos campos de relacionamento (só id + nome)
   useEffect(() => {
-    if (!ent) return;
+    if (!ent || !allowed) return;
     for (const f of ent.fields) {
-      const rel = f.type === 'relation' ? getEntity(f.entity) : undefined;
-      if (!rel) continue;
+      if (f.type !== 'relation' || !getEntity(f.entity)) continue;
       api
-        .get<ListResponse>(`/${f.entity}?pageSize=1000&sort=${rel.labelField}&dir=asc`)
-        .then(({ rows }) =>
-          setRelOptions((o) => ({
-            ...o,
-            [f.name]: rows.map((r) => ({ value: r.id, label: String(r[rel.labelField] ?? r.id) })),
-          })),
-        )
+        .get<RelationOption[]>(`/${f.entity}/opcoes`)
+        .then((opts) => setRelOptions((o) => ({ ...o, [f.name]: opts })))
         .catch(() => {});
     }
-  }, [ent]);
+  }, [ent, allowed]);
 
   if (!ent) return <NotFound />;
+  if (!allowed) return <Forbidden />;
 
   const onChange = (name: string, v: FormValue) => {
     setValues((s) => ({ ...s, [name]: v }));
@@ -88,6 +90,7 @@ export default function CrudForm() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (readOnly) return;
     // Mesma validação que a API usa (gerada das entidades)
     const check = validateEntity(ent, values, isNew ? 'create' : 'update');
     if (!check.ok) {
@@ -109,7 +112,7 @@ export default function CrudForm() {
     }
   };
 
-  const title = `${isNew ? 'Novo' : 'Editar'} ${ent.singular.toLowerCase()}`;
+  const title = `${isNew ? 'Novo' : readOnly ? 'Visualizar' : 'Editar'} ${ent.singular.toLowerCase()}`;
   const subtitle = record
     ? `Criado em ${fmtDate(record.criado_em, true)}${record.atualizado_em ? ` · atualizado em ${fmtDate(record.atualizado_em, true)}` : ''}`
     : undefined;
@@ -129,6 +132,7 @@ export default function CrudForm() {
               <BsRow className="g-3">
                 {ent.fields
                   .filter((f) => !(isNew && f.readonly))
+                  .filter((f) => !(readOnly && f.type === 'password'))
                   .map((f) => (
                     <Col key={f.name} xs={12} md={f.col || (f.type === 'textarea' ? 12 : 6)}>
                       <FieldInput
@@ -137,18 +141,23 @@ export default function CrudForm() {
                         onChange={onChange}
                         error={errors[f.name]}
                         options={relOptions[f.name]}
+                        isNew={isNew}
+                        values={values}
+                        disabled={readOnly || !!(f.disabledWhen && values[f.disabledWhen])}
                       />
                     </Col>
                   ))}
               </BsRow>
               <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
                 <Button variant="light" onClick={() => navigate(`/${entity}`)}>
-                  Cancelar
+                  {readOnly ? 'Voltar' : 'Cancelar'}
                 </Button>
-                <Button type="submit" disabled={saving}>
-                  {saving ? <Spinner size="sm" className="me-1" /> : <i className="bi bi-check-lg me-1" />}
-                  Salvar
-                </Button>
+                {!readOnly && (
+                  <Button type="submit" disabled={saving}>
+                    {saving ? <Spinner size="sm" className="me-1" /> : <i className="bi bi-check-lg me-1" />}
+                    Salvar
+                  </Button>
+                )}
               </div>
             </Form>
           )}

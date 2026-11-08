@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Collapse } from 'react-bootstrap';
-import { activeMenuPath, menu, type MenuItem } from '../config/menu';
+import { activeMenuPath, menu, visibleMenu, type MenuItem } from '../config/menu';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 import BrandMark from '../components/BrandMark';
 
 function MenuLink({ item, active, collapsed }: { item: MenuItem; active: boolean; collapsed: boolean }) {
@@ -56,6 +57,7 @@ export default function Sidebar({ collapsed, mobileOpen, onToggle, onClose }: Si
   const { pathname } = useLocation();
   const activePath = activeMenuPath(pathname);
   const { settings } = useSettings();
+  const { can, logout } = useAuth();
 
   return (
     <>
@@ -78,7 +80,7 @@ export default function Sidebar({ collapsed, mobileOpen, onToggle, onClose }: Si
         </div>
 
         <nav className="sidebar-nav">
-          {menu.map((item) =>
+          {visibleMenu(menu, can).map((item) =>
             item.children ? (
               <MenuGroup key={item.label} item={item} activePath={activePath} collapsed={collapsed} />
             ) : (
@@ -88,11 +90,7 @@ export default function Sidebar({ collapsed, mobileOpen, onToggle, onClose }: Si
         </nav>
 
         <div className="sidebar-footer">
-          <button
-            type="button"
-            className="nav-link-item"
-            onClick={() => alert('Autenticação entra numa próxima etapa 🙂')}
-          >
+          <button type="button" className="nav-link-item" onClick={() => void logout()}>
             <i className="bi bi-box-arrow-left" />
             <span className="nav-label">Sair</span>
           </button>

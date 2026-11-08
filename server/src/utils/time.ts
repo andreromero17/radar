@@ -14,9 +14,9 @@ export const monthPrefix = (date: Date = new Date()) => nowLocal(date).slice(0, 
 /** Data/hora local de N dias atrás */
 export const daysAgo = (days: number) => nowLocal(new Date(Date.now() - days * 86_400_000));
 
-/** Protocolo legível, ex.: CH20261107-4F2A9 */
-export function protocolo(date: Date = new Date()): string {
+/** Código legível gerado na criação (auto: 'code'), ex.: PED20261107-4F2A9 */
+export function generateCode(prefix = '', date: Date = new Date()): string {
   const d = nowLocal(date).slice(0, 10).replaceAll('-', '');
   const r = Math.random().toString(16).slice(2, 7).toUpperCase().padEnd(5, '0');
-  return `CH${d}-${r}`;
+  return `${prefix}${d}-${r}`;
 }

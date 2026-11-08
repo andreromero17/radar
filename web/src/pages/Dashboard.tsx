@@ -1,151 +1,140 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, Col, Row, Spinner, Table } from 'react-bootstrap';
-import { ArcElement, Chart as ChartJS, Legend, Tooltip } from 'chart.js';
-import { Doughnut } from 'react-chartjs-2';
-import { getEntity, type DashboardData } from '@frame/shared';
+import { Card, Col, Row, Spinner } from 'react-bootstrap';
+import { getEntity, type DashboardSummary, type ListResponse, type LogRow } from '@frame/shared';
+import { AppDashboard } from '../app/dashboard';
 import { api, errorMessage } from '../lib/api';
+import { fmtDate } from '../lib/format';
+import { areaLabel } from '../lib/areas';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import StatCard, { type StatCardProps } from '../components/StatCard';
-import ValueBadge from '../components/ValueBadge';
 
-ChartJS.register(ArcElement, Tooltip, Legend);
-ChartJS.defaults.font.family = "'Nunito', system-ui, -apple-system, sans-serif";
-
-// Cards do topo — id = campo em /api/dashboard -> cards
-const CARDS: (Omit<StatCardProps, 'value'> & { id: keyof DashboardData['cards'] })[] = [
-  { id: 'abertos', label: 'Chamados Abertos', icon: 'ticket-perforated', color: 'blue', to: '/chamados' },
-  {
-    id: 'urgentes',
-    label: 'Urgentes Ativos',
-    icon: 'exclamation-triangle',
-    color: 'red',
-    to: '/chamados?prioridade=Urgente',
-  },
-  {
-    id: 'aguardando',
-    label: 'Aguardando Cliente',
-    icon: 'hourglass-split',
-    color: 'amber',
-    to: '/chamados?status=Aguardando cliente',
-  },
-  {
-    id: 'emAtendimento',
-    label: 'Em Atendimento',
-    icon: 'headset',
-    color: 'purple',
-    to: '/chamados?status=Em atendimento',
-  },
-  { id: 'concluidos', label: 'Concluídos', icon: 'check-circle', color: 'green', to: '/chamados?status=Resolvido' },
-  { id: 'semResponsavel', label: 'Sem Responsável', icon: 'person-x', color: 'yellow' },
-  { id: 'clientesAtivos', label: 'Clientes Ativos', icon: 'people', color: 'orange', to: '/clientes?ativo=1' },
-  { id: 'noMes', label: 'Chamados no Mês', icon: 'calendar3', color: 'teal' },
+const CORES: NonNullable<StatCardProps['color']>[] = [
+  'blue',
+  'purple',
+  'teal',
+  'orange',
+  'green',
+  'red',
+  'amber',
+  'yellow',
 ];
 
+const ACAO_ICONE: Record<string, string> = {
+  criação: 'plus-circle text-success',
+  alteração: 'pencil text-primary',
+  exclusão: 'trash text-danger',
+  login: 'box-arrow-in-right text-info',
+  logout: 'box-arrow-left text-secondary',
+  'login falhou': 'exclamation-triangle text-danger',
+};
+
+const saudacao = () => {
+  const h = new Date().getHours();
+  return h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
+};
+
+/** Página inicial: o painel da aplicação, se houver; senão o genérico do frame */
 export default function Dashboard() {
-  const statusColors = getEntity('chamados')?.fields.find((f) => f.name === 'status')?.colors ?? {};
-  const [data, setData] = useState<DashboardData | null>(null);
+  return AppDashboard ? <AppDashboard /> : <GenericDashboard />;
+}
+
+function GenericDashboard() {
+  const { user, can } = useAuth();
   const toast = useToast();
+  const [resumo, setResumo] = useState<DashboardSummary | null>(null);
+  const [atividade, setAtividade] = useState<LogRow[] | null>(null);
+  const podeVerLogs = can('logs', 'ver');
 
   useEffect(() => {
     api
-      .get<DashboardData>('/dashboard')
-      .then(setData)
+      .get<DashboardSummary>('/dashboard/resumo')
+      .then(setResumo)
       .catch((e) => toast.error(errorMessage(e)));
-  }, [toast]);
+    if (podeVerLogs)
+      api
+        .get<ListResponse<LogRow>>('/logs?pageSize=8')
+        .then((r) => setAtividade(r.rows))
+        .catch(() => setAtividade([]));
+  }, [toast, podeVerLogs]);
 
-  if (!data)
-    return (
-      <div className="text-center py-5">
-        <Spinner animation="border" variant="primary" />
-      </div>
-    );
-
-  const chart = {
-    labels: data.porStatus.map((s) => s.status),
-    datasets: [
-      {
-        data: data.porStatus.map((s) => s.total),
-        backgroundColor: data.porStatus.map((s) => statusColors[s.status]),
-        borderColor: '#fff',
-        borderWidth: 3,
-      },
-    ],
-  };
+  const hoje = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
     <>
-      <Row xs={2} xl={4} className="g-2 g-md-3 mb-4">
-        {CARDS.map((c) => (
-          <Col key={c.id}>
-            <StatCard {...c} value={data.cards[c.id]} />
-          </Col>
-        ))}
-      </Row>
+      <div className="mb-4">
+        <h1 className="page-title">
+          {saudacao()}, {user?.nome.split(' ')[0]}!
+        </h1>
+        <div className="text-muted text-capitalize-first">{hoje}</div>
+      </div>
 
-      <Row className="g-3">
-        <Col lg={5}>
-          <Card className="card-app h-100">
-            <Card.Header>
-              <i className="bi bi-graph-up" /> Visão Geral
-              <span className="ms-auto text-muted small fw-normal">Chamados por status</span>
-            </Card.Header>
-            <Card.Body className="d-flex align-items-center justify-content-center">
-              <div style={{ maxWidth: 360, width: '100%' }}>
-                <Doughnut
-                  data={chart}
-                  options={{
-                    cutout: '62%',
-                    plugins: {
-                      legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 14 } },
-                    },
-                  }}
+      {!resumo ? (
+        <div className="text-center py-5">
+          <Spinner animation="border" variant="primary" />
+        </div>
+      ) : resumo.totais.length === 0 ? (
+        <Card className="card-app">
+          <Card.Body className="p-4 text-muted">
+            Seu perfil ({user?.perfil}) ainda não tem acesso a nenhum cadastro. Fale com o administrador do sistema.
+          </Card.Body>
+        </Card>
+      ) : (
+        <Row xs={2} lg={3} xl={4} className="g-2 g-md-3 mb-4">
+          {resumo.totais.map((t, i) => {
+            const ent = getEntity(t.entidade);
+            return (
+              <Col key={t.entidade}>
+                <StatCard
+                  label={ent?.label ?? t.entidade}
+                  value={t.total}
+                  icon={ent?.icon ?? 'table'}
+                  color={CORES[i % CORES.length]}
+                  to={`/${t.entidade}`}
                 />
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
+              </Col>
+            );
+          })}
+        </Row>
+      )}
 
-        <Col lg={7}>
-          <Card className="card-app h-100">
-            <Card.Header>
-              <i className="bi bi-clock-history" /> Últimos Chamados
-              <Link to="/chamados" className="btn btn-outline-primary btn-sm ms-auto">
-                Ver todos
-              </Link>
-            </Card.Header>
-            <Card.Body className="p-0">
-              <Table responsive hover className="table-app mb-0">
-                <thead>
-                  <tr>
-                    <th className="ps-4">#</th>
-                    <th>Assunto</th>
-                    <th>Cliente</th>
-                    <th className="text-end pe-4">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.ultimos.map((c, i) => (
-                    <tr key={c.id}>
-                      <td className="ps-4 fw-bold">{i + 1}</td>
-                      <td>
-                        <Link to={`/chamados/${c.id}`} className="fw-bold text-body text-decoration-none">
-                          {c.assunto}
-                        </Link>
-                        <div className="small text-muted">#{c.protocolo}</div>
-                      </td>
-                      <td className="text-muted">{c.cliente}</td>
-                      <td className="text-end pe-4">
-                        <ValueBadge value={c.status} colors={statusColors} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+      {podeVerLogs && (
+        <Card className="card-app">
+          <Card.Header>
+            <i className="bi bi-clock-history" /> Atividade recente
+            <Link to="/logs" className="btn btn-outline-primary btn-sm ms-auto">
+              Ver tudo
+            </Link>
+          </Card.Header>
+          <Card.Body className="p-0">
+            {!atividade ? (
+              <div className="text-center py-4">
+                <Spinner animation="border" size="sm" variant="primary" />
+              </div>
+            ) : atividade.length === 0 ? (
+              <div className="text-muted p-4">Nada registrado ainda.</div>
+            ) : (
+              <ul className="activity-list">
+                {atividade.map((l) => (
+                  <li key={l.id}>
+                    <i className={`bi bi-${ACAO_ICONE[l.acao] ?? 'dot text-muted'}`} />
+                    <div className="flex-grow-1 min-w-0">
+                      <div className="text-truncate">
+                        <b>{l.usuario ?? 'Sistema'}</b> · {l.acao}
+                        {l.detalhe ? <span className="text-muted"> · {l.detalhe}</span> : null}
+                      </div>
+                      <div className="small text-muted">
+                        {areaLabel(l.entidade)} · {fmtDate(l.criado_em, true)}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card.Body>
+        </Card>
+      )}
     </>
   );
 }

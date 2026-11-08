@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Button, Col, FloatingLabel, Form, Modal, Row, Spinner } from 'react-bootstrap';
-import { MAX_LOGO_BYTES, settingsSchema, toFieldErrors, type FieldErrors, type Settings } from '@frame/shared';
+import {
+  MAX_LOGO_BYTES,
+  MENU_STYLES,
+  settingsSchema,
+  toFieldErrors,
+  type FieldErrors,
+  type Settings,
+} from '@frame/shared';
 import { ApiError, errorMessage } from '../lib/api';
 import { useSettings } from '../context/SettingsContext';
 import { useToast } from '../context/ToastContext';
@@ -136,7 +143,7 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
     }
   };
 
-  type TextKey = 'nome_sistema' | 'organizacao' | 'telefone' | 'email' | 'endereco';
+  type TextKey = 'nome_sistema' | 'organizacao' | 'telefone' | 'email' | 'endereco' | 'url_ajuda';
   const text = (k: TextKey, label: string, props: { maxLength?: number; type?: string } = {}) => (
     <FloatingLabel label={label}>
       <Form.Control
@@ -297,6 +304,30 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
               <Col md={6}>{text('email', 'E-mail', { type: 'email' })}</Col>
               <Col md={6}>{text('endereco', 'Endereço')}</Col>
             </Row>
+
+            {/* ---------- Menu e ajuda ---------- */}
+            <h6 className="settings-section">Menu e ajuda</h6>
+            <Form.Label className="small fw-semibold mb-2">Estilo do menu lateral</Form.Label>
+            <div className="d-flex gap-3 mb-3 flex-wrap">
+              {MENU_STYLES.map((estilo) => (
+                <button
+                  type="button"
+                  key={estilo}
+                  className={`menu-style-option ${form.estilo_menu === estilo ? 'active' : ''}`}
+                  onClick={() => set('estilo_menu', estilo)}
+                  aria-pressed={form.estilo_menu === estilo}
+                >
+                  <span className={`menu-style-preview ${estilo}`}>
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                  {estilo === 'colorido' ? 'Colorido' : 'Claro'}
+                </button>
+              ))}
+            </div>
+            {text('url_ajuda', 'Link da Central de Ajuda (opcional)', { type: 'url' })}
+            <Form.Text>Se preenchido, aparece um item “Central de Ajuda” no menu, abrindo em nova aba.</Form.Text>
 
             {/* ---------- Manutenção ---------- */}
             <h6 className="settings-section">Manutenção</h6>

@@ -25,59 +25,69 @@ npm run setup   # instala, cria server/.env, cria o banco (migrações) e popula
 npm run dev     # API em :3001 + front em :5173 (abre o navegador)
 ```
 
+Acesso de exemplo criado pelo setup (**só para desenvolvimento**): `admin@sistema.com` / `admin123`.
+
+Para parar: `Control + C` no terminal.
+
 ## 3. Comandos
 
-| Comando                           | O que faz                                               |
-| --------------------------------- | ------------------------------------------------------- |
-| `npm run dev`                     | Desenvolvimento com recarga automática (API + front)    |
-| `npm run check`                   | Lint + formatação + tipos + testes, tudo de uma vez     |
-| `npm test`                        | Testes (shared, server e web)                           |
-| `npm run lint` / `npm run format` | ESLint / formata o código com Prettier                  |
-| `npm run typecheck`               | Checagem de tipos do TypeScript                         |
-| `npm run db:migrate`              | Aplica migrações pendentes                              |
-| `npm run db:rollback`             | Desfaz o último lote de migrações                       |
-| `npm run db:status`               | Lista migrações aplicadas e pendentes                   |
-| `npm run db:diff -- descricao`    | Gera a migração a partir das entidades (ver seção 5)    |
-| `npm run db:seed`                 | Dados de exemplo (só se o banco estiver vazio)          |
-| `npm run db:reset`                | **Apaga tudo**, recria e popula (bloqueado em produção) |
-| `npm run build` + `npm start`     | Produção: Express servindo API + front na porta 3001    |
+| Comando                            | O que faz                                               |
+| ---------------------------------- | ------------------------------------------------------- |
+| `npm run dev`                      | Desenvolvimento com recarga automática (API + front)    |
+| `npm run check`                    | Lint + formatação + tipos + testes, tudo de uma vez     |
+| `npm test`                         | Testes (shared, server e web)                           |
+| `npm run lint` / `npm run format`  | ESLint / formata o código com Prettier                  |
+| `npm run typecheck`                | Checagem de tipos do TypeScript                         |
+| `npm run db:migrate`               | Aplica migrações pendentes                              |
+| `npm run db:rollback`              | Desfaz o último lote de migrações                       |
+| `npm run db:status`                | Lista migrações aplicadas e pendentes                   |
+| `npm run db:diff -- descricao`     | Gera a migração a partir das entidades (ver seção 5)    |
+| `npm run db:seed`                  | Dados de exemplo (só se o banco estiver vazio)          |
+| `npm run db:reset`                 | **Apaga tudo**, recria e popula (bloqueado em produção) |
+| `npm run db:admin -- email "Nome"` | Cria/recupera um administrador com senha provisória     |
+| `npm run build` + `npm start`      | Produção: Express servindo API + front na porta 3001    |
 
-## 4. Estrutura
+## 4. Estrutura: núcleo × aplicação
+
+O frame tem duas camadas. O **núcleo** é igual em todo sistema: login, usuários, perfis, logs, backup e configurações.
+A **aplicação** é o negócio do sistema construído em cima dele. Para criar um sistema novo, você só mexe nas pastas
+`app/`. O frame vem com elas vazias.
 
 ```
 frame-app/
-├── shared/                 Código usado pelo server E pelo web
-│   └── src/
-│       ├── entities.ts     ★ definição das entidades (fonte da verdade)
-│       ├── schema.ts       validação Zod gerada das entidades (form + API)
-│       ├── settings.ts     configurações: padrões e validação
-│       └── types.ts        tipos compartilhados
-├── server/                 API
+├── shared/src/
+│   ├── app/entities.ts     ★ APLICAÇÃO: cadastros do sistema (vazio no frame)
+│   ├── core/entities.ts    núcleo: usuários e perfis
+│   ├── entities.ts         registro = aplicação + núcleo
+│   ├── schema.ts           validação Zod gerada das entidades (form + API)
+│   ├── permissions.ts      recursos, ações e can() (servidor e front)
+│   └── settings.ts         configurações: padrões e validação
+├── server/
 │   ├── .env.example        variáveis de ambiente (copiado para .env no setup)
-│   ├── src/
-│   │   ├── config.ts       lê e valida o .env
-│   │   ├── app.ts          monta o Express (usado também nos testes)
-│   │   ├── index.ts        boot: migrações, limpeza de logs, listen
-│   │   ├── db/             Knex, migrador, migrações, diff, seed, CLI
-│   │   ├── routes/         CRUD genérico e rotas de sistema
-│   │   └── services/       regras: logs, configurações, backup
-│   └── test/               testes da API (SQLite em memória)
-├── web/                    Front React
-│   ├── src/
-│   │   ├── config/menu.ts  ★ menu lateral
-│   │   ├── layout/         Sidebar, Topbar, Layout
-│   │   ├── pages/          Dashboard, CrudList, CrudForm, Logs, Backup
-│   │   ├── components/     FieldInput, SettingsModal, StatCard...
-│   │   └── lib/            api, tema, formatação
-│   └── test/
+│   └── src/
+│       ├── app/            ★ APLICAÇÃO: hooks.ts, routes.ts, seed.ts
+│       ├── auth/           senhas, sessões, middleware de login/permissão
+│       ├── db/             Knex, migrador, migrações, diff, seed, CLI
+│       ├── hooks/          regras do núcleo (usuários, perfis)
+│       ├── routes/         auth, CRUD genérico e rotas de sistema
+│       ├── services/       logs, configurações, backup, e-mail
+│       ├── app.ts          monta o Express (usado também nos testes)
+│       └── index.ts        boot: migrações, manutenção, listen
+├── web/src/
+│   ├── app/                ★ APLICAÇÃO: menu.ts, dashboard.tsx
+│   ├── config/menu.ts      menu = Dashboard + aplicação + Administração
+│   ├── layout/             Sidebar (com "+ Novo" e versão), Topbar, Layout
+│   ├── pages/              Dashboard, CrudList, CrudForm, MeuPerfil, Logs, Backup, auth/
+│   └── components/         FieldInput, PermissionMatrix, SettingsModal...
 ├── .github/workflows/      CI (lint, tipos, testes, build a cada push)
+├── CHANGELOG.md            o que mudou em cada versão
 ├── CLAUDE.md               contexto do projeto para o Claude Code
 └── ROADMAP.md              fases do frame
 ```
 
 ## 5. Criar uma entidade nova (ex.: `contas`)
 
-**1. Descreva a entidade** em `shared/src/entities.ts`:
+**1. Descreva a entidade** em `shared/src/app/entities.ts`:
 
 ```ts
 contas: {
@@ -97,25 +107,78 @@ npm run db:diff -- cria contas   # gera server/src/db/migrations/<data>_cria_con
 npm run db:migrate
 ```
 
-**3. Coloque no menu**, em `web/src/config/menu.ts`:
+**3. Coloque no menu**, em `web/src/app/menu.ts`:
 
 ```ts
-{ label: 'Contas', icon: 'bank', to: '/contas' },
+{ label: 'Contas', icon: 'bank', to: '/contas', perm: ['contas', 'ver'] },
 ```
 
 Pronto. A entidade ganha API REST, validação (no form e na API), listagem com busca, filtros e paginação, formulário e log de alterações.
 
-Tipos de campo: `text`, `email`, `textarea`, `number`, `money`, `date`, `select`, `boolean`, `relation`.
+Tipos de campo: `text`, `email`, `textarea`, `number`, `money`, `date`, `datetime`, `select`, `boolean`, `relation`, `password` e `permissions`.
+
+A entidade nova entra sozinha na matriz de permissões. Libere-a nos perfis (o administrador já tem acesso). No menu, use `perm: ['contas', 'ver']` para esconder o item de quem não pode ver.
+
+Regras que não cabem na definição (ex.: "não excluir se estiver em uso", "recalcular saldo") ficam em hooks (`beforeSave`, `afterSave`, `beforeDelete`) registrados em `server/src/app/hooks.ts`. Os do núcleo, em `server/src/hooks/`, servem de exemplo. Rotas especiais (relatórios, ações) vão em `server/src/app/routes.ts`, e dados de exemplo em `server/src/app/seed.ts`.
+
+A entidade nova também aparece sozinha no botão **"+ Novo"** e no dashboard genérico. Para um painel próprio, exporte um componente em `web/src/app/dashboard.tsx`.
 
 > O `db:diff` gera só **tabelas e colunas novas**. Renomear ou remover coluna nunca é automático, para não perder dado. Ele avisa e você escreve essa parte à mão na migração (`t.renameColumn` / `t.dropColumn`). Migração já aplicada não se edita: crie outra.
 
-## 6. Configurações do sistema
+## 6. Acesso e permissões
 
-No menu do usuário → **Configurações**: nome, ícone ou logo, cores (6 paletas prontas), dados da organização (rodapé) e por quantos dias manter os logs. Tudo fica salvo no banco e é aplicado na hora.
+**Login** por e-mail e senha, com sessão em cookie `httpOnly` (o token fica em hash no banco). A sessão expira após `SESSION_HOURS` sem uso. Com "manter conectado", dura `REMEMBER_DAYS`.
+
+**Perfis de acesso** (Administração → Perfis de acesso) definem o que cada usuário pode fazer, numa matriz recurso × ação:
+
+- Recursos são as entidades (Ver / Criar / Editar / Excluir) e as áreas do sistema (Logs, Backup, Configurações).
+- Um perfil com **acesso total** é administrador.
+- Só administradores criam ou alteram perfis e mexem em usuários administradores. Assim ninguém consegue se autopromover.
+- O sistema nunca fica sem ao menos um administrador ativo.
+- Mudanças de permissão valem na hora, sem novo login.
+
+**Senhas:**
+
+- Hash com scrypt e política única no form e na API: 8+ caracteres, com letras e números.
+- Ao criar um usuário, o admin define uma senha provisória e pode exigir a troca no primeiro acesso.
+- "Esqueci minha senha" envia um link de uso único, válido por 1 hora.
+- Trocar ou redefinir a senha encerra as outras sessões. Desativar um usuário derruba as sessões dele na hora.
+
+**E-mail:** configure `SMTP_*` no `server/.env`. Sem SMTP, o e-mail (com o link) aparece no terminal do `npm run dev`.
+
+**Primeiro acesso em produção:** não existe seed. Crie o administrador com:
+
+```bash
+npm run db:admin -- voce@empresa.com "Seu Nome"   # mostra uma senha provisória
+```
+
+O mesmo comando recupera o acesso se você esquecer a senha do admin.
+
+**Logs:** cada ação registra quem fez, de onde (IP) e o antes/depois de cada campo alterado. Clique na linha para ver. Senhas nunca vão para o log.
+
+**Proteções:** cabeçalhos de segurança (helmet/CSP), bloqueio de requisições de outros sites (CSRF), limite de tentativas de login (5 erros por e-mail em 15 min) e mensagens que não revelam quais e-mails existem.
+
+**Meu perfil** (menu do usuário): editar o próprio nome, alterar a senha e ver as sessões abertas em outros dispositivos, com a opção de encerrá-las.
+
+## 7. Configurações do sistema
+
+No menu do usuário → **Configurações** (precisa da permissão "Configurações: Editar"):
+
+- **Identidade:** nome do sistema, ícone ou logo.
+- **Cores:** 6 paletas prontas ou cores próprias.
+- **Organização:** dados exibidos no rodapé.
+- **Menu e ajuda:** estilo do menu (colorido ou claro) e link da Central de Ajuda (opcional).
+- **Manutenção:** por quantos dias manter os logs.
+
+Tudo fica salvo no banco e é aplicado na hora. A identidade visual também aparece na tela de login.
+
+## 8. Versão
+
+O rodapé do menu mostra a versão (ex.: `v0.3.0 · 30ffc90`): o número vem do `package.json` da raiz, e o código é o commit do git. A API informa a mesma coisa em `/api/health`. Em produção, se o servidor for atualizado com o sistema aberto no navegador, aparece o aviso "Há uma nova versão" com um botão para recarregar. Ao lançar uma versão, atualize o número em `package.json` e registre as mudanças no `CHANGELOG.md`.
 
 Segredos (SMTP, tokens de API) **não** vão nessa tela. Ficam em `server/.env`, que está fora do git.
 
-## 7. Qualidade
+## 9. Qualidade
 
 - **Pre-commit:** ESLint + Prettier nos arquivos alterados. Commit com erro de lint é bloqueado.
 - **CI (GitHub Actions):** lint, formatação, tipos, testes, build e migração do zero, em Node 22 e 24.

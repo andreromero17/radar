@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { DEFAULT_SETTINGS, type Settings } from '@frame/shared';
 import { api } from '../lib/api';
+import { useAuth } from './AuthContext';
 import { applyTheme } from '../lib/theme';
 
 interface SettingsApi {
@@ -47,12 +48,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return s;
   }, []);
 
+  // Sem login: só a identidade visual (tela de entrada). Logado: tudo.
+  const { user } = useAuth();
+  const logged = !!user;
   useEffect(() => {
     api
-      .get<Settings>('/settings')
-      .then(commit)
+      .get<Partial<Settings>>(logged ? '/settings' : '/settings/publicas')
+      .then((s) => commit({ ...DEFAULT_SETTINGS, ...readCache(), ...s }))
       .catch(() => {});
-  }, [commit]);
+  }, [commit, logged]);
 
   const value = useMemo<SettingsApi>(
     () => ({

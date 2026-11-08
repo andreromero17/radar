@@ -46,7 +46,9 @@ export async function withForeignKeysOff<T>(db: Knex, fn: () => Promise<T>): Pro
 }
 
 export async function migrateLatest(db: Knex) {
-  const [, applied] = (await withForeignKeysOff(db, () => db.migrate.latest(migrationConfig))) as [number, string[]];
+  const [, applied] = (await withForeignKeysOff(db, () =>
+    db.migrate.latest(migrationConfig).catch(rethrowCorrupt),
+  )) as [number, string[]];
   return applied;
 }
 
@@ -58,7 +60,27 @@ export async function rollback(db: Knex, all = false) {
   return reverted;
 }
 
+/** Banco criado com migrações que não existem mais no código (histórico reescrito) */
+export class OutdatedHistoryError extends Error {
+  constructor(public missing: string[]) {
+    super(
+      `O banco foi criado com migrações que não existem mais neste código: ${missing.join(', ')}.\n` +
+        '  Em desenvolvimento, recrie o banco com: npm run db:reset (apaga os dados).',
+    );
+  }
+}
+
+const rethrowCorrupt = (err: unknown): never => {
+  const msg = err instanceof Error ? err.message : String(err);
+  const m = /files are missing: (.+)$/.exec(msg);
+  if (m) throw new OutdatedHistoryError(m[1].split(',').map((s) => s.trim()));
+  throw err;
+};
+
 export async function migrationStatus(db: Knex) {
-  const [done, pending] = (await db.migrate.list(migrationConfig)) as [{ name: string }[], Migration[]];
+  const [done, pending] = (await db.migrate.list(migrationConfig).catch(rethrowCorrupt)) as [
+    { name: string }[],
+    Migration[],
+  ];
   return { done: done.map((m) => m.name), pending: pending.map((m) => m.name) };
 }

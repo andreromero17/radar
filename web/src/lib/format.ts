@@ -15,3 +15,12 @@ export function fmtBytes(n: number): string {
   if (n < 1024 ** 2) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / 1024 ** 2).toFixed(1)} MB`;
 }
+
+/** Iniciais para o avatar: "Ana Souza" → "AS" */
+export const initials = (nome = '?') =>
+  nome
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0].toUpperCase())
+    .join('');

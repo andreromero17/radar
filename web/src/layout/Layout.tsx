@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import { useSettings } from '../context/SettingsContext';
+import { useNewVersion } from '../lib/version';
 
 const useIsDesktop = () => {
   const query = '(min-width: 992px)';
@@ -40,9 +41,10 @@ export default function Layout() {
   }, [collapsed]);
 
   const isCollapsed = isDesktop && collapsed;
+  const novaVersao = useNewVersion();
 
   return (
-    <div className={`app-shell ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div className={`app-shell menu-${settings.estilo_menu} ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
       <Sidebar
         collapsed={isCollapsed}
         mobileOpen={mobileOpen}
@@ -51,6 +53,17 @@ export default function Layout() {
       />
       <div className="app-main">
         <Topbar onMenu={() => setMobileOpen(true)} />
+        {novaVersao && (
+          <div className="new-version-bar" role="status">
+            <i className="bi bi-stars" />
+            <span>
+              Há uma nova versão do sistema (<b>v{novaVersao.version}</b>).
+            </span>
+            <button className="btn btn-sm btn-light" onClick={() => window.location.reload()}>
+              Atualizar agora
+            </button>
+          </div>
+        )}
         <main className="app-content">
           <Outlet />
         </main>

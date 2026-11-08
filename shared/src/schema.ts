@@ -4,9 +4,44 @@
 // =============================================================================
 import { z } from 'zod';
 import { editableFields } from './entities';
+import { ACTIONS, normalizePermissions, type Permissions } from './permissions';
 import type { EntityDef, FieldDef, FieldErrors } from './types';
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const DATETIME = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/;
+
+/** Política de senha (cadastro, troca e redefinição) */
+export const passwordSchema = z
+  .string({ error: 'Informe a senha' })
+  .min(8, 'Mínimo de 8 caracteres')
+  .max(128, 'Máximo de 128 caracteres')
+  .regex(/[A-Za-z]/, 'Inclua ao menos uma letra')
+  .regex(/\d/, 'Inclua ao menos um número');
+
+/** Regras da senha, para exibir como checklist na interface */
+export const PASSWORD_RULES: { label: string; test: (s: string) => boolean }[] = [
+  { label: 'Mínimo de 8 caracteres', test: (s) => s.length >= 8 },
+  { label: 'Ao menos uma letra', test: (s) => /[A-Za-z]/.test(s) },
+  { label: 'Ao menos um número', test: (s) => /\d/.test(s) },
+];
+
+/** Aceita objeto ou JSON (como vem do banco) e normaliza */
+export const permissionsSchema = z.preprocess(
+  (v) => {
+    if (v == null || v === '') return {};
+    if (typeof v === 'string') {
+      try {
+        return JSON.parse(v);
+      } catch {
+        return v;
+      }
+    }
+    return v;
+  },
+  z
+    .record(z.string(), z.array(z.enum(ACTIONS), { error: 'Ação inválida' }), { error: 'Permissões inválidas' })
+    .transform((p) => normalizePermissions(p as Permissions)),
+);
 const EMAIL = /^\S+@\S+\.\S+$/;
 
 /** '' / espaços / undefined viram null; strings são aparadas. */
@@ -34,6 +69,11 @@ function baseSchema(f: FieldDef): z.ZodType {
       return z.enum((f.options ?? []) as [string, ...string[]], { error: 'Opção inválida' });
     case 'date':
       return z.string().regex(DATE, 'Data inválida');
+    case 'datetime':
+      return z
+        .string()
+        .regex(DATETIME, 'Data/hora inválida')
+        .transform((v) => (v.length === 16 ? `${v}:00` : v).replace('T', ' '));
     default: {
       const s = z.string({ error: 'Texto inválido' });
       return f.maxLength ? s.max(f.maxLength, `Máximo de ${f.maxLength} caracteres`) : s;
@@ -42,8 +82,17 @@ function baseSchema(f: FieldDef): z.ZodType {
 }
 
 /** Schema Zod de um campo, já normalizando a entrada (vazio → null, "1" → true...). */
-export function fieldSchema(f: FieldDef): z.ZodType {
+export function fieldSchema(f: FieldDef, mode: 'create' | 'update' = 'create'): z.ZodType {
   if (f.type === 'boolean') return z.preprocess(toBool, z.boolean());
+  if (f.type === 'permissions') return permissionsSchema;
+  if (f.type === 'password') {
+    // vazio = "não informar" (na edição, mantém a senha atual)
+    const clean = (v: unknown) => (v == null || v === '' ? undefined : v);
+    // Atenção: não usar .optional() no caso obrigatório: o Zod pula campos opcionais ausentes
+    return f.required && mode === 'create'
+      ? z.preprocess(clean, z.string({ error: `${f.label} é obrigatória` }).pipe(passwordSchema))
+      : z.preprocess(clean, passwordSchema.optional());
+  }
   const s = z.preprocess(emptyToNull, baseSchema(f).nullable());
   return f.required ? s.refine((v) => v !== null, { message: `${f.label} é obrigatório` }) : s;
 }
@@ -51,7 +100,8 @@ export function fieldSchema(f: FieldDef): z.ZodType {
 /** Schema Zod do registro inteiro. Em `update`, todos os campos são opcionais. */
 export function entitySchema(ent: EntityDef, mode: 'create' | 'update' = 'create') {
   const shape: Record<string, z.ZodType> = {};
-  for (const f of editableFields(ent)) shape[f.name] = mode === 'update' ? fieldSchema(f).optional() : fieldSchema(f);
+  for (const f of editableFields(ent))
+    shape[f.name] = mode === 'update' ? fieldSchema(f, mode).optional() : fieldSchema(f, mode);
   return z.object(shape);
 }
 

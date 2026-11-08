@@ -2,7 +2,21 @@
 // Tipos compartilhados entre API (server) e interface (web).
 // =============================================================================
 
-export type FieldType = 'text' | 'email' | 'textarea' | 'number' | 'money' | 'date' | 'select' | 'boolean' | 'relation';
+export type FieldType =
+  | 'text'
+  | 'email'
+  | 'textarea'
+  | 'number'
+  | 'money'
+  | 'date'
+  | 'datetime'
+  | 'select'
+  | 'boolean'
+  | 'relation'
+  /** Senha: nunca sai da API; gravada como hash; em branco na edição = manter */
+  | 'password'
+  /** Matriz de permissões (recurso × ação), gravada como JSON */
+  | 'permissions';
 
 export interface FieldDef {
   /** Nome da coluna no banco (snake_case) */
@@ -22,8 +36,10 @@ export interface FieldDef {
   default?: string | number | boolean;
   /** Exibido mas não editável */
   readonly?: boolean;
-  /** Gerado pelo servidor na criação */
-  auto?: 'protocol';
+  /** Gerado pelo servidor na criação. 'code' = código legível, ex.: PED20261108-4F2A9 */
+  auto?: 'code';
+  /** Prefixo do código gerado (auto: 'code') */
+  prefix?: string;
   /** Opções de um campo `select` */
   options?: readonly string[];
   /** Cor do badge por opção (campos `select`) */
@@ -32,6 +48,10 @@ export interface FieldDef {
   entity?: string;
   /** Tamanho máximo para campos de texto */
   maxLength?: number;
+  /** Texto de ajuda exibido abaixo do campo */
+  help?: string;
+  /** Desabilita o campo no formulário quando o campo booleano indicado estiver marcado */
+  disabledWhen?: string;
 }
 
 export interface EntityDef {
@@ -66,22 +86,36 @@ export type FieldErrors = Record<string, string>;
 export interface ApiErrorBody {
   error: string;
   errors?: FieldErrors;
+  /** Código para o front reagir (ex.: TROCAR_SENHA) */
+  code?: string;
 }
 
-export interface DashboardData {
-  cards: Record<
-    | 'abertos'
-    | 'urgentes'
-    | 'aguardando'
-    | 'emAtendimento'
-    | 'concluidos'
-    | 'semResponsavel'
-    | 'clientesAtivos'
-    | 'noMes',
-    number
-  >;
-  porStatus: { status: string; total: number }[];
-  ultimos: { id: number; protocolo: string; assunto: string; status: string; cliente: string | null }[];
+/** Item de select de relação (GET /api/:entity/opcoes) */
+export interface RelationOption {
+  value: number;
+  label: string;
+}
+
+/** Resumo genérico do dashboard: total por cadastro que o usuário pode ver */
+export interface DashboardSummary {
+  totais: { entidade: string; total: number }[];
+}
+
+/** Sessão aberta do usuário (página Meu perfil) */
+export interface SessionInfo {
+  id: string;
+  atual: boolean;
+  lembrar: boolean;
+  criado_em: string;
+  ultimo_uso: string;
+  ip: string | null;
+  user_agent: string | null;
+}
+
+/** Versão do sistema (GET /api/health) */
+export interface VersionInfo {
+  version: string;
+  commit: string;
 }
 
 export interface LogRow {
@@ -91,6 +125,10 @@ export interface LogRow {
   acao: string;
   detalhe: string | null;
   usuario: string | null;
+  usuario_id: number | null;
+  ip: string | null;
+  /** Diferença campo a campo: { campo: { de, para } } */
+  alteracoes: Record<string, { de?: unknown; para?: unknown }> | null;
   criado_em: string;
 }
 

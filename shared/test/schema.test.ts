@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SETTINGS, entities, settingsSchema, validateEntity } from '../src';
+import { can, DEFAULT_SETTINGS, entities, settingsSchema, validateEntity } from '../src';
 
+import { registerFixtureEntities } from './fixtures';
+
+registerFixtureEntities();
 const clientes = entities.clientes;
 const chamados = entities.chamados;
 
@@ -14,7 +17,7 @@ describe('validateEntity', () => {
     const r = validateEntity(clientes, { nome: '  Ana ', email: '', ativo: '1' });
     expect(r).toEqual({
       ok: true,
-      data: { nome: 'Ana', email: null, telefone: null, documento: null, ativo: true, observacoes: null },
+      data: { nome: 'Ana', email: null, telefone: null, documento: null, limite: null, ativo: true, observacoes: null },
     });
   });
 
@@ -42,6 +45,53 @@ describe('validateEntity', () => {
   it('respeita maxLength', () => {
     const r = validateEntity(clientes, { nome: 'x'.repeat(121) });
     expect(r.ok ? null : r.errors.nome).toBe('Máximo de 120 caracteres');
+  });
+});
+
+describe('campos de senha e permissões', () => {
+  const usuarios = entities.usuarios;
+  const base = { nome: 'Zé', email: 'ze@x.com', perfil_id: 1 };
+
+  it('senha obrigatória na criação, mesmo quando o campo nem é enviado', () => {
+    expect(validateEntity(usuarios, base)).toMatchObject({ ok: false, errors: { senha: 'Senha é obrigatória' } });
+    expect(validateEntity(usuarios, { ...base, senha: '' })).toMatchObject({ ok: false });
+  });
+
+  it('aplica a política de senha', () => {
+    expect(validateEntity(usuarios, { ...base, senha: 'abcdefgh' })).toMatchObject({
+      ok: false,
+      errors: { senha: 'Inclua ao menos um número' },
+    });
+    expect(validateEntity(usuarios, { ...base, senha: 'abc12345' }).ok).toBe(true);
+  });
+
+  it('na edição, senha em branco = manter (campo some dos dados)', () => {
+    const r = validateEntity(usuarios, { senha: '', nome: 'Zé' }, 'update');
+    expect(r).toEqual({ ok: true, data: { nome: 'Zé' } });
+  });
+
+  it('permissões aceitam JSON e são normalizadas', () => {
+    const r = validateEntity(entities.perfis, {
+      nome: 'P',
+      permissoes: JSON.stringify({ clientes: ['editar', 'ver'], perfis: ['editar'], xyz: ['ver'] }),
+    });
+    expect(r.ok && r.data.permissoes).toEqual({ clientes: ['ver', 'editar'] });
+    expect(validateEntity(entities.perfis, { nome: 'P', permissoes: { clientes: ['voar'] } }).ok).toBe(false);
+  });
+});
+
+describe('can()', () => {
+  const op = { admin: false, permissoes: { clientes: ['ver', 'criar'] as const } as never };
+  it('respeita a matriz', () => {
+    expect(can(op, 'clientes', 'ver')).toBe(true);
+    expect(can(op, 'clientes', 'excluir')).toBe(false);
+    expect(can(op, 'chamados', 'ver')).toBe(false);
+    expect(can(null, 'clientes', 'ver')).toBe(false);
+  });
+  it('admin pode tudo; gerenciar perfis é só de admin', () => {
+    expect(can({ admin: true, permissoes: {} }, 'qualquer', 'excluir')).toBe(true);
+    expect(can({ admin: false, permissoes: { perfis: ['ver', 'editar'] } }, 'perfis', 'editar')).toBe(false);
+    expect(can({ admin: false, permissoes: { perfis: ['ver'] } }, 'perfis', 'ver')).toBe(true);
   });
 });
 

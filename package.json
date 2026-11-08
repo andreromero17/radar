@@ -1,16 +1,57 @@
 {
   "name": "frame-app",
+  "version": "0.2.0",
   "private": true,
-  "version": "0.1.0",
-  "description": "Frame genérico: navegação, CRUD e dashboard (React + Bootstrap + Express + SQLite)",
+  "type": "module",
+  "description": "Frame genérico: navegação, CRUD dirigido por configuração, dashboard e configurações",
+  "workspaces": [
+    "shared",
+    "server",
+    "web"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "setup": "npm install && npm --prefix server install && npm --prefix web install",
-    "dev": "concurrently -n api,web -c blue,magenta \"npm --prefix server run dev\" \"npm --prefix web run dev\"",
-    "build": "npm --prefix web run build",
-    "start": "npm --prefix server start",
-    "seed:reset": "npm --prefix server run seed:reset"
+    "setup": "npm install && npm run env:init && npm run db:migrate && npm run db:seed",
+    "env:init": "node scripts/env-init.mjs",
+    "dev": "concurrently -n api,web -c blue,magenta \"npm run dev -w server\" \"npm run dev -w web\"",
+    "build": "npm run build -w web && npm run build -w server",
+    "start": "npm run start -w server",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
+    "db:migrate": "npm run db -w server -- migrate",
+    "db:rollback": "npm run db -w server -- rollback",
+    "db:status": "npm run db -w server -- status",
+    "db:diff": "npm run db -w server -- diff",
+    "db:seed": "npm run db -w server -- seed",
+    "db:reset": "npm run db -w server -- reset",
+    "prepare": "husky || true"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css,yml,yaml,html}": "prettier --write"
   },
   "devDependencies": {
-    "concurrently": "^9.1.0"
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^9.1.0",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.14.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.1.0"
   }
 }

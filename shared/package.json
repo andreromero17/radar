@@ -1,0 +1,17 @@
+{
+  "name": "@frame/shared",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Tipos, definição das entidades e validação compartilhados entre server e web",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  }
+}

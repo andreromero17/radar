@@ -117,7 +117,7 @@ export default function CrudList(props: Props) {
     );
     for (const f of rels)
       api
-        .get<RelationOption[]>(`/${f.entity}/opcoes`)
+        .get<RelationOption[]>(`/${f.entity}/opcoes?todos=1`)
         .then((opts) => setRelOptions((o) => ({ ...o, [f.name]: opts })))
         .catch(() => {});
   }, [ent, allowed]);

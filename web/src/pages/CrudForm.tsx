@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, Col, Form, Row as BsRow, Spinner } from 'react-bootstrap';
 import {
   computeFields,
+  defaultValue,
   detailEntity,
   detailSums,
   getEntity,
@@ -50,7 +51,7 @@ const empty = (type: string): FormValue =>
   type === 'boolean' ? false : type === 'permissions' ? {} : type === 'multiselect' ? [] : '';
 
 const defaults = (ent: EntityDef): Values =>
-  Object.fromEntries(ent.fields.map((f) => [f.name, f.default ?? empty(f.type)]));
+  Object.fromEntries(ent.fields.map((f) => [f.name, defaultValue(f) ?? empty(f.type)]));
 
 const fromRow = (ent: EntityDef, r: Row): Values =>
   Object.fromEntries(

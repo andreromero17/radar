@@ -113,6 +113,27 @@ describe('master-detail', () => {
   });
 });
 
+describe('selects: inativos e data padrão', () => {
+  it('registro inativo some das opções, menos com ?todos=1 ou quando é o valor atual', async () => {
+    const inativo = await ctx.db('demo_clientes').where({ ativo: 0 }).first('id', 'nome');
+    const ids = (r: { body: { value: number }[] }) => r.body.map((o) => o.value);
+    expect(ids(await ctx.admin.get('/api/demo_clientes/opcoes'))).not.toContain(inativo.id);
+    expect(ids(await ctx.admin.get('/api/demo_clientes/opcoes?todos=1'))).toContain(inativo.id);
+    expect(ids(await ctx.admin.get(`/api/demo_clientes/opcoes?incluir=${inativo.id}`))).toContain(inativo.id);
+  });
+
+  it("data com default 'hoje' é preenchida na criação", async () => {
+    const { body } = await ctx.admin.post('/api/demo_orcamentos').send({
+      cliente_id: clienteId,
+      status: 'Rascunho',
+      demo_orcamento_itens: [{ descricao: 'A', quantidade: 1, preco: 1 }],
+    });
+    const d = new Date();
+    const hoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    expect(body.data).toBe(hoje);
+  });
+});
+
 describe('anexos', () => {
   const url = (id: number) => `/api/demo_clientes/${id}/anexos`;
 

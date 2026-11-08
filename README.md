@@ -169,6 +169,8 @@ Opções úteis:
 | entidade | `detailOf: 'pedidos'`                         | a entidade é sub-tabela de outra (segue as permissões do pai)                                  |
 | entidade | `anexos: true`                                | arquivos anexados a cada registro                                                              |
 | entidade | `importar: false`                             | desliga a importação de planilha (ligada por padrão, exceto núcleo e sub-tabelas)              |
+| entidade | `activeField: 'ativa'`                        | inativos somem dos selects de outros cadastros (continuam nos filtros)                         |
+| campo    | `default: 'hoje'` / `'agora'`                 | data de hoje / data e hora atuais ao criar                                                     |
 | campo    | `compute: (v) => ...`                         | campo calculado (somente leitura): a tela mostra e a API grava                                 |
 
 Filtros também funcionam pela URL (dá para fazer links prontos): `?tipo=Despesa&tipo=Receita`,

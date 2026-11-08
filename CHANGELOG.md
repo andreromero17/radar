@@ -14,6 +14,9 @@ novidades, **CORREÇÃO** só corrige.
   `/api/health` informa as duas (`version` e `frame`)
 - `docs/app/` (README, CHANGELOG e CLAUDE.md do sistema), importado pelo `CLAUDE.md` da raiz
 - README: como criar um sistema a partir do frame e mantê-lo atualizado
+- `default: 'hoje'` (data) e `default: 'agora'` (data e hora), calculados na hora de abrir o formulário/gravar
+- `activeField` na entidade: registros inativos somem dos selects de relação (menos o valor atual), mas continuam
+  nos filtros da listagem (`/opcoes?todos=1`)
 
 ## 0.5.0 — 08/11/2026
 

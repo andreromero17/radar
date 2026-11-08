@@ -426,10 +426,15 @@ export async function restoreRecord(c: OpCtx, table: string, ent: EntityDef, id:
   return getRecord(c.db, table, ent, id);
 }
 
-/** Opções de select (id + nome), com filtros de igualdade (selects dependentes) */
+/**
+ * Opções de select (id + nome), com filtros de igualdade (selects dependentes).
+ * Sem os inativos (`activeField`), a não ser com ?todos=1 (filtros da listagem).
+ */
 export async function relationOptions(db: Db, table: string, ent: EntityDef, query: Query) {
   const qb = db(table).select('id', `${ent.labelField} as label`);
   if (ent.lixeira) qb.whereNull(TRASH_COLUMN);
+  const todos = query.todos === '1' || query.todos === 'true';
+  if (ent.activeField && !todos) qb.where(ent.activeField, toDbValue(db, true));
   for (const f of queryable(ent)) {
     const v = values(query[f.name]);
     if (v.length) qb.whereIn(f.name, f.type === 'boolean' ? v.map((x) => toDbValue(db, x === '1' || x === 'true')) : v);

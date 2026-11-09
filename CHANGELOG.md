@@ -4,6 +4,13 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.10.1 — 09/11/2026
+
+- **Voltar para onde estava**: quem navega passa `state: useOrigem()` e a tela de destino volta com
+  `useVolta(padrão)` (`lib/voltar.ts`), em cadeia (lista → outra tela → formulário → outra tela → lista). A
+  `CrudList` já passa a origem ao abrir um registro, uma linha extra ou "Novo"; o `CrudForm` volta para a origem
+  (ou para a listagem guardada). `PageHeader.back` aceita `{ to, state }`
+
 ## 0.10.0 — 09/11/2026
 
 - **Linhas extras na listagem**: hook `listExtras(query, { db, actor })` por entidade devolve linhas de outras

@@ -1745,3 +1745,35 @@ a.bg-grad-yellow:hover {
 .month-picker-extras .btn {
   border: 1px solid var(--border);
 }
+
+/* Período personalizado (De/Até) no seletor de período da listagem */
+.periodo-personalizado {
+  flex-basis: 100%;
+  min-width: 0;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-soft);
+}
+.periodo-personalizado-titulo {
+  font-size: 0.8125rem;
+  font-weight: var(--weight-strong);
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+.periodo-personalizado-datas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+.periodo-personalizado .form-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.15rem;
+}
+.periodo-personalizado .form-control {
+  min-width: 0;
+  width: 100%;
+  padding-left: 0.4rem;
+  padding-right: 0.25rem;
+  font-size: 0.8125rem;
+}

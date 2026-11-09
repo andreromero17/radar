@@ -11,6 +11,8 @@ interface Props {
   placeholder?: string;
   /** Atalhos abaixo da grade; recebe o ano visível e uma função para fechar */
   extras?: (ano: number, fechar: () => void) => ReactNode;
+  /** Mês de referência quando value é null (setas e ano da grade partem dele; padrão: mês atual) */
+  referencia?: string | null;
   className?: string;
 }
 
@@ -18,10 +20,17 @@ interface Props {
  * Seletor de mês (como no Mobills): ‹ Janeiro 2025 › e, ao clicar no nome, o ano com os 12 meses
  * para pular direto. Setas mudam um mês; o mês atual fica marcado.
  */
-export default function MonthPicker({ value, onChange, placeholder = 'Escolha o mês', extras, className }: Props) {
+export default function MonthPicker({
+  value,
+  onChange,
+  placeholder = 'Escolha o mês',
+  extras,
+  referencia,
+  className,
+}: Props) {
   const hoje = new Date();
   const atual = mesIso(hoje.getFullYear(), hoje.getMonth());
-  const base = value ?? atual;
+  const base = value ?? referencia ?? atual;
   const [aberto, setAberto] = useState(false);
   const [ano, setAno] = useState(Number(base.slice(0, 4)));
   useEffect(() => {

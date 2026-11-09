@@ -44,6 +44,7 @@ describe('login e sessão', () => {
       'icone',
       'logo',
       'nome_sistema',
+      'tema',
     ]);
     expect(pub.body).not.toHaveProperty('url_ajuda');
   });

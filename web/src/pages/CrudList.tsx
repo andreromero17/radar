@@ -81,6 +81,7 @@ export default function CrudList(props: Props) {
   const [showFilters, setShowFilters] = useState(false);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [toggling, setToggling] = useState<number | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [bulkErrors, setBulkErrors] = useState<BulkResponse['erros']>([]);
   const [relOptions, setRelOptions] = useState<Record<string, Option[]>>({});
@@ -239,6 +240,21 @@ export default function CrudList(props: Props) {
     }
   };
 
+  // liga/desliga na linha (campos com inlineEdit): grava só o campo, com as regras da edição
+  const toggleInline = async (f: FieldDef, row: Row) => {
+    const novo = !row[f.name];
+    setToggling(row.id);
+    try {
+      const salvo = await api.put<Row>(`/${entity}/${row.id}`, { [f.name]: novo });
+      setData((d) => ({ ...d, rows: d.rows.map((r) => (r.id === row.id ? { ...r, ...salvo } : r)) }));
+      if (!!salvo[f.name] !== novo) toast.info(`${f.label}: não foi possível alterar este registro`);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setToggling(null);
+    }
+  };
+
   const restoreOne = async (row: Row) => {
     try {
       await api.post(`/${entity}/${row.id}/restaurar`);
@@ -366,7 +382,7 @@ export default function CrudList(props: Props) {
             }}
           >
             <InputGroup size="sm">
-              <InputGroup.Text className="bg-white">
+              <InputGroup.Text className="bg-body">
                 <i className="bi bi-search" />
               </InputGroup.Text>
               <Form.Control placeholder="Buscar..." value={term} onChange={(e) => setTerm(e.target.value)} />
@@ -540,7 +556,11 @@ export default function CrudList(props: Props) {
                     )}
                     {cols.map((f) => (
                       <td key={f.name} className={isNumeric(f) ? 'text-end text-nowrap' : undefined}>
-                        {renderCell(f, row)}
+                        {renderCell(
+                          f,
+                          row,
+                          podeEditar && !trash ? { onToggle: toggleInline, busy: toggling === row.id } : undefined,
+                        )}
                       </td>
                     ))}
                     <td className="text-end pe-4 text-nowrap" onClick={(e) => e.stopPropagation()}>
@@ -613,7 +633,7 @@ export default function CrudList(props: Props) {
         </Card.Body>
 
         {data.total > PAGE_SIZES[0] && (
-          <Card.Footer className="bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <Card.Footer className="bg-body d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div className="d-flex align-items-center gap-2 small text-muted">
               <Form.Select
                 size="sm"

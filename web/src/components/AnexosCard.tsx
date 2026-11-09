@@ -78,7 +78,9 @@ export default function AnexosCard({ entity, id, canEdit }: Props) {
     <Card className="card-app mt-3">
       <Card.Header>
         <i className="bi bi-paperclip" /> Anexos
-        {anexos && anexos.length > 0 && <span className="badge rounded-pill bg-light text-dark">{anexos.length}</span>}
+        {anexos && anexos.length > 0 && (
+          <span className="badge rounded-pill bg-body-secondary text-body">{anexos.length}</span>
+        )}
         {canEdit && (
           <Button size="sm" variant="light" className="border ms-auto" onClick={() => input.current?.click()}>
             <i className="bi bi-upload me-1" /> Enviar arquivo

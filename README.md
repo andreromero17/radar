@@ -101,7 +101,7 @@ git push -u origin main
 
 # sempre que o frame tiver novidade
 git pull upstream main
-npm install          # se mudou dependência
+npm ci               # instala exatamente o que está no package-lock (não altera o lock)
 npm run dev          # migrações novas do núcleo são aplicadas sozinhas
 ```
 
@@ -173,6 +173,7 @@ Opções úteis:
 | campo    | `default: 'hoje'` / `'agora'`                 | data de hoje / data e hora atuais ao criar                                                     |
 | campo    | `hidden: true`                                | coluna técnica preenchida por hook (fora das telas, filtrável pela URL)                        |
 | campo    | `createOnly: true`                            | só no formulário de criação (ex.: "parcelar em")                                               |
+| campo    | `inlineEdit: true` ou `(row) => boolean`      | booleano com liga/desliga direto na listagem (ex.: "pago")                                     |
 | campo    | `compute: (v) => ...`                         | campo calculado (somente leitura): a tela mostra e a API grava                                 |
 
 Filtros também funcionam pela URL (dá para fazer links prontos): `?tipo=Despesa&tipo=Receita`,
@@ -276,10 +277,19 @@ No menu do usuário → **Configurações** (precisa da permissão "Configuraç�
 - **Identidade:** nome do sistema, ícone ou logo.
 - **Cores:** 6 paletas prontas ou cores próprias.
 - **Organização:** dados exibidos no rodapé.
-- **Menu e ajuda:** estilo do menu (colorido ou claro) e link da Central de Ajuda (opcional).
+- **Tema:** Vibrante (colorido) ou Minimalista (neutro e limpo) — vale para todos os usuários.
+- **Menu e ajuda:** estilo do menu (colorido ou claro; no Minimalista o menu é sempre neutro) e link da Central de
+  Ajuda (opcional).
 - **Manutenção:** por quantos dias manter os logs.
 
 Tudo fica salvo no banco e é aplicado na hora. A identidade visual também aparece na tela de login.
+
+Cada usuário escolhe a **aparência** no próprio menu: Automático (segue o aparelho), Claro ou Escuro.
+
+**CSS e cores.** As telas usam só tokens (`var(--surface)`, `var(--text-muted)`, `var(--border)`,
+`var(--positive)`, `var(--negative)`, `var(--brand-1)`…), definidos em `web/src/styles.css` para cada tema e modo.
+Nunca escreva cor fixa: ela não acompanha o tema nem o modo escuro. Em gráficos, use `chartTheme()` e
+`useThemeVersion()` de `web/src/lib/themeVars.ts`. No celular, itens de menu com `tab: true` viram abas no rodapé.
 
 ## 8. Versão
 

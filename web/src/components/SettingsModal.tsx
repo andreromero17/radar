@@ -3,6 +3,7 @@ import { Button, Col, FloatingLabel, Form, Modal, Row, Spinner } from 'react-boo
 import {
   MAX_LOGO_BYTES,
   MENU_STYLES,
+  TEMAS,
   settingsSchema,
   toFieldErrors,
   type FieldErrors,
@@ -259,6 +260,42 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
               </Col>
             </Row>
 
+            {/* ---------- Tema ---------- */}
+            <h6 className="settings-section">
+              Tema{' '}
+              <span className="text-muted fw-normal small">— vale para todos; claro/escuro cada usuário escolhe</span>
+            </h6>
+            <div className="row g-3 mb-1">
+              {TEMAS.map((t) => (
+                <div className="col-6" key={t}>
+                  <button
+                    type="button"
+                    className={`tema-option w-100 ${form.tema === t ? 'active' : ''}`}
+                    onClick={() => set('tema', t)}
+                    aria-pressed={form.tema === t}
+                  >
+                    <span className={`tema-preview ${t}`}>
+                      <span className="tp-side" />
+                      <span className="tp-main">
+                        <span className="tp-card" />
+                        <span className="tp-card" />
+                        <span className="tp-card" />
+                        <span className="tp-card" />
+                      </span>
+                    </span>
+                    <span>
+                      {t === 'vibrante' ? 'Vibrante' : 'Minimalista'}
+                      <span className="d-block small text-muted fw-normal">
+                        {t === 'vibrante'
+                          ? 'Cores fortes, menu colorido, cards em bloco'
+                          : 'Neutro e elegante, bordas finas, cor só nos destaques'}
+                      </span>
+                    </span>
+                  </button>
+                </div>
+              ))}
+            </div>
+
             {/* ---------- Cores ---------- */}
             <h6 className="settings-section">Cores</h6>
             <div className="d-flex flex-wrap gap-2 mb-3">
@@ -307,8 +344,10 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
 
             {/* ---------- Menu e ajuda ---------- */}
             <h6 className="settings-section">Menu e ajuda</h6>
-            <Form.Label className="small fw-semibold mb-2">Estilo do menu lateral</Form.Label>
-            <div className="d-flex gap-3 mb-3 flex-wrap">
+            {form.tema !== 'minimalista' && (
+              <Form.Label className="small fw-semibold mb-2">Estilo do menu lateral</Form.Label>
+            )}
+            <div className={`d-flex gap-3 mb-3 flex-wrap ${form.tema === 'minimalista' ? 'd-none' : ''}`}>
               {MENU_STYLES.map((estilo) => (
                 <button
                   type="button"

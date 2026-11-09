@@ -4,5 +4,6 @@
 import type { Migration } from '../migrator';
 import * as m20261108000000 from './20261108000000_nucleo';
 import * as m20261109000000 from './20261109000000_anexos';
+import * as m20261110000000 from './20261110000000_aparencia';
 
-export const migrations: Migration[] = [m20261108000000, m20261109000000];
+export const migrations: Migration[] = [m20261108000000, m20261109000000, m20261110000000];

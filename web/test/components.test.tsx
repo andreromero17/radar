@@ -38,6 +38,7 @@ describe('FieldInput', () => {
 describe('ValueBadge', () => {
   it('usa a cor configurada', () => {
     render(<ValueBadge value="Urgente" colors={{ Urgente: '#e03e3e' }} />);
-    expect(screen.getByText('Urgente')).toHaveStyle({ background: '#e03e3e' });
+    // a cor vai numa variável; o tema decide se é bloco cheio (Vibrante) ou tom suave (Minimalista)
+    expect(screen.getByText('Urgente').style.getPropertyValue('--badge')).toBe('#e03e3e');
   });
 });

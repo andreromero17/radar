@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useNavigate } from 'react-router-dom';
 import { can as canDo, type Action, type AuthUser } from '@frame/shared';
 import { api, AUTH_EXPIRED, AUTH_MUST_CHANGE_PASSWORD } from '../lib/api';
+import { applyAparencia, cachedAparencia } from '../lib/theme';
 import { useToast } from './ToastContext';
 
 interface AuthApi {
@@ -22,6 +23,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const toast = useToast();
   const navigate = useNavigate();
+
+  // aparência (claro/escuro): a do usuário logado ou a última usada neste navegador
+  useEffect(() => {
+    applyAparencia(user?.aparencia ?? cachedAparencia());
+  }, [user?.aparencia]);
 
   useEffect(() => {
     api

@@ -1,13 +1,20 @@
 import { useState } from 'react';
-import { Dropdown } from 'react-bootstrap';
+import { ButtonGroup, Dropdown, ToggleButton } from 'react-bootstrap';
+import { APARENCIAS, type Aparencia, type AuthUser } from '@frame/shared';
+import { api } from '../lib/api';
 import { Link } from 'react-router-dom';
 import SettingsModal from '../components/SettingsModal';
 import { useAuth } from '../context/AuthContext';
 import { initials } from '../lib/format';
 
 export default function Topbar({ onMenu }: { onMenu: () => void }) {
-  const { user, can, logout } = useAuth();
+  const { user, can, logout, setUser } = useAuth();
   const [showSettings, setShowSettings] = useState(false);
+  const mudarAparencia = async (aparencia: Aparencia) => {
+    if (!user || aparencia === user.aparencia) return;
+    setUser({ ...user, aparencia }); // aplica na hora; grava em seguida
+    await api.put<AuthUser>('/auth/perfil', { aparencia }).catch(() => {});
+  };
 
   return (
     <header className="app-topbar">
@@ -15,6 +22,9 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
         <i className="bi bi-list fs-5" />
       </button>
 
+      {/* título e ações da página (tema Minimalista, desktop) — preenchidos pelo PageHeader */}
+      <div className="topbar-title" id="topbar-title" />
+      <div className="topbar-actions" id="topbar-actions" />
       {/* espaço para filtros globais da aplicação (ex.: seletor de período) */}
       <div className="topbar-center" id="topbar-slot" />
 
@@ -27,11 +37,35 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
           <div className="px-3 py-2 border-bottom mb-1">
             <div className="fw-bold text-truncate">{user?.nome}</div>
             <div className="small text-muted text-truncate">{user?.email}</div>
-            <span className="badge rounded-pill text-bg-light border mt-1">
+            <span className="badge rounded-pill bg-body-secondary text-body border mt-1">
               <i className="bi bi-shield-lock me-1" />
               {user?.perfil}
             </span>
           </div>
+          <div className="px-3 pt-1 pb-2">
+            <div className="small text-muted mb-1">Aparência</div>
+            <ButtonGroup size="sm" className="w-100 aparencia-group">
+              {APARENCIAS.map((a) => (
+                <ToggleButton
+                  key={a}
+                  id={`aparencia-${a}`}
+                  type="radio"
+                  variant="light"
+                  className="border"
+                  value={a}
+                  checked={user?.aparencia === a}
+                  onChange={() => void mudarAparencia(a)}
+                  title={a === 'sistema' ? 'Segue o aparelho' : undefined}
+                >
+                  <i
+                    className={`bi bi-${a === 'claro' ? 'sun' : a === 'escuro' ? 'moon-stars' : 'circle-half'} me-1`}
+                  />
+                  {a === 'sistema' ? 'Auto' : a === 'claro' ? 'Claro' : 'Escuro'}
+                </ToggleButton>
+              ))}
+            </ButtonGroup>
+          </div>
+          <Dropdown.Divider />
           <Dropdown.Item as={Link} to="/perfil">
             <i className="bi bi-person me-2" />
             Meu perfil

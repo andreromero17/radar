@@ -1,5 +1,5 @@
 // Aplica as configurações visuais (cores, título, favicon) no documento.
-import type { Settings } from '@frame/shared';
+import type { Aparencia, Settings } from '@frame/shared';
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -30,6 +30,7 @@ export function applyTheme(s: Partial<Settings> | null | undefined) {
   root.setProperty('--brand-1-dark', shade(p, -0.15));
   root.setProperty('--brand-1-soft', shade(p, 0.88));
   root.setProperty('--brand-contrast', contrastText(shade(p, -0.05)));
+  document.documentElement.dataset.tema = s.tema === 'minimalista' ? 'minimalista' : 'vibrante';
 
   if (s.nome_sistema) document.title = s.nome_sistema;
 
@@ -46,4 +47,43 @@ export function applyTheme(s: Partial<Settings> | null | undefined) {
       encodeURIComponent(
         `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><defs><linearGradient id="g" x2="0" y2="1"><stop offset="0" stop-color="${p}"/><stop offset="1" stop-color="${sec}"/></linearGradient></defs><rect width="16" height="16" rx="4" fill="url(#g)"/></svg>`,
       );
+}
+
+// ---------------------------------------------------------------- aparência
+const APARENCIA_KEY = 'aparencia';
+const darkQuery = () => window.matchMedia('(prefers-color-scheme: dark)');
+let atual: Aparencia = 'sistema';
+
+const sistemaEscuro = () => typeof window.matchMedia === 'function' && darkQuery().matches;
+const resolve = (a: Aparencia) => (a === 'escuro' || (a === 'sistema' && sistemaEscuro()) ? 'dark' : 'light');
+
+/**
+ * Modo claro/escuro do usuário. Fica no <html> como data-bs-theme (liga também o
+ * modo escuro do Bootstrap) e num cache local, para a tela de login já abrir certa.
+ */
+export function applyAparencia(a: Aparencia | undefined) {
+  atual = a ?? 'sistema';
+  document.documentElement.dataset.bsTheme = resolve(atual);
+  try {
+    localStorage.setItem(APARENCIA_KEY, atual);
+  } catch {
+    /* armazenamento indisponível */
+  }
+}
+
+/** Aparência guardada neste navegador (antes do login) */
+export function cachedAparencia(): Aparencia {
+  try {
+    const v = localStorage.getItem(APARENCIA_KEY);
+    return v === 'claro' || v === 'escuro' ? v : 'sistema';
+  } catch {
+    return 'sistema';
+  }
+}
+
+// "seguir o sistema": acompanha a troca do aparelho sem recarregar
+if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+  darkQuery().addEventListener('change', () => {
+    if (atual === 'sistema') applyAparencia('sistema');
+  });
 }

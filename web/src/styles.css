@@ -13,20 +13,66 @@
   --sidebar-w: 260px;
   --sidebar-w-collapsed: 78px;
   --topbar-h: 68px;
-  --radius: 14px;
-  --app-bg: #f4f6fb;
   --sidebar-grad: linear-gradient(180deg, var(--brand-1) 0%, var(--brand-2) 100%);
+
+  /* ---- tokens: todo o visual sai daqui (temas e modo escuro só trocam valores) ---- */
+  --font: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --weight-strong: 800;
+  --weight-medium: 700;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --app-bg: #f4f6fb;
+  --surface: #ffffff;
+  --surface-2: var(--surface-2);
+  --surface-hover: var(--surface-hover);
+  --border: var(--border);
+  --border-soft: var(--border-soft);
+  --border-input: var(--border-input);
+  --text: var(--text);
+  --text-2: var(--text-2);
+  --text-muted: var(--text-muted);
+  --text-subtle: var(--text-subtle);
+  --positive: var(--positive);
+  --negative: #e03e3e;
+  --warning: #f08c2e;
+  --card-border: 0;
+  --shadow-card: 0 2px 12px rgba(31, 41, 55, 0.06);
+  --shadow-raised: 0 6px 18px rgba(31, 41, 55, 0.12);
+  --topbar-bg: var(--surface);
+  --topbar-border: var(--border);
+  --sidebar-bg: var(--sidebar-grad);
+  --sidebar-text: rgba(255, 255, 255, 0.88);
+  --sidebar-text-strong: #ffffff;
+  --sidebar-hover: rgba(255, 255, 255, 0.12);
+  --sidebar-active-bg: rgba(255, 255, 255, 0.24);
+  --sidebar-active-text: #ffffff;
+  --sidebar-active-ring: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  --sidebar-border: rgba(255, 255, 255, 0.15);
+  --sidebar-brand-bg: rgba(255, 255, 255, 0.2);
+  --sidebar-brand-color: #ffffff;
+  --sidebar-title: inherit;
+  --new-btn-bg: #ffffff;
+  --new-btn-text: var(--brand-1);
+  --new-btn-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+
   --bs-primary: var(--brand-1);
   --bs-primary-rgb: var(--brand-1-rgb);
   --bs-link-color: var(--brand-1);
   --bs-link-color-rgb: var(--brand-1-rgb);
   --bs-link-hover-color: var(--brand-1-dark);
-  --bs-body-font-family: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --bs-body-font-family: var(--font);
+  --bs-body-bg: var(--surface);
+  --bs-body-color: var(--text);
+  --bs-border-color: var(--border-input);
+  --bs-secondary-color: var(--text-muted);
+  --bs-tertiary-bg: var(--surface-2);
+  --bs-emphasis-color: var(--text);
 }
 
 body {
   background: var(--app-bg);
-  color: #1f2937;
+  color: var(--text);
+  font-family: var(--font);
 }
 .place-center {
   place-items: center;
@@ -39,6 +85,22 @@ body {
 }
 .btn {
   font-weight: 600;
+}
+
+/* Botão claro segue a superfície do tema (no escuro o btn-light do Bootstrap fica branco) */
+.btn-light {
+  --bs-btn-bg: var(--surface-2);
+  --bs-btn-border-color: var(--surface-2);
+  --bs-btn-color: var(--text);
+  --bs-btn-hover-bg: var(--surface-hover);
+  --bs-btn-hover-border-color: var(--border-input);
+  --bs-btn-hover-color: var(--text);
+  --bs-btn-active-bg: var(--surface-hover);
+  --bs-btn-active-border-color: var(--border-input);
+  --bs-btn-active-color: var(--text);
+}
+.btn-light.border {
+  border-color: var(--border-input) !important;
 }
 
 /* Componentes do Bootstrap que têm a cor primária "chumbada" no CSS compilado */
@@ -93,8 +155,9 @@ body {
   bottom: 0;
   left: 0;
   width: var(--sidebar-w);
-  background: var(--sidebar-grad);
-  color: #fff;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text-strong);
+  border-right: 1px solid var(--sidebar-border);
   display: flex;
   flex-direction: column;
   z-index: 1040;
@@ -108,22 +171,24 @@ body {
   gap: 0.7rem;
   height: var(--topbar-h);
   padding: 0 1rem 0 1.2rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom: 1px solid var(--sidebar-border);
 }
 .brand-icon {
   width: 38px;
   height: 38px;
   flex-shrink: 0;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--sidebar-brand-bg);
+  color: var(--sidebar-brand-color);
   display: grid;
   place-items: center;
   font-size: 1.15rem;
 }
 .brand-text {
-  font-weight: 800;
+  font-weight: var(--weight-strong);
   font-size: 1.02rem;
   line-height: 1.15;
+  color: var(--sidebar-title);
   min-width: 0;
   overflow: hidden;
   display: -webkit-box;
@@ -131,7 +196,7 @@ body {
   -webkit-box-orient: vertical;
 }
 .brand-logo {
-  background: #fff;
+  background: #ffffff;
   padding: 4px;
 }
 .brand-logo img {
@@ -159,7 +224,7 @@ body {
   border-radius: 11px;
   background: none;
   text-align: left;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--sidebar-text);
   font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
@@ -172,13 +237,13 @@ body {
   flex-shrink: 0;
 }
 .nav-link-item:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: var(--sidebar-hover);
+  color: var(--sidebar-text-strong);
 }
 .nav-link-item.active {
-  background: rgba(255, 255, 255, 0.24);
-  color: #fff;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
+  box-shadow: var(--sidebar-active-ring);
 }
 .nav-caret {
   margin-left: auto;
@@ -193,7 +258,7 @@ body {
 }
 .sidebar-footer {
   padding: 0.8rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: 1px solid var(--sidebar-border);
 }
 
 /* recolhido (desktop) */
@@ -242,8 +307,8 @@ body {
   align-items: center;
   gap: 0.6rem;
   padding: 0 1.5rem;
-  background: #fff;
-  border-bottom: 1px solid #e9ecf3;
+  background: var(--topbar-bg);
+  border-bottom: 1px solid var(--topbar-border);
 }
 .topbar-search {
   width: 100%;
@@ -252,7 +317,7 @@ body {
 }
 .topbar-search .form-control,
 .topbar-search .input-group-text {
-  border-color: #e3e7ef;
+  border-color: var(--border-input);
 }
 .avatar {
   width: 36px;
@@ -275,8 +340,8 @@ body {
   gap: 0.25rem 1.25rem;
   padding: 0.9rem 1.5rem;
   font-size: 0.8rem;
-  color: #8a93a3;
-  border-top: 1px solid #e9ecf3;
+  color: var(--text-subtle);
+  border-top: 1px solid var(--border);
 }
 
 /* ---------- Modal de configurações ---------- */
@@ -287,10 +352,10 @@ body {
 }
 .settings-section {
   font-weight: 800;
-  color: #374151;
+  color: var(--text-2);
   margin: 1.75rem 0 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #eef0f5;
+  border-bottom: 1px solid var(--border-soft);
 }
 .settings-section:first-child {
   margin-top: 0;
@@ -313,11 +378,11 @@ body {
 }
 .icon-option {
   height: 42px;
-  border: 1px solid #e3e7ef;
+  border: 1px solid var(--border-input);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface);
   font-size: 1.2rem;
-  color: #4b5563;
+  color: var(--text-2);
   transition: all 0.12s;
 }
 .icon-option:hover {
@@ -331,12 +396,12 @@ body {
 }
 .logo-drop {
   height: 92px;
-  border: 2px dashed #dde2ec;
+  border: 2px dashed var(--border-input);
   border-radius: 12px;
   display: grid;
   place-items: center;
   overflow: hidden;
-  background: #fafbfd;
+  background: var(--surface-2);
 }
 .logo-drop img {
   max-height: 76px;
@@ -348,12 +413,12 @@ body {
   align-items: center;
   gap: 0.45rem;
   padding: 0.3rem 0.75rem 0.3rem 0.35rem;
-  border: 1px solid #e3e7ef;
+  border: 1px solid var(--border-input);
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   font-size: 0.85rem;
   font-weight: 700;
-  color: #4b5563;
+  color: var(--text-2);
 }
 .palette-option span {
   width: 22px;
@@ -379,15 +444,16 @@ body {
 }
 .page-title {
   font-size: 1.45rem;
-  font-weight: 800;
+  font-weight: var(--weight-strong);
   margin: 0;
 }
 
 /* ---------- Cards ---------- */
 .card-app {
-  border: 0;
+  --bs-card-bg: var(--surface);
+  border: var(--card-border);
   border-radius: var(--radius);
-  box-shadow: 0 2px 12px rgba(31, 41, 55, 0.06);
+  box-shadow: var(--shadow-card);
 }
 .card-app > .card-header {
   display: flex;
@@ -395,12 +461,13 @@ body {
   gap: 0.5rem;
   padding: 1rem 1.25rem;
   background: none;
-  border-bottom: 1px solid #eef0f5;
-  font-weight: 800;
+  border-bottom: 1px solid var(--border-soft);
+  font-weight: var(--weight-strong);
   font-size: 1.05rem;
 }
 .card-app > .card-footer {
-  border-top: 1px solid #eef0f5;
+  background: var(--surface) !important;
+  border-top: 1px solid var(--border-soft);
   border-radius: 0 0 var(--radius) var(--radius);
 }
 
@@ -485,12 +552,12 @@ a.bg-grad-yellow:hover {
 
 /* ---------- Tabelas e badges ---------- */
 .table-app {
-  --bs-table-hover-bg: #f7f8fc;
+  --bs-table-hover-bg: var(--surface-hover);
 }
 .table-app th {
   font-size: 0.82rem;
   font-weight: 800;
-  color: #4b5563;
+  color: var(--text-2);
   white-space: nowrap;
   padding-top: 0.85rem;
   padding-bottom: 0.85rem;
@@ -504,6 +571,7 @@ a.bg-grad-yellow:hover {
   display: inline-block;
   padding: 0.35em 0.85em;
   border-radius: 999px;
+  background: var(--badge, #6c757d);
   color: #fff;
   font-size: 0.78rem;
   font-weight: 700;
@@ -547,9 +615,9 @@ a.bg-grad-yellow:hover {
   border-color: var(--bs-danger);
 }
 .chip-option {
-  border: 1px solid #dfe3ea;
-  background: #fff;
-  color: #4b5563;
+  border: 1px solid var(--border-input);
+  background: var(--surface);
+  color: var(--text-2);
   border-radius: 999px;
   padding: 0.3rem 0.8rem;
   font-size: 0.85rem;
@@ -567,7 +635,7 @@ a.bg-grad-yellow:hover {
 .chip-option.on {
   background: var(--brand-1);
   border-color: var(--brand-1);
-  color: #fff;
+  color: var(--brand-contrast);
 }
 .chip-option:disabled {
   opacity: 0.6;
@@ -587,7 +655,7 @@ a.bg-grad-yellow:hover {
   color: var(--brand-1);
   padding-bottom: 0.5rem;
   margin-bottom: 1rem;
-  border-bottom: 1px solid #eef0f5;
+  border-bottom: 1px solid var(--border-soft);
 }
 
 /* ---------- Listagem: barra de ferramentas, período, lote, totais ---------- */
@@ -616,9 +684,9 @@ a.bg-grad-yellow:hover {
 .period-nav {
   display: inline-flex;
   align-items: center;
-  border: 1px solid #dfe3ea;
+  border: 1px solid var(--border-input);
   border-radius: 0.5rem;
-  background: #fff;
+  background: var(--surface);
 }
 .period-nav > .btn,
 .period-nav .period-label {
@@ -640,7 +708,7 @@ a.bg-grad-yellow:hover {
   gap: 0.5rem;
   padding: 0.6rem 1.25rem;
   background: var(--brand-1);
-  color: #fff;
+  color: var(--brand-contrast);
 }
 .table-app th.sortable {
   cursor: pointer;
@@ -662,8 +730,8 @@ a.bg-grad-yellow:hover {
 }
 .table-app tfoot .table-total td {
   font-weight: 800;
-  background: #f8f9fc;
-  border-top: 2px solid #e5e8ef;
+  background: var(--surface-2);
+  border-top: 2px solid var(--border);
   border-bottom: 0;
 }
 
@@ -677,7 +745,7 @@ a.bg-grad-yellow:hover {
 .detail-table th {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--text-muted);
   white-space: nowrap;
   border-bottom-width: 1px;
 }
@@ -720,7 +788,7 @@ a.bg-grad-yellow:hover {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.25rem;
-  border-bottom: 1px solid #f1f3f7;
+  border-bottom: 1px solid var(--border-soft);
 }
 .anexos-list li:last-child {
   border-bottom: 0;
@@ -749,13 +817,13 @@ a.bg-grad-yellow:hover {
 .import-preview {
   max-height: 340px;
   overflow: auto;
-  border: 1px solid #eef0f5;
+  border: 1px solid var(--border-soft);
   border-radius: 0.5rem;
 }
 .import-preview thead th {
   position: sticky;
   top: 0;
-  background: #f8f9fc;
+  background: var(--surface-2);
 }
 
 /* ---------- Demonstração: cards de categoria ---------- */
@@ -784,7 +852,7 @@ a.bg-grad-yellow:hover {
   }
   .detail-table tbody tr {
     position: relative;
-    border: 1px solid #eef0f5;
+    border: 1px solid var(--border-soft);
     border-radius: 0.75rem;
     padding: 0.5rem 0.75rem 0.25rem;
     margin-bottom: 0.75rem;
@@ -798,7 +866,7 @@ a.bg-grad-yellow:hover {
     display: block;
     font-size: 0.75rem;
     font-weight: 700;
-    color: #6b7280;
+    color: var(--text-muted);
     margin-bottom: 0.15rem;
   }
   .detail-table .col-num {
@@ -897,7 +965,7 @@ a.bg-grad-yellow:hover {
 .auth-card {
   width: 100%;
   max-width: 420px;
-  background: #fff;
+  background: var(--surface);
   border-radius: 18px;
   padding: 2rem;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
@@ -915,8 +983,8 @@ a.bg-grad-yellow:hover {
   color: #fff;
 }
 .auth-brand .brand-logo {
-  background: #fff;
-  border: 1px solid #e3e7ef;
+  background: #ffffff;
+  border: 1px solid var(--border-input);
 }
 .auth-title {
   font-size: 1.4rem;
@@ -924,7 +992,7 @@ a.bg-grad-yellow:hover {
   margin-bottom: 0.25rem;
 }
 .auth-subtitle {
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 0.92rem;
   margin-bottom: 1.25rem;
 }
@@ -944,33 +1012,33 @@ a.bg-grad-yellow:hover {
   padding: 0;
   margin: 0.5rem 0 0;
   font-size: 0.8rem;
-  color: #8a93a3;
+  color: var(--text-subtle);
   display: flex;
   flex-wrap: wrap;
   gap: 0.15rem 1rem;
 }
 .password-rules li.ok {
-  color: #2b8a5a;
+  color: var(--positive);
 }
 
 /* ---------- Matriz de permissões ---------- */
 .permission-matrix {
-  border: 1px solid #e9ecf3;
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0.25rem 0.75rem 0.5rem;
 }
 .permission-matrix th {
   font-size: 0.8rem;
-  color: #4b5563;
+  color: var(--text-2);
   font-weight: 800;
 }
 .permission-matrix .group-row td {
-  background: #f7f8fc;
+  background: var(--surface-2);
   font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 .permission-matrix.is-disabled {
   opacity: 0.6;
@@ -978,7 +1046,7 @@ a.bg-grad-yellow:hover {
 
 /* ---------- Logs ---------- */
 .changes-row td {
-  background: #f9fafc;
+  background: var(--surface-2);
 }
 .changes-table {
   max-width: 760px;
@@ -986,7 +1054,7 @@ a.bg-grad-yellow:hover {
 }
 .changes-table th {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 /* ---------- Botão "+ Novo" ---------- */
@@ -1005,16 +1073,17 @@ a.bg-grad-yellow:hover {
   padding: 0.7rem 1rem;
   border-radius: 999px;
   border: 0;
-  font-weight: 800;
-  background: #fff;
-  color: var(--brand-1);
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+  font-weight: var(--weight-strong);
+  background: var(--new-btn-bg);
+  color: var(--new-btn-text);
+  box-shadow: var(--new-btn-shadow);
 }
 .new-button:hover,
 .new-button:focus,
 .new-button.show {
-  background: #fff;
-  color: var(--brand-1-dark);
+  background: var(--new-btn-bg);
+  color: var(--new-btn-text);
+  filter: brightness(0.96);
 }
 .new-button i {
   font-size: 1.1rem;
@@ -1056,51 +1125,28 @@ a.bg-grad-yellow:hover {
   justify-content: center;
 }
 
-/* ---------- Menu claro ---------- */
-.menu-claro .app-sidebar {
-  background: #fff;
-  color: #374151;
-  border-right: 1px solid #e9ecf3;
-}
-.menu-claro .sidebar-brand,
-.menu-claro .sidebar-footer {
-  border-color: #eef0f5;
-}
-.menu-claro .brand-icon {
-  background: var(--sidebar-grad);
-  color: #fff;
+/* ---------- Menu claro (tema Vibrante) ---------- */
+.menu-claro {
+  --sidebar-bg: var(--surface);
+  --sidebar-text: var(--text-2);
+  --sidebar-text-strong: var(--text);
+  --sidebar-hover: var(--surface-hover);
+  --sidebar-active-bg: var(--brand-1-soft);
+  --sidebar-active-text: var(--brand-1);
+  --sidebar-active-ring: none;
+  --sidebar-border: var(--border);
+  --sidebar-brand-bg: var(--sidebar-grad);
+  --sidebar-brand-color: #ffffff;
+  --sidebar-title: var(--brand-1);
+  --new-btn-bg: var(--brand-1);
+  --new-btn-text: var(--brand-contrast);
+  --new-btn-shadow: 0 6px 16px rgba(var(--brand-1-rgb), 0.35);
 }
 .menu-claro .brand-logo {
-  background: #fff;
-  border: 1px solid #e3e7ef;
-}
-.menu-claro .brand-text {
-  color: var(--brand-1);
-}
-.menu-claro .nav-link-item {
-  color: #4b5563;
-}
-.menu-claro .nav-link-item:hover {
-  background: #f3f5fa;
-  color: #111827;
-}
-.menu-claro .nav-link-item.active {
-  background: var(--brand-1-soft);
-  color: var(--brand-1);
-  box-shadow: none;
-}
-.menu-claro .new-button {
-  background: var(--brand-1);
-  color: var(--brand-contrast);
-  box-shadow: 0 6px 16px rgba(var(--brand-1-rgb), 0.35);
-}
-.menu-claro .new-button:hover,
-.menu-claro .new-button.show {
-  background: var(--brand-1-dark);
-  color: var(--brand-contrast);
+  border: 1px solid var(--border-input);
 }
 .menu-claro .app-version {
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 /* opções de estilo no modal de configurações */
@@ -1110,12 +1156,12 @@ a.bg-grad-yellow:hover {
   align-items: center;
   gap: 0.4rem;
   padding: 0.6rem;
-  border: 1px solid #e3e7ef;
+  border: 1px solid var(--border-input);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
   font-size: 0.85rem;
   font-weight: 700;
-  color: #4b5563;
+  color: var(--text-2);
 }
 .menu-style-option.active {
   border-color: var(--brand-1);
@@ -1129,7 +1175,7 @@ a.bg-grad-yellow:hover {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  border: 1px solid #e3e7ef;
+  border: 1px solid var(--border-input);
 }
 .menu-style-preview span {
   height: 6px;
@@ -1171,7 +1217,7 @@ a.bg-grad-yellow:hover {
   align-items: center;
   gap: 0.9rem;
   padding: 0.8rem 1.25rem;
-  border-bottom: 1px solid #f0f2f7;
+  border-bottom: 1px solid var(--border-soft);
 }
 .activity-list li:last-child,
 .session-list li:last-child {
@@ -1185,4 +1231,365 @@ a.bg-grad-yellow:hover {
   height: 56px;
   font-size: 1.2rem;
   flex-shrink: 0;
+}
+
+/* =============================================================================
+   TEMA MINIMALISTA — neutro, bordas finas, sem sombras, a cor da marca só nos
+   destaques. Só troca tokens; os ajustes de componente ficam logo abaixo.
+   ============================================================================= */
+:root[data-tema='minimalista'] {
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --weight-strong: 600;
+  --weight-medium: 500;
+  --radius: 10px;
+  --radius-sm: 8px;
+  --app-bg: #f7f5f2;
+  --surface: #ffffff;
+  --surface-2: #faf8f5;
+  --surface-hover: #f2efea;
+  --border: #e7e2db;
+  --border-soft: #efebe5;
+  --border-input: #ddd7cf;
+  --text: #22201d;
+  --text-2: #45413b;
+  --text-muted: #77716a;
+  --text-subtle: #9a948c;
+  --positive: #2f7d4f;
+  --negative: #c8402c;
+  --card-border: 1px solid var(--border);
+  --shadow-card: none;
+  --shadow-raised: 0 1px 2px rgba(34, 32, 29, 0.05);
+  --topbar-bg: var(--app-bg);
+  --topbar-border: transparent;
+  --sidebar-bg: var(--app-bg);
+  --sidebar-text: var(--text-2);
+  --sidebar-text-strong: var(--text);
+  --sidebar-hover: rgba(34, 32, 29, 0.04);
+  --sidebar-active-bg: rgba(34, 32, 29, 0.07);
+  --sidebar-active-text: var(--text);
+  --sidebar-active-ring: none;
+  --sidebar-border: transparent;
+  --sidebar-brand-bg: transparent;
+  --sidebar-brand-color: var(--brand-1);
+  --sidebar-title: var(--text);
+  --new-btn-bg: var(--brand-1);
+  --new-btn-text: var(--brand-contrast);
+  --new-btn-shadow: none;
+}
+
+/* =============================================================================
+   MODO ESCURO — escolhido por usuário (data-bs-theme no <html>, que também liga
+   o modo escuro dos componentes do Bootstrap).
+   ============================================================================= */
+:root[data-bs-theme='dark'] {
+  --brand-1-soft: rgba(var(--brand-1-rgb), 0.18);
+  --app-bg: #0f1320;
+  --surface: #171c2b;
+  --surface-2: #1d2334;
+  --surface-hover: #232a3d;
+  --border: #283046;
+  --border-soft: #222a3c;
+  --border-input: #343d55;
+  --text: #e6e8ee;
+  --text-2: #c4c9d4;
+  --text-muted: #949bab;
+  --text-subtle: #7c8394;
+  --positive: #4cc184;
+  --negative: #f26b6b;
+  --warning: #f5a04a;
+  --shadow-card: none;
+  --shadow-raised: 0 6px 18px rgba(0, 0, 0, 0.35);
+  --topbar-bg: #141927;
+  --new-btn-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+:root[data-bs-theme='dark'][data-tema='minimalista'] {
+  --app-bg: #161514;
+  --surface: #1e1d1b;
+  --surface-2: #232220;
+  --surface-hover: #2a2926;
+  --border: #302e2b;
+  --border-soft: #292825;
+  --border-input: #3a3834;
+  --text: #ece9e4;
+  --text-2: #cfcac3;
+  --text-muted: #9c968e;
+  --text-subtle: #7f7a73;
+  --topbar-bg: var(--app-bg);
+  --sidebar-hover: rgba(255, 255, 255, 0.05);
+  --sidebar-active-bg: rgba(255, 255, 255, 0.09);
+}
+[data-bs-theme='dark'] .brand-logo {
+  background: #ffffff;
+}
+[data-bs-theme='dark'] .text-dark {
+  color: var(--text) !important;
+}
+
+/* ---------- Ajustes de componente do Minimalista ---------- */
+[data-tema='minimalista'] .btn {
+  font-weight: 500;
+}
+[data-tema='minimalista'] .page-title {
+  font-size: 1.3rem;
+  letter-spacing: -0.01em;
+}
+[data-tema='minimalista'] .card-app > .card-header {
+  font-size: 0.98rem;
+}
+[data-tema='minimalista'] .table-app th {
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+[data-tema='minimalista'] .nav-link-item {
+  font-weight: 500;
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+}
+[data-tema='minimalista'] .sidebar-new {
+  padding-top: 0.6rem;
+}
+[data-tema='minimalista'] .new-button {
+  border-radius: 8px;
+  font-weight: 600;
+}
+/* cards de número: superfície neutra, número grande em preto, sem bloco colorido */
+[data-tema='minimalista'] .stat-card {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border);
+  box-shadow: none;
+  min-height: 0;
+}
+[data-tema='minimalista'] a.stat-card:hover {
+  transform: none;
+  border-color: var(--border-input);
+  box-shadow: none;
+}
+[data-tema='minimalista'] .stat-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+[data-tema='minimalista'] .stat-label {
+  font-weight: 500;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+[data-tema='minimalista'] .stat-value {
+  margin-top: 0.6rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+[data-tema='minimalista'] .stat-bg-icon {
+  display: none;
+}
+/* etiquetas suaves: fundo tingido + texto na cor */
+[data-tema='minimalista'] .badge-pill {
+  background: color-mix(in srgb, var(--badge, #6c757d) 14%, transparent);
+  color: color-mix(in srgb, var(--badge, #6c757d) 85%, var(--text));
+  font-weight: 600;
+}
+[data-tema='minimalista'] .avatar {
+  background: var(--surface-hover);
+  color: var(--text-2);
+}
+[data-tema='minimalista'] .bulk-bar {
+  background: var(--text);
+  color: var(--app-bg);
+}
+[data-tema='minimalista'] .modal-brand .modal-header {
+  background: var(--surface);
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+[data-tema='minimalista'] .auth-page {
+  background: var(--app-bg);
+}
+[data-tema='minimalista'] .auth-card {
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+[data-tema='minimalista'] .auth-footer {
+  color: var(--text-muted);
+}
+[data-tema='minimalista'] .new-version-bar,
+[data-tema='minimalista'] .filter-chip {
+  font-weight: 600;
+}
+/* título da página na barra do topo (desktop) */
+.topbar-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+.topbar-title .page-title {
+  font-size: 1.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+.topbar-actions:empty {
+  display: none;
+}
+.topbar-actions:not(:empty) + .topbar-center {
+  flex: 0;
+}
+/* ícone dos campos de busca acompanha o tema (no escuro não fica bloco branco) */
+.input-group-text {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border-color: var(--border-input);
+}
+
+/* ---------- Liga/desliga na listagem ---------- */
+.inline-switch {
+  margin: 0;
+  display: inline-block;
+}
+.inline-switch .form-check-input {
+  cursor: pointer;
+  width: 2.2em;
+  height: 1.2em;
+}
+.inline-switch .form-check-input:disabled {
+  cursor: not-allowed;
+}
+
+/* ---------- Abas no rodapé (celular) ---------- */
+.mobile-tabs {
+  display: none;
+}
+@media (max-width: 991.98px) {
+  .has-tabs .app-main {
+    padding-bottom: calc(62px + env(safe-area-inset-bottom));
+  }
+  .mobile-tabs {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1030;
+    display: flex;
+    padding: 0.3rem 0.25rem calc(0.3rem + env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.06);
+  }
+  .mobile-tab {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    padding: 0.3rem 0.1rem;
+    border: 0;
+    background: none;
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .mobile-tab i {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+  .mobile-tab span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mobile-tab.active {
+    color: var(--brand-1);
+  }
+  [data-tema='minimalista'] .mobile-tab.active {
+    color: var(--text);
+  }
+}
+
+/* ---------- Escolha de tema e aparência ---------- */
+.tema-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border-input);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: left;
+}
+.tema-option.active {
+  border-color: var(--brand-1);
+  box-shadow: 0 0 0 2px rgba(var(--brand-1-rgb), 0.25);
+}
+.tema-preview {
+  height: 64px;
+  border-radius: 8px;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.tema-preview .tp-side {
+  width: 28%;
+}
+.tema-preview .tp-main {
+  flex: 1;
+  padding: 7px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  align-content: start;
+}
+.tema-preview .tp-card {
+  height: 18px;
+  border-radius: 4px;
+}
+.tema-preview.vibrante .tp-side {
+  background: var(--sidebar-grad);
+}
+.tema-preview.vibrante .tp-main {
+  background: #f4f6fb;
+}
+.tema-preview.vibrante .tp-card:nth-child(1) {
+  background: linear-gradient(135deg, #3b82f6, #2459e0);
+}
+.tema-preview.vibrante .tp-card:nth-child(2) {
+  background: linear-gradient(135deg, #36a560, #1f7a46);
+}
+.tema-preview.vibrante .tp-card:nth-child(n + 3) {
+  background: #fff;
+}
+.tema-preview.minimalista .tp-side {
+  background: #f7f5f2;
+  border-right: 1px solid #e7e2db;
+}
+.tema-preview.minimalista .tp-main {
+  background: #f7f5f2;
+}
+.tema-preview.minimalista .tp-card {
+  background: #fff;
+  border: 1px solid #e7e2db;
+}
+.aparencia-group .btn {
+  flex: 1;
 }

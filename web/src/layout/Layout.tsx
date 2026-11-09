@@ -2,20 +2,11 @@ import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import MobileTabs from './MobileTabs';
+import { menu, tabItems } from '../config/menu';
+import { useIsDesktop } from '../lib/media';
 import { useSettings } from '../context/SettingsContext';
 import { useNewVersion } from '../lib/version';
-
-const useIsDesktop = () => {
-  const query = '(min-width: 992px)';
-  const [ok, setOk] = useState(() => window.matchMedia(query).matches);
-  useEffect(() => {
-    const mq = window.matchMedia(query);
-    const fn = (e: MediaQueryListEvent) => setOk(e.matches);
-    mq.addEventListener('change', fn);
-    return () => mq.removeEventListener('change', fn);
-  }, []);
-  return ok;
-};
 
 export default function Layout() {
   const isDesktop = useIsDesktop();
@@ -44,7 +35,11 @@ export default function Layout() {
   const novaVersao = useNewVersion();
 
   return (
-    <div className={`app-shell menu-${settings.estilo_menu} ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div
+      className={`app-shell menu-${settings.tema === 'minimalista' ? 'neutro' : settings.estilo_menu} ${
+        isCollapsed ? 'sidebar-collapsed' : ''
+      } ${tabItems(menu).length ? 'has-tabs' : ''}`}
+    >
       <Sidebar
         collapsed={isCollapsed}
         mobileOpen={mobileOpen}
@@ -76,6 +71,7 @@ export default function Layout() {
           ))}
         </footer>
       </div>
+      <MobileTabs onMenu={() => setMobileOpen(true)} />
     </div>
   );
 }

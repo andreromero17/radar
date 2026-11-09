@@ -4,6 +4,25 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.7.0 — 09/11/2026
+
+**Temas e aparência**
+
+- Tokens de design no CSS (`--surface`, `--text`, `--border`, `--positive`, `--negative`, `--radius`, `--shadow-card`,
+  `--sidebar-*`…): as telas usam só tokens, e o tema troca os valores
+- **Tema do sistema** (Configurações → Tema, definido pelo administrador): **Vibrante** (o visual de sempre) ou
+  **Minimalista** (fundo neutro, menu lateral claro, tipografia Inter, cartões sem cor, título da página na barra
+  do topo)
+- **Aparência por usuário** (menu do usuário): Automático (segue o aparelho), Claro ou Escuro. Fica gravada no
+  usuário (`usuarios.aparencia`, via `PUT /api/auth/perfil`) e lembrada no navegador para a tela de login
+- Abas no rodapé no celular: itens de menu com `tab: true` (até 4) + botão "Menu"
+- `inlineEdit` em campo booleano (`true` ou função por registro): liga/desliga direto na listagem, sem abrir o
+  registro; grava pelo CRUD (permissão de editar, hooks e log valem igual)
+- `web/src/lib/themeVars.ts`: `cssVar()`, `chartTheme()` e `useThemeVersion()` para gráficos acompanharem o tema e
+  o modo escuro; `web/src/lib/media.ts`: `useMedia()`/`useIsDesktop()`
+- Etiquetas coloridas (`ValueBadge`) recebem a cor na variável `--badge`: bloco cheio no Vibrante, tom suave no
+  Minimalista
+
 ## 0.6.0 — 08/11/2026
 
 - `hidden` no campo: coluna técnica gravada e devolvida pela API, preenchida pelos hooks, fora das telas

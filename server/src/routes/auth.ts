@@ -1,6 +1,6 @@
 import { Router, type CookieOptions, type Request, type Response } from 'express';
 import { z } from 'zod';
-import { passwordSchema, toFieldErrors, type SessionInfo } from '@frame/shared';
+import { APARENCIAS, passwordSchema, toFieldErrors, type SessionInfo } from '@frame/shared';
 import { COOKIE_NAME, parseCookies, userOf } from '../auth/middleware';
 import { hashPassword, verifyPassword } from '../auth/password';
 import { minutes, RateLimiter } from '../auth/rateLimit';
@@ -50,7 +50,7 @@ const parse = <T extends z.ZodType>(schema: T, body: unknown): z.infer<T> => {
  *   POST /api/auth/esqueci            envia link de redefinição por e-mail
  *   POST /api/auth/redefinir/validar  confere se o link ainda vale
  *   POST /api/auth/redefinir          define nova senha pelo link
- *   PUT  /api/auth/perfil             altera o próprio nome
+ *   PUT  /api/auth/perfil             altera o próprio nome e/ou a aparência (claro/escuro)
  *   GET  /api/auth/sessoes            sessões abertas do próprio usuário
  *   DELETE /api/auth/sessoes/:id      encerra uma sessão
  *   DELETE /api/auth/sessoes          encerra todas as outras
@@ -237,10 +237,15 @@ export function authRouter(db: Db, opts: AuthOptions) {
 
   router.put('/perfil', async (req, res) => {
     const me = userOf(req);
-    const { nome } = parse(
-      z.object({ nome: z.string().trim().min(1, 'Informe o nome').max(120, 'Máximo de 120 caracteres') }),
+    const { nome = me.nome, aparencia } = parse(
+      z.object({
+        nome: z.string().trim().min(1, 'Informe o nome').max(120, 'Máximo de 120 caracteres').optional(),
+        aparencia: z.enum(APARENCIAS, { error: 'Aparência inválida' }).optional(),
+      }),
       req.body,
     );
+    // preferência visual: sem log (não é dado de cadastro)
+    if (aparencia && aparencia !== me.aparencia) await db('usuarios').where({ id: me.id }).update({ aparencia });
     if (nome !== me.nome) {
       await db('usuarios').where({ id: me.id }).update({ nome, atualizado_em: nowLocal() });
       await addLog(

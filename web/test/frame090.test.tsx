@@ -5,6 +5,9 @@ import MonthPicker from '../src/components/MonthPicker';
 import { mesIso, nomeMes } from '../src/lib/meses';
 import { applyFonte, faceFontePropria } from '../src/lib/fontes';
 import { renderCell } from '../src/components/list/cells';
+import { MemoryRouter, useSearchParams } from 'react-router-dom';
+import PeriodNav from '../src/components/list/PeriodNav';
+import { normalizarIntervalo, rotuloPeriodo } from '../src/lib/periodo';
 
 describe('seletor de mês', () => {
   it('meses e nomes', () => {
@@ -40,6 +43,45 @@ describe('seletor de mês', () => {
     expect(screen.getByText('Todo o período')).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Escolher mês'));
     expect(screen.getByText(`Ano ${new Date().getFullYear()}`)).toBeInTheDocument();
+  });
+});
+
+describe('período personalizado', () => {
+  it('rótulo e normalização das datas', () => {
+    expect(rotuloPeriodo(null, null)).toBe('Todo o período');
+    expect(rotuloPeriodo('2025-01-01', '2025-12-31')).toBe('Ano de 2025');
+    expect(rotuloPeriodo('2025-01-10', '2025-03-15')).toBe('10/01/2025 a 15/03/2025');
+    expect(rotuloPeriodo('2025-01-10', null)).toBe('A partir de 10/01/2025');
+    expect(rotuloPeriodo(null, '2025-03-15')).toBe('Até 15/03/2025');
+    expect(normalizarIntervalo('2025-03-15', '2025-01-10')).toEqual({ de: '2025-01-10', ate: '2025-03-15' });
+    expect(normalizarIntervalo('', '2025-03-15')).toEqual({ de: null, ate: '2025-03-15' });
+    expect(normalizarIntervalo('', '')).toBeNull();
+  });
+
+  it('De/Até vão para a URL e o botão mostra o intervalo; setas partem do mês do início', () => {
+    let atual = new URLSearchParams();
+    function Tela() {
+      const [params, setParams] = useSearchParams();
+      atual = params;
+      return <PeriodNav field="data" params={params} setParams={setParams} />;
+    }
+    render(
+      <MemoryRouter initialEntries={['/?data__de=2025-01-01&data__ate=2025-01-31&page=3']}>
+        <Tela />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Janeiro 2025')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Escolher mês'));
+    fireEvent.change(screen.getByLabelText('De'), { target: { value: '2025-03-15' } });
+    fireEvent.change(screen.getByLabelText('Até'), { target: { value: '2025-01-10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar período' }));
+    expect(atual.get('data__de')).toBe('2025-01-10');
+    expect(atual.get('data__ate')).toBe('2025-03-15');
+    expect(atual.get('page')).toBeNull();
+    expect(screen.getByText('10/01/2025 a 15/03/2025')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Próximo mês'));
+    expect(atual.get('data__de')).toBe('2025-02-01');
+    expect(atual.get('data__ate')).toBe('2025-02-28');
   });
 });
 

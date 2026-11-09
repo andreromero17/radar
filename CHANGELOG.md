@@ -4,6 +4,13 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.9.2 — 09/11/2026
+
+- Seletor de período das listagens: **Período personalizado** (De/Até) abaixo dos atalhos. Aceita só uma das pontas
+  ("A partir de…", "Até…") e corrige a ordem se as datas vierem trocadas; o ano inteiro aparece como "Ano de 2025"
+- `MonthPicker` ganha `referencia`: com um intervalo livre, as setas e a grade partem do mês do início (antes: do
+  mês atual)
+
 ## 0.9.1 — 09/11/2026
 
 - `feminino: true` na entidade: botão e título dizem "Nova categoria" em vez de "Novo categoria" (`novoRotulo`)

@@ -5,7 +5,7 @@ import { perfisHooks } from './perfis';
 import { usuariosHooks } from './usuarios';
 import type { EntityHooks } from './types';
 
-export type { EntityHooks, HookContext } from './types';
+export type { EntityHooks, ExtraRow, HookContext } from './types';
 
 export const hooks: Record<string, EntityHooks> = {
   ...appHooks,

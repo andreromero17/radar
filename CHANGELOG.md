@@ -4,6 +4,15 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.10.0 — 09/11/2026
+
+- **Linhas extras na listagem**: hook `listExtras(query, { db, actor })` por entidade devolve linhas de outras
+  entidades (mesmos campos + `__extra: { rotulo, link, icon }`) que aparecem intercaladas na mesma ordenação, com
+  selo, fundo suave e clique abrindo `link`. Não têm seleção nem edição na linha, não entram nos totais nem na
+  contagem "N registro(s)", e ficam fora da lixeira e da exportação. A API devolve `extras` (quantas linhas extras
+  há em `total`). Com extras, a listagem busca os registros filtrados e pagina em memória
+  (`listWithExtras` em `services/records.ts`)
+
 ## 0.9.3 — 09/11/2026
 
 - Formulário volta para a listagem **como ela estava** (mês/período, filtros, página, ordenação), ao salvar, cancelar

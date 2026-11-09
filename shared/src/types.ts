@@ -171,9 +171,25 @@ export type Row = {
   [key: string]: unknown;
 };
 
+/**
+ * Linha "de fora" que a aplicação mostra junto na listagem (hook `listExtras`): outra entidade, só para
+ * consulta — sem seleção nem edição na linha; o clique abre `link`. Não entra nos totais.
+ */
+export interface ExtraInfo {
+  /** Selo mostrado na linha (ex.: "Transferência") */
+  rotulo: string;
+  /** Para onde o clique leva (ex.: "/transferencias/3") */
+  link?: string;
+  /** Ícone do Bootstrap Icons, sem o prefixo "bi-" */
+  icon?: string;
+}
+
 export interface ListResponse<T = Row> {
   rows: T[];
+  /** Linhas na listagem (para a paginação), incluindo as extras */
   total: number;
+  /** Quantas das `total` são linhas extras (`row.__extra`) */
+  extras?: number;
   /** Somas das colunas com `total: 'sum'` (sobre todos os registros filtrados) */
   totais?: Record<string, number>;
   page: number;

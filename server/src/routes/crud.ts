@@ -10,12 +10,14 @@ import {
   createRecord,
   getRecord,
   listRecords,
+  listWithExtras,
   relationOptions,
   removeRecord,
   restoreRecord,
   updateRecord,
   type OpCtx,
 } from '../services/records';
+import { hooks } from '../hooks';
 import { badRequest, HttpError } from '../utils/http';
 import { nowLocal } from '../utils/time';
 
@@ -62,6 +64,11 @@ export function crudRouter(db: Db, opts: { uploadMaxMb?: number } = {}) {
   router.get('/:entity', async (req, res) => {
     const [table, ent] = resolve(req);
     assertCan(req, table, wantsTrash(req) ? 'excluir' : 'ver');
+    const extrasDe = hooks[table]?.listExtras;
+    if (extrasDe && !wantsTrash(req)) {
+      const extras = await extrasDe(req.query, { db, actor: userOf(req) });
+      return void res.json(await listWithExtras(db, table, ent, req.query, extras));
+    }
     res.json(await listRecords(db, table, ent, req.query));
   });
 

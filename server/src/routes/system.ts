@@ -6,6 +6,8 @@ import {
   entities,
   mainEntities,
   settingsUpdateSchema,
+  appSettingsSchema,
+  type AppSettings,
   can,
   toFieldErrors,
   type DashboardSummary,
@@ -16,7 +18,7 @@ import { requirePermission, userOf } from '../auth/middleware';
 import { count, type Db } from '../db/knex';
 import { addLog, type Actor } from '../services/logs';
 import { backupInfo, createBackup } from '../services/backup';
-import { getSettings, resetSettings, saveSettings } from '../services/settings';
+import { getAppSettings, getSettings, resetSettings, saveAppSettings, saveSettings } from '../services/settings';
 import { pesoValido, removerFonte, salvarFonte } from '../services/fonte';
 import { badRequest } from '../utils/http';
 
@@ -30,6 +32,20 @@ export function systemRouter(db: Db, opts: { dbFile: string }) {
   });
 
   // ---------- Configurações ----------
+  // configurações próprias do sistema derivado (app/settings.ts): leitura para qualquer usuário logado
+  router.get('/settings/app', async (_req, res) => {
+    res.json(await getAppSettings(db));
+  });
+  router.put('/settings/app', requirePermission('configuracoes', 'editar'), async (req, res) => {
+    const parsed = appSettingsSchema()
+      .partial()
+      .safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(422).json({ error: 'Verifique os campos', errors: toFieldErrors(parsed.error) });
+    }
+    res.json(await saveAppSettings(db, parsed.data as AppSettings, actor(req)));
+  });
+
   router.get('/settings', async (_req, res) => {
     res.json(await getSettings(db));
   });

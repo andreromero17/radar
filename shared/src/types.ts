@@ -311,3 +311,20 @@ export interface ImportResult {
   importados: number;
   erros: { linha: number; error: string }[];
 }
+
+/** Configuração própria do sistema derivado (shared/src/app/settings.ts) */
+export interface AppSettingDef {
+  /** Nome interno (gravado como `app.<chave>` na tabela configuracoes) */
+  chave: string;
+  label: string;
+  type: 'select' | 'boolean' | 'number' | 'text';
+  default: string | number | boolean;
+  /** Opções do select */
+  options?: { value: string; label: string }[];
+  /** Texto de ajuda abaixo do campo */
+  help?: string;
+  min?: number;
+  max?: number;
+}
+
+export type AppSettings = Record<string, string | number | boolean>;

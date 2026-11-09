@@ -8,7 +8,11 @@ import {
   MENU_STYLES,
   TEMAS,
   settingsSchema,
+  appSettings,
+  appSettingsSchema,
+  defaultAppSettings,
   toFieldErrors,
+  type AppSettings,
   type FieldErrors,
   type Settings,
 } from '@frame/shared';
@@ -18,6 +22,8 @@ import { useToast } from '../context/ToastContext';
 import BrandMark from './BrandMark';
 import { AMOSTRA, carregarAmostraPropria, carregarAmostras, FONTE_DO_TEMA, FONTES_DEF } from '../lib/fontes';
 import ConfirmModal from './ConfirmModal';
+import AppSettingsFields from './AppSettingsFields';
+import { carregarAppSettings, definirAppSettings } from '../lib/appSettings';
 
 const ICONES = [
   'box-seam',
@@ -83,10 +89,16 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
   const [saving, setSaving] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
 
+  // configurações próprias do sistema derivado (app/settings.ts), gravadas junto
+  const [appForm, setAppForm] = useState<AppSettings>(defaultAppSettings());
   useEffect(() => {
     if (show) {
       setForm(settings);
       setErrors({});
+      if (appSettings.length)
+        carregarAppSettings()
+          .then(setAppForm)
+          .catch(() => {});
     }
   }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -151,13 +163,18 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
     e.preventDefault();
     // Mesma validação da API, antes de enviar
     const check = settingsSchema.safeParse(form);
-    if (!check.success) {
-      setErrors(toFieldErrors(check.error));
+    const checkApp = appSettingsSchema().safeParse(appForm);
+    if (!check.success || !checkApp.success) {
+      setErrors({
+        ...(!check.success && toFieldErrors(check.error)),
+        ...(!checkApp.success && toFieldErrors(checkApp.error)),
+      });
       toast.error('Verifique os campos destacados');
       return;
     }
     setSaving(true);
     try {
+      if (appSettings.length) definirAppSettings(await api.put<AppSettings>('/settings/app', checkApp.data));
       await save(check.data);
       toast.success('Configurações salvas');
       onHide();
@@ -174,6 +191,7 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
     try {
       const s = await reset();
       setForm(s);
+      if (appSettings.length) setAppForm(await carregarAppSettings());
       toast.success('Configurações restauradas');
     } catch (err) {
       toast.error(errorMessage(err));
@@ -494,6 +512,21 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
             </div>
             {text('url_ajuda', 'Link da Central de Ajuda (opcional)', { type: 'url' })}
             <Form.Text>Se preenchido, aparece um item “Central de Ajuda” no menu, abrindo em nova aba.</Form.Text>
+
+            {appSettings.length > 0 && (
+              <>
+                <h6 className="settings-section">{settings.nome_sistema}</h6>
+                <AppSettingsFields
+                  defs={appSettings}
+                  value={appForm}
+                  errors={errors}
+                  onChange={(k, v) => {
+                    setAppForm((f) => ({ ...f, [k]: v }));
+                    setErrors(({ [k]: _removed, ...rest }) => rest);
+                  }}
+                />
+              </>
+            )}
 
             {/* ---------- Manutenção ---------- */}
             <h6 className="settings-section">Manutenção</h6>

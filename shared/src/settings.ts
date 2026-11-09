@@ -5,6 +5,8 @@
 // =============================================================================
 import { z } from 'zod';
 import { appInfo } from './app/info';
+import { appSettings } from './app/settings';
+import type { AppSettingDef, AppSettings } from './types';
 
 const HEX = /^#[0-9a-f]{6}$/i;
 const EMAIL = /^\S+@\S+\.\S+$/;
@@ -131,3 +133,29 @@ export const PUBLIC_SETTINGS_KEYS = [
   'fonte_propria_versao',
 ] as const;
 export type PublicSettings = Pick<Settings, (typeof PUBLIC_SETTINGS_KEYS)[number]>;
+
+// ---------------------------------------------------------------- configurações do sistema derivado
+/** Schema das configurações próprias do sistema (app/settings.ts) */
+export function appSettingsSchema(defs: AppSettingDef[] = appSettings) {
+  const shape: Record<string, z.ZodType> = {};
+  for (const d of defs) {
+    if (d.type === 'boolean')
+      shape[d.chave] = z.preprocess((v) => v === true || v === 'true' || v === '1' || v === 1, z.boolean());
+    else if (d.type === 'number') {
+      let n = z.coerce.number({ error: 'Informe um número' });
+      if (d.min != null) n = n.min(d.min, `Mínimo ${d.min}`);
+      if (d.max != null) n = n.max(d.max, `Máximo ${d.max}`);
+      shape[d.chave] = n;
+    } else if (d.type === 'select')
+      shape[d.chave] = z.enum((d.options ?? []).map((o) => o.value) as [string, ...string[]], {
+        error: 'Opção inválida',
+      });
+    else shape[d.chave] = z.string().trim().max(500, 'Máximo de 500 caracteres');
+  }
+  return z.object(shape);
+}
+
+/** Padrões das configurações do sistema */
+export function defaultAppSettings(defs: AppSettingDef[] = appSettings): AppSettings {
+  return Object.fromEntries(defs.map((d) => [d.chave, d.default]));
+}

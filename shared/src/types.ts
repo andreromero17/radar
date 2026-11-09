@@ -52,6 +52,11 @@ export interface FieldDef {
    * Ainda dá para filtrar pela URL (?grupo=abc).
    */
   hidden?: boolean;
+  /**
+   * Campo sim/não alterado direto na listagem (liga/desliga na linha), com permissão de editar.
+   * Uma função decide por registro (ex.: compra no cartão é sempre paga → `(row) => !row.cartao_id`).
+   */
+  inlineEdit?: boolean | ((row: Row) => boolean);
   /** Só preenchido na criação: some do formulário de edição e é ignorado nas atualizações (ex.: "parcelar em") */
   createOnly?: boolean;
   /** Gerado pelo servidor na criação. 'code' = código legível, ex.: PED20261108-4F2A9 */

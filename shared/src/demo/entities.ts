@@ -166,7 +166,7 @@ export const demoEntities: Record<string, EntityDef> = {
         list: true,
         col: 3,
       },
-      { name: 'pago', label: 'Pago', type: 'boolean', default: false, list: true, col: 3 },
+      { name: 'pago', label: 'Pago', type: 'boolean', default: false, list: true, col: 3, inlineEdit: true },
       { name: 'observacoes', label: 'Observações', type: 'textarea', col: 12 },
     ],
   },

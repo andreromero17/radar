@@ -6,7 +6,13 @@ export const demoMenu: MenuItem[] = [
     label: 'Demonstração',
     icon: 'stars',
     children: [
-      { label: 'Movimentos', icon: 'arrow-left-right', to: '/demo_movimentos', perm: ['demo_movimentos', 'ver'] },
+      {
+        label: 'Movimentos',
+        icon: 'arrow-left-right',
+        to: '/demo_movimentos',
+        perm: ['demo_movimentos', 'ver'],
+        tab: true,
+      },
       { label: 'Resumo por categoria', icon: 'pie-chart', to: '/demo/resumo', perm: ['demo_movimentos', 'ver'] },
       { label: 'Orçamentos', icon: 'receipt', to: '/demo_orcamentos', perm: ['demo_orcamentos', 'ver'] },
       { label: 'Clientes', icon: 'people', to: '/demo_clientes', perm: ['demo_clientes', 'ver'] },

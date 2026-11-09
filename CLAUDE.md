@@ -57,7 +57,13 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
   Em produção não aplica migração sozinho (recusa subir com migração pendente).
 - **Identidade visual** (nome, ícone/logo, cores, organização, retenção de logs): tela de Configurações,
   tabela `configuracoes`. O front aplica via `web/src/lib/theme.ts` nas variáveis CSS `--brand-*`.
-  Nunca usar cor de marca fixa no CSS: `var(--brand-1)`, `var(--brand-2)`, `rgba(var(--brand-1-rgb), x)`.
+  Nunca usar cor fixa no CSS: marca em `var(--brand-1)`, `var(--brand-2)`, `rgba(var(--brand-1-rgb), x)`; o resto em
+  tokens (`--surface`, `--text`, `--text-muted`, `--border`, `--positive`, `--negative`…) de `web/src/styles.css`.
+- **Temas:** `tema` (vibrante/minimalista) é configuração do sistema → `data-tema` no `<html>`; `aparencia`
+  (sistema/claro/escuro) é do usuário (`usuarios.aparencia`, `PUT /api/auth/perfil`) → `data-bs-theme`. Os
+  componentes são os mesmos; o tema muda tokens e poucos detalhes de layout (Minimalista: título no topo via
+  portal do `PageHeader`). Gráficos: `chartTheme()`/`useThemeVersion()` (`lib/themeVars.ts`). Abas no celular:
+  `tab: true` no item de menu. Booleano editável na listagem: `inlineEdit` no campo.
 - **Segredos** (SMTP, tokens) vão no `.env`, nunca na tabela de configurações nem no git.
 - **Acesso:** toda rota de `/api` exige login, exceto `/api/health`, `/api/settings/publicas` e `/api/auth/*`
   (ordem em `app.ts`: helmet → originGuard → authenticate → públicas → requireAuth → system → CRUD).

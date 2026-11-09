@@ -175,7 +175,7 @@ export default function Logs() {
           )}
         </Card.Body>
         {pages > 1 && (
-          <Card.Footer className="bg-white d-flex justify-content-end">
+          <Card.Footer className="bg-body d-flex justify-content-end">
             <Pagination size="sm" className="mb-0">
               <Pagination.Prev disabled={page <= 1} onClick={() => setPage(page - 1)} />
               <Pagination.Item active>

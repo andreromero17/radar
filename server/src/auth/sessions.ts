@@ -1,5 +1,5 @@
 import type { AuthUser, Permissions } from '@frame/shared';
-import { permissionsSchema } from '@frame/shared';
+import { permissionsSchema, APARENCIAS } from '@frame/shared';
 import type { Db } from '../db/knex';
 import { nowLocal } from '../utils/time';
 import { hashToken, newToken } from './tokens';
@@ -21,7 +21,7 @@ export async function loadAuthUser(db: Db, userId: number): Promise<AuthUser | n
     .join('perfis as p', 'p.id', 'u.perfil_id')
     .where('u.id', userId)
     .whereIn('u.ativo', [1, true])
-    .first('u.id', 'u.nome', 'u.email', 'u.trocar_senha', 'p.nome as perfil', 'p.admin', 'p.permissoes');
+    .first('u.id', 'u.nome', 'u.email', 'u.trocar_senha', 'u.aparencia', 'p.nome as perfil', 'p.admin', 'p.permissoes');
   if (!row) return null;
   return {
     id: row.id,
@@ -31,6 +31,7 @@ export async function loadAuthUser(db: Db, userId: number): Promise<AuthUser | n
     admin: !!row.admin,
     permissoes: permissionsSchema.parse(row.permissoes) as Permissions,
     trocar_senha: !!row.trocar_senha,
+    aparencia: APARENCIAS.includes(row.aparencia) ? row.aparencia : 'sistema',
   };
 }
 

@@ -13,10 +13,12 @@ export interface MenuItem {
   to?: string;
   perm?: [resource: string, action: Action];
   children?: MenuItem[];
+  /** Aparece nas abas do rodapé no celular (até 4; a última aba é sempre "Menu") */
+  tab?: boolean;
 }
 
 export const menu: MenuItem[] = [
-  { label: 'Dashboard', icon: 'speedometer2', to: '/' },
+  { label: 'Dashboard', icon: 'speedometer2', to: '/', tab: true },
   ...appMenu,
   ...(__DEMO__ ? demoMenu : []),
   {
@@ -52,3 +54,10 @@ export function activeMenuPath(pathname: string): string | undefined {
     .filter((to) => (to === '/' ? pathname === '/' : pathname === to || pathname.startsWith(to + '/')))
     .sort((a, b) => b.length - a.length)[0];
 }
+
+/** Abas do rodapé no celular: itens com `tab` visíveis ao usuário (no máximo 4) */
+export const tabItems = (items: MenuItem[]) =>
+  items
+    .flatMap((m) => (m.children ? m.children : [m]))
+    .filter((m) => m.tab && m.to)
+    .slice(0, 4);

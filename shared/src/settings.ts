@@ -16,6 +16,14 @@ export const MAX_LOGO_BYTES = 300 * 1024;
 export const MENU_STYLES = ['colorido', 'claro'] as const;
 export type MenuStyle = (typeof MENU_STYLES)[number];
 
+/**
+ * Tema do sistema (o administrador escolhe): Vibrante = cores fortes, menu colorido, cards em bloco;
+ * Minimalista = neutro, bordas finas, cor da marca só nos destaques. Os dois têm modo claro e escuro,
+ * que cada usuário escolhe (aparência).
+ */
+export const TEMAS = ['vibrante', 'minimalista'] as const;
+export type Tema = (typeof TEMAS)[number];
+
 const color = z.string().trim().regex(HEX, 'Use o formato #RRGGBB');
 const dias = 'Entre 0 e 3650 dias';
 
@@ -47,6 +55,7 @@ export const settingsSchema = z.object({
     .trim()
     .refine((v) => v === '' || /^https?:\/\/\S+\.\S+/.test(v), 'Use um endereço completo, começando com https://'),
   estilo_menu: z.enum(MENU_STYLES, { error: 'Estilo inválido' }),
+  tema: z.enum(TEMAS, { error: 'Tema inválido' }),
 });
 
 /** Atualização parcial: só os campos enviados são validados/gravados */
@@ -69,6 +78,7 @@ export const DEFAULT_SETTINGS: Settings = {
   dias_lixeira: 30, // 0 = nunca esvaziar
   url_ajuda: '',
   estilo_menu: 'colorido',
+  tema: 'vibrante',
 };
 
 /** Campos visíveis sem login (identidade visual da tela de entrada) */
@@ -79,5 +89,6 @@ export const PUBLIC_SETTINGS_KEYS = [
   'cor_primaria',
   'cor_secundaria',
   'estilo_menu',
+  'tema',
 ] as const;
 export type PublicSettings = Pick<Settings, (typeof PUBLIC_SETTINGS_KEYS)[number]>;

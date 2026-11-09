@@ -1,3 +1,4 @@
+import { Form } from 'react-bootstrap';
 import type { FieldDef, Row } from '@frame/shared';
 import { fmtDate, fmtMoney, fmtPercent } from '../../lib/format';
 import ValueBadge from '../ValueBadge';
@@ -5,8 +6,35 @@ import ValueBadge from '../ValueBadge';
 const BOOL_COLORS = { Sim: '#2b8a5a', Não: '#adb5bd' };
 const dash = <span className="text-muted">—</span>;
 
+/** Liga/desliga de um campo sim/não direto na linha (`inlineEdit`) */
+export interface InlineToggle {
+  onToggle: (f: FieldDef, row: Row) => void;
+  busy?: boolean;
+}
+
+/** O campo pode ser alterado na linha? */
+export const canInline = (f: FieldDef, row: Row) =>
+  f.type === 'boolean' && (typeof f.inlineEdit === 'function' ? f.inlineEdit(row) : !!f.inlineEdit);
+
 /** Como cada tipo de campo aparece numa célula da listagem */
-export function renderCell(f: FieldDef, row: Row) {
+export function renderCell(f: FieldDef, row: Row, inline?: InlineToggle) {
+  if (inline && f.type === 'boolean' && f.inlineEdit) {
+    const ativo = canInline(f, row);
+    return (
+      <Form.Check
+        type="switch"
+        role="switch"
+        className="inline-switch"
+        id={`${f.name}-${row.id}`}
+        aria-label={`${f.label}: ${row[f.name] ? 'sim' : 'não'}`}
+        title={ativo ? (row[f.name] ? 'Marcar como não' : 'Marcar como sim') : undefined}
+        checked={!!row[f.name]}
+        disabled={!ativo || inline.busy}
+        onClick={(e) => e.stopPropagation()}
+        onChange={() => inline.onToggle(f, row)}
+      />
+    );
+  }
   const v = row[f.name];
   if (f.type !== 'boolean' && (v == null || v === '' || (Array.isArray(v) && !v.length))) return dash;
   switch (f.type) {

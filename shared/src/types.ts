@@ -26,7 +26,12 @@ export type FieldType =
   /** Senha: nunca sai da API; gravada como hash; em branco na edição = manter */
   | 'password'
   /** Matriz de permissões (recurso × ação), gravada como JSON */
-  | 'permissions';
+  | 'permissions'
+  /**
+   * Imagem pequena (logo, foto, ícone) gravada no próprio registro como data URL. A tela reduz para no máximo
+   * 256 px antes de enviar; não vai para exportação/importação e no log aparece só "(alterada)".
+   */
+  | 'image';
 
 export interface FieldDef {
   /** Nome da coluna no banco (snake_case) */

@@ -174,6 +174,7 @@ Opções úteis:
 | campo    | `hidden: true`                                | coluna técnica preenchida por hook (fora das telas, filtrável pela URL)                        |
 | campo    | `createOnly: true`                            | só no formulário de criação (ex.: "parcelar em")                                               |
 | campo    | `inlineEdit: true` ou `(row) => boolean`      | booleano com liga/desliga direto na listagem (ex.: "pago")                                     |
+| campo    | `type: 'image'`                               | imagem pequena (logo, foto) no próprio registro; miniatura na lista                            |
 | campo    | `compute: (v) => ...`                         | campo calculado (somente leitura): a tela mostra e a API grava                                 |
 
 Filtros também funcionam pela URL (dá para fazer links prontos): `?tipo=Despesa&tipo=Receita`,
@@ -278,7 +279,8 @@ No menu do usuário → **Configurações** (precisa da permissão "Configuraç�
 - **Cores:** 6 paletas prontas ou cores próprias.
 - **Organização:** dados exibidos no rodapé.
 - **Tema:** Vibrante (colorido) ou Minimalista (neutro e limpo) — vale para todos os usuários.
-- **Fonte:** a do tema ou uma da lista (Inter, Nunito, Roboto, Open Sans, Lato, Source Sans, do aparelho).
+- **Fonte:** a do tema, uma da lista (Inter, Nunito, Roboto, Open Sans, Lato, Source Sans, do aparelho) ou uma
+  fonte própria enviada em arquivo (ex.: a fonte licenciada da empresa).
 - **Menu e ajuda:** estilo do menu (colorido ou claro; no Minimalista o menu é sempre neutro) e link da Central de
   Ajuda (opcional).
 - **Manutenção:** por quantos dias manter os logs.

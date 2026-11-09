@@ -72,6 +72,8 @@ export function renderCell(f: FieldDef, row: Row, inline?: InlineToggle) {
     case 'document':
     case 'phone':
       return <span className="text-nowrap">{String(v)}</span>;
+    case 'image':
+      return <img src={String(v)} alt="" className="cell-image" />;
     default:
       return String(v);
   }

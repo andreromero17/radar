@@ -20,7 +20,7 @@ import { addLog } from './logs';
 import { checkRelations, createRecord, TRASH_COLUMN, type OpCtx } from './records';
 
 export const MAX_IMPORT_ROWS = 5000;
-const NOT_IMPORTABLE = new Set(['password', 'permissions']);
+const NOT_IMPORTABLE = new Set(['password', 'permissions', 'image']);
 
 /** Campos que recebem dados do arquivo */
 export const importFields = (ent: EntityDef) => editableFields(ent).filter((f) => !NOT_IMPORTABLE.has(f.type));

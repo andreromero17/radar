@@ -227,6 +227,30 @@ describe('exportação', () => {
     expect(ws.getRow(ws.rowCount).getCell(1).value).toBe('Total');
   });
 
+  it('regressão: data no XLSX sem hora, mesmo com o servidor no fuso do Brasil', async () => {
+    const tz = process.env.TZ;
+    process.env.TZ = 'America/Sao_Paulo';
+    try {
+      const res = await ctx.admin
+        .get('/api/demo_movimentos/exportar?formato=xlsx&colunas=data,descricao')
+        .buffer(true)
+        .parse((r, cb) => {
+          const chunks: Buffer[] = [];
+          r.on('data', (c: Buffer) => chunks.push(c));
+          r.on('end', () => cb(null, Buffer.concat(chunks)));
+        });
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(res.body as Parameters<typeof wb.xlsx.load>[0]);
+      const v = wb.worksheets[0].getRow(2).getCell(1).value as Date;
+      expect(v).toBeInstanceOf(Date);
+      expect([v.getUTCHours(), v.getUTCMinutes()]).toEqual([0, 0]);
+      const [d] = await ctx.db('demo_movimentos').orderBy('data', 'desc').select('data');
+      expect(v.toISOString().slice(0, 10)).toBe(String(d.data).slice(0, 10));
+    } finally {
+      process.env.TZ = tz;
+    }
+  });
+
   it('nunca exporta senhas', async () => {
     const res = await ctx.admin.get('/api/usuarios/exportar').buffer(true);
     expect(res.text).not.toMatch(/scrypt|Senha/);

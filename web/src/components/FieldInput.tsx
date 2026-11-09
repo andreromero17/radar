@@ -3,6 +3,7 @@ import { maskDocument, maskPhone, type FieldDef, type Permissions } from '@frame
 import MoneyInput from './MoneyInput';
 import PasswordInput from './PasswordInput';
 import PermissionMatrix from './PermissionMatrix';
+import ImageInput from './ImageInput';
 import { fmtDate } from '../lib/format';
 
 export type FormValue = string | number | boolean | null | undefined | Permissions | string[];
@@ -254,6 +255,11 @@ export default function FieldInput({
           {help && !text && <Form.Text>{help}</Form.Text>}
         </Form.Group>
       );
+    case 'image':
+      input = (
+        <ImageInput id={id} value={text} onChange={set} disabled={isDisabled} isInvalid={!!error} label={f.label} />
+      );
+      break;
     case 'permissions':
       return (
         <Form.Group>

@@ -32,7 +32,7 @@ export function applyTheme(s: Partial<Settings> | null | undefined) {
   root.setProperty('--brand-1-soft', shade(p, 0.88));
   root.setProperty('--brand-contrast', contrastText(shade(p, -0.05)));
   document.documentElement.dataset.tema = s.tema === 'minimalista' ? 'minimalista' : 'vibrante';
-  applyFonte(s.fonte, s.tema);
+  applyFonte(s.fonte, s.tema, s);
 
   if (s.nome_sistema) document.title = s.nome_sistema;
 

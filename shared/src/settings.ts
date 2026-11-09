@@ -28,7 +28,22 @@ export type Tema = (typeof TEMAS)[number];
  * Fonte do sistema (o administrador escolhe). 'tema' = a do tema (Vibrante: Nunito; Minimalista: Inter);
  * 'sistema' = a fonte do aparelho (não baixa nada). As demais vêm do Google Fonts.
  */
-export const FONTES = ['tema', 'inter', 'nunito', 'roboto', 'open-sans', 'lato', 'source-sans', 'sistema'] as const;
+export const FONTES = [
+  'tema',
+  'inter',
+  'nunito',
+  'roboto',
+  'open-sans',
+  'lato',
+  'source-sans',
+  'sistema',
+  'propria',
+] as const;
+/** Pesos da fonte própria que podem ser enviados (arquivos .woff2/.woff/.ttf/.otf) */
+export const PESOS_FONTE = ['regular', 'negrito'] as const;
+export type PesoFonte = (typeof PESOS_FONTE)[number];
+/** Tamanho máximo de cada arquivo de fonte própria */
+export const MAX_FONTE_BYTES = 600 * 1024;
 export type Fonte = (typeof FONTES)[number];
 
 const color = z.string().trim().regex(HEX, 'Use o formato #RRGGBB');
@@ -64,10 +79,18 @@ export const settingsSchema = z.object({
   estilo_menu: z.enum(MENU_STYLES, { error: 'Estilo inválido' }),
   tema: z.enum(TEMAS, { error: 'Tema inválido' }),
   fonte: z.enum(FONTES, { error: 'Fonte inválida' }),
+  /** Fonte própria (ex.: uma fonte licenciada da empresa): nome exibido e controle dos arquivos enviados */
+  fonte_propria_nome: z.string().trim().max(60, 'Máximo de 60 caracteres'),
+  /** Mantidos pelo servidor ao enviar/remover arquivos: pesos presentes ("regular,negrito") e versão (cache) */
+  fonte_propria_arquivos: z.string().max(40),
+  fonte_propria_versao: z.string().max(20),
 });
 
 /** Atualização parcial: só os campos enviados são validados/gravados */
-export const settingsUpdateSchema = settingsSchema.partial();
+// arquivos e versão da fonte própria só mudam pelo envio de arquivo (rota própria)
+export const settingsUpdateSchema = settingsSchema
+  .omit({ fonte_propria_arquivos: true, fonte_propria_versao: true })
+  .partial();
 
 export type Settings = z.infer<typeof settingsSchema>;
 
@@ -88,6 +111,9 @@ export const DEFAULT_SETTINGS: Settings = {
   estilo_menu: 'colorido',
   tema: 'vibrante',
   fonte: 'tema',
+  fonte_propria_nome: '',
+  fonte_propria_arquivos: '',
+  fonte_propria_versao: '',
 };
 
 /** Campos visíveis sem login (identidade visual da tela de entrada) */
@@ -100,5 +126,8 @@ export const PUBLIC_SETTINGS_KEYS = [
   'estilo_menu',
   'tema',
   'fonte',
+  'fonte_propria_nome',
+  'fonte_propria_arquivos',
+  'fonte_propria_versao',
 ] as const;
 export type PublicSettings = Pick<Settings, (typeof PUBLIC_SETTINGS_KEYS)[number]>;

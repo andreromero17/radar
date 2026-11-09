@@ -4,6 +4,25 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.9.0 — 09/11/2026
+
+**Campo imagem, fonte própria e seletor de mês**
+
+- **Campo `image`** nas entidades: logo, foto ou ícone gravado no próprio registro (data URL). A tela reduz para no
+  máximo 256 px antes de enviar; aceita PNG, JPG, WebP, GIF e SVG (até ~150 KB). Aparece como miniatura na
+  listagem; fica fora da exportação/importação e no log aparece só "(alterada)"
+- **Fonte própria** (Configurações → Fonte → "Usar uma fonte própria"): o administrador envia o arquivo regular e,
+  opcionalmente, o negrito (.woff2, .woff, .otf ou .ttf, até 600 KB), dá um nome (ex.: ABC Oracle) e escolhe a
+  opção. Os arquivos ficam no sistema e são servidos em `/api/settings/fonte/:peso` (público, com cache); o tipo é
+  conferido pelo conteúdo. Remover o arquivo regular volta para a fonte do tema
+- **Seletor de mês** (`MonthPicker`, estilo Mobills): ‹ Janeiro 2025 › e, ao clicar, o ano com os 12 meses para
+  pular direto, além dos atalhos (este mês, últimos 30 dias, ano inteiro, todo o período). Usado no período das
+  listagens e disponível para as telas do sistema
+- **Texto de PDF** (`server/src/services/pdf.ts`, `linhasPdf`): lê o PDF e devolve as linhas na ordem da página
+  (pedaços agrupados pela altura; espaço largo entre colunas). Base para importar faturas, extratos e outros
+  documentos. Dependência nova: `unpdf`
+- Correção: na exportação para Excel, datas saíam como "31/01/2025 03:00" (fuso); agora só a data
+
 ## 0.8.0 — 09/11/2026
 
 **Fonte e tamanho do texto**

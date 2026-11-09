@@ -64,11 +64,14 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
   componentes são os mesmos; o tema muda tokens e poucos detalhes de layout (Minimalista: título no topo via
   portal do `PageHeader`). Gráficos: `chartTheme()`/`useThemeVersion()` (`lib/themeVars.ts`). Abas no celular:
   `tab: true` no item de menu. Booleano editável na listagem: `inlineEdit` no campo.
-- **Fonte e tamanho:** `fonte` é configuração do sistema (`lib/fontes.ts` carrega só a escolhida e define `--font`);
+- **Fonte e tamanho:** `fonte` é configuração do sistema (`lib/fontes.ts` carrega só a escolhida e define `--font`;
+  `propria` = arquivos enviados em `POST /api/settings/fonte/:peso`, guardados em `configuracoes` e servidos em GET público);
   `tamanho_texto` é do usuário → `data-texto` no `<html>` muda o tamanho base. Medidas em `rem`, nunca `px`
   (exceto bordas/sombras), para acompanhar o tamanho do texto.
+- **Mês:** telas por mês usam `components/MonthPicker` (valor `'AAAA-MM'`, helpers em `lib/meses.ts`); o período
+  das listagens (`PeriodNav`) já usa. Campo `type: 'image'`: data URL reduzida no navegador (`lib/imagem.ts`).
 - **Segredos** (SMTP, tokens) vão no `.env`, nunca na tabela de configurações nem no git.
-- **Acesso:** toda rota de `/api` exige login, exceto `/api/health`, `/api/settings/publicas` e `/api/auth/*`
+- **Acesso:** toda rota de `/api` exige login, exceto `/api/health`, `/api/settings/publicas`, `/api/settings/fonte/:peso` e `/api/auth/*`
   (ordem em `app.ts`: helmet → originGuard → authenticate → públicas → requireAuth → system → CRUD).
   Sessão em cookie `sid` httpOnly; tabela `sessoes` guarda só o hash do token. Senhas: scrypt
   (`server/src/auth/password.ts`), política em `passwordSchema` (shared). `requireAuth` bloqueia com
@@ -92,6 +95,7 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
 - **Anexos:** `services/anexos.ts` (tabela `anexos` + arquivos em `UPLOAD_DIR`, nome aleatório; tipo pelo nome do
   arquivo, nunca pelo navegador). Upload/importação chegam como `application/octet-stream` (`express.raw` na rota).
 - **Importação:** `services/import.ts` (CSV/XLSX → prévia → `createRecord` com `semLog` + um log de resumo).
+  Texto de PDF em linhas: `services/pdf.ts` (`linhasPdf`, via `unpdf`).
 - **Telas plugáveis:** `web/src/lib/screens.ts` (`registerScreens`, `registerPage`), registradas em
   `web/src/app/screens.ts`; rotas em `pages/EntityRoutes.tsx`. `CrudList`/`CrudForm` aceitam `entity` e slots.
 - **Módulo de demonstração:** `shared/src/demo/`, `server/src/demo/setup.ts`, `web/src/demo/menu.ts`; ligado por

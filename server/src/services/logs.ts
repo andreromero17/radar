@@ -65,6 +65,17 @@ export function diffRecord(ent: EntityDef, before: Row | null, after: Record<str
       if (inAfter && after?.[f.name]) out[f.name] = before ? { de: SENHA, para: '(alterada)' } : { para: SENHA };
       continue;
     }
+    if (f.type === 'image') {
+      // a imagem inteira (base64) não vai para o log
+      const tem = (v: unknown) => (v ? '(imagem)' : null);
+      const [a, b] = [inBefore ? before?.[f.name] : undefined, inAfter ? after?.[f.name] : undefined];
+      if (before && after) {
+        if (a !== b) out[f.name] = { de: tem(a), para: b ? '(alterada)' : null };
+      } else if (after) {
+        if (b) out[f.name] = { para: '(imagem)' };
+      } else if (a) out[f.name] = { de: '(imagem)' };
+      continue;
+    }
     const de = inBefore ? normalize(f.type, before?.[f.name]) : undefined;
     const para = inAfter ? normalize(f.type, after?.[f.name]) : undefined;
     if (before && after) {

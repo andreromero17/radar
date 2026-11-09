@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { Router, type Request } from 'express';
+import express, { Router, type Request } from 'express';
 import {
   entities,
   mainEntities,
@@ -17,6 +17,8 @@ import { count, type Db } from '../db/knex';
 import { addLog, type Actor } from '../services/logs';
 import { backupInfo, createBackup } from '../services/backup';
 import { getSettings, resetSettings, saveSettings } from '../services/settings';
+import { pesoValido, removerFonte, salvarFonte } from '../services/fonte';
+import { badRequest } from '../utils/http';
 
 /** Rotas do sistema: metadados, configurações, dashboard, logs e backup (todas exigem login). */
 export function systemRouter(db: Db, opts: { dbFile: string }) {
@@ -42,6 +44,21 @@ export function systemRouter(db: Db, opts: { dbFile: string }) {
 
   router.delete('/settings', requirePermission('configuracoes', 'editar'), async (req, res) => {
     res.json(await resetSettings(db, actor(req)));
+  });
+
+  // fonte própria: arquivo cru no corpo (?arquivo=nome.woff2); a leitura é pública (app.ts)
+  const rawFonte = express.raw({ type: () => true, limit: '1mb' });
+  router.post('/settings/fonte/:peso', requirePermission('configuracoes', 'editar'), rawFonte, async (req, res) => {
+    if (!pesoValido(req.params.peso)) throw badRequest('Peso inválido (regular ou negrito)');
+    if (!Buffer.isBuffer(req.body) || !req.body.length) throw badRequest('Envie o arquivo da fonte');
+    const nome = typeof req.query.arquivo === 'string' ? req.query.arquivo : '';
+    await salvarFonte(db, req.params.peso, req.body, nome, actor(req));
+    res.json(await getSettings(db));
+  });
+  router.delete('/settings/fonte/:peso', requirePermission('configuracoes', 'editar'), async (req, res) => {
+    if (!pesoValido(req.params.peso)) throw badRequest('Peso inválido (regular ou negrito)');
+    await removerFonte(db, req.params.peso, actor(req));
+    res.json(await getSettings(db));
   });
 
   // ---------- Dashboard ----------

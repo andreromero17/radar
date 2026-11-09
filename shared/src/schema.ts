@@ -44,6 +44,9 @@ export const permissionsSchema = z.preprocess(
     .transform((p) => normalizePermissions(p as Permissions)),
 );
 const EMAIL = /^\S+@\S+\.\S+$/;
+const IMAGE = /^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=]+$/;
+/** Tamanho máximo de um campo imagem (data URL): ~150 KB de arquivo */
+export const MAX_IMAGE_CHARS = 200 * 1024;
 
 /** '' / espaços / undefined viram null; strings são aparadas. */
 const emptyToNull = (v: unknown) => {
@@ -133,6 +136,11 @@ function baseSchema(f: FieldDef): z.ZodType {
         .string()
         .regex(/^#[0-9a-f]{6}$/i, 'Use o formato #RRGGBB')
         .transform((v) => v.toLowerCase());
+    case 'image':
+      return z
+        .string()
+        .regex(IMAGE, 'Imagem inválida (use PNG, JPG, WebP, GIF ou SVG)')
+        .max(MAX_IMAGE_CHARS, 'Imagem muito grande (máx. ~150 KB)');
     case 'relation':
       return z.coerce.number({ error: 'Seleção inválida' }).int('Seleção inválida').positive('Seleção inválida');
     case 'select':

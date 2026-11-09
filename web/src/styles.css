@@ -1650,3 +1650,98 @@ a.bg-grad-yellow:hover {
   font-size: 0.8rem;
   color: var(--text-muted);
 }
+
+/* ---------- Campo imagem (type 'image') ---------- */
+.image-input {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.image-input-preview {
+  width: 3.5rem;
+  height: 3.5rem;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--border-input);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  overflow: hidden;
+  font-size: 1.25rem;
+}
+.image-input-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.image-input.is-invalid .image-input-preview {
+  border-color: var(--negative);
+}
+.cell-image {
+  width: 1.75rem;
+  height: 1.75rem;
+  object-fit: contain;
+  border-radius: 0.35rem;
+}
+
+.fonte-option:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.fonte-propria summary {
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+/* ---------- Seletor de mês (MonthPicker) ---------- */
+.month-picker-menu {
+  width: 17rem;
+  padding: 0.75rem;
+}
+.month-picker-ano {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: var(--weight-strong);
+  color: var(--brand-1);
+  margin-bottom: 0.5rem;
+}
+.month-picker-ano .btn {
+  color: var(--brand-1);
+}
+.month-picker-grade {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+.month-picker-mes {
+  border: 1px solid rgba(var(--brand-1-rgb), 0.45);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--brand-1);
+  padding: 0.3rem 0;
+  font-size: 0.875rem;
+  font-weight: var(--weight-medium);
+}
+.month-picker-mes:hover {
+  background: rgba(var(--brand-1-rgb), 0.08);
+}
+.month-picker-mes.atual {
+  border-width: 2px;
+}
+.month-picker-mes.ativo {
+  background: var(--brand-1);
+  border-color: var(--brand-1);
+  color: #fff;
+}
+.month-picker-extras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-soft);
+}
+.month-picker-extras .btn {
+  border: 1px solid var(--border);
+}

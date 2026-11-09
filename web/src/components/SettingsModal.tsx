@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'r
 import { Button, Col, FloatingLabel, Form, Modal, Row, Spinner } from 'react-bootstrap';
 import {
   FONTES,
+  PESOS_FONTE,
+  type PesoFonte,
   MAX_LOGO_BYTES,
   MENU_STYLES,
   TEMAS,
@@ -10,11 +12,11 @@ import {
   type FieldErrors,
   type Settings,
 } from '@frame/shared';
-import { ApiError, errorMessage } from '../lib/api';
+import { api, ApiError, errorMessage } from '../lib/api';
 import { useSettings } from '../context/SettingsContext';
 import { useToast } from '../context/ToastContext';
 import BrandMark from './BrandMark';
-import { AMOSTRA, carregarAmostras, FONTE_DO_TEMA, FONTES_DEF } from '../lib/fontes';
+import { AMOSTRA, carregarAmostraPropria, carregarAmostras, FONTE_DO_TEMA, FONTES_DEF } from '../lib/fontes';
 import ConfirmModal from './ConfirmModal';
 
 const ICONES = [
@@ -96,6 +98,34 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
   useEffect(() => {
     if (show) preview(form);
   }, [form, show, preview]);
+
+  useEffect(() => {
+    if (show) carregarAmostraPropria(form);
+  }, [show, form.fonte_propria_arquivos, form.fonte_propria_versao]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // fonte própria: o arquivo vai direto para o servidor; o formulário só recebe os controles
+  const [enviandoFonte, setEnviandoFonte] = useState<PesoFonte | null>(null);
+  const enviarFonte = async (peso: PesoFonte, file: File | null) => {
+    setEnviandoFonte(peso);
+    try {
+      const s = file
+        ? await api.upload<Settings>(`/settings/fonte/${peso}?arquivo=${encodeURIComponent(file.name)}`, file)
+        : await api.del<Settings>(`/settings/fonte/${peso}`);
+      setForm((f) => ({
+        ...f,
+        fonte_propria_arquivos: s.fonte_propria_arquivos,
+        fonte_propria_versao: s.fonte_propria_versao,
+        ...(file && peso === 'regular' && { fonte: 'propria' }),
+        ...(s.fonte !== 'propria' && f.fonte === 'propria' && !file && peso === 'regular' && { fonte: 'tema' }),
+      }));
+      toast.success(file ? 'Arquivo da fonte enviado' : 'Arquivo removido');
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setEnviandoFonte(null);
+    }
+  };
+  const temArquivo = (p: PesoFonte) => (form.fonte_propria_arquivos ?? '').split(',').includes(p);
 
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
@@ -311,6 +341,7 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
               {FONTES.map((f) => {
                 const id = f === 'tema' ? FONTE_DO_TEMA[form.tema === 'minimalista' ? 'minimalista' : 'vibrante'] : f;
                 const def = FONTES_DEF[id];
+                const semArquivo = f === 'propria' && !temArquivo('regular');
                 return (
                   <button
                     type="button"
@@ -318,16 +349,79 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
                     role="radio"
                     aria-checked={(form.fonte ?? 'tema') === f}
                     className={`fonte-option ${(form.fonte ?? 'tema') === f ? 'active' : ''}`}
+                    disabled={semArquivo}
+                    title={semArquivo ? 'Envie o arquivo da fonte abaixo' : undefined}
                     onClick={() => set('fonte', f)}
                   >
-                    <span className="fonte-amostra" style={{ fontFamily: def.family }}>
-                      {AMOSTRA.slice(0, 5)}
+                    <span className="fonte-amostra" style={{ fontFamily: semArquivo ? undefined : def.family }}>
+                      {semArquivo ? <i className="bi bi-upload" /> : AMOSTRA.slice(0, 5)}
                     </span>
-                    <span className="fonte-nome">{f === 'tema' ? `Do tema (${def.nome})` : def.nome}</span>
+                    <span className="fonte-nome">
+                      {f === 'tema'
+                        ? `Do tema (${def.nome})`
+                        : f === 'propria'
+                          ? form.fonte_propria_nome || 'Própria'
+                          : def.nome}
+                    </span>
                   </button>
                 );
               })}
             </div>
+            <details className="fonte-propria mb-1" open={form.fonte === 'propria' || undefined}>
+              <summary className="small">Usar uma fonte própria (arquivo .woff2, .woff, .otf ou .ttf)</summary>
+              <div className="row g-2 mt-1 align-items-end">
+                <div className="col-md-4">
+                  <Form.Label className="small mb-1">Nome da fonte</Form.Label>
+                  <Form.Control
+                    size="sm"
+                    value={form.fonte_propria_nome ?? ''}
+                    placeholder="Ex.: ABC Oracle"
+                    maxLength={60}
+                    onChange={(e) => set('fonte_propria_nome', e.target.value)}
+                  />
+                </div>
+                {PESOS_FONTE.map((p) => (
+                  <div className="col-md-4" key={p}>
+                    <Form.Label className="small mb-1">
+                      {p === 'regular' ? 'Arquivo regular' : 'Arquivo negrito (opcional)'}
+                    </Form.Label>
+                    <div className="d-flex gap-2 align-items-center">
+                      <Form.Control
+                        size="sm"
+                        type="file"
+                        accept=".woff2,.woff,.otf,.ttf"
+                        disabled={!!enviandoFonte}
+                        aria-label={`Arquivo ${p}`}
+                        onChange={(e) => {
+                          const file = (e.target as HTMLInputElement).files?.[0];
+                          (e.target as HTMLInputElement).value = '';
+                          if (file) void enviarFonte(p, file);
+                        }}
+                      />
+                      {temArquivo(p) && (
+                        <Button
+                          size="sm"
+                          variant="light"
+                          className="text-danger flex-shrink-0"
+                          title="Remover arquivo"
+                          aria-label={`Remover arquivo ${p}`}
+                          onClick={() => void enviarFonte(p, null)}
+                        >
+                          <i className="bi bi-trash" />
+                        </Button>
+                      )}
+                    </div>
+                    <div className="small text-muted mt-1">
+                      {enviandoFonte === p ? 'Enviando...' : temArquivo(p) ? 'Enviado ✓' : 'Nenhum arquivo'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="small text-muted mt-2">
+                Fontes comerciais exigem licença para uso em web. O arquivo fica no sistema e é carregado também na tela
+                de login. Sem o arquivo negrito, o navegador simula o negrito.
+              </div>
+            </details>
 
             {/* ---------- Cores ---------- */}
             <h6 className="settings-section">Cores</h6>

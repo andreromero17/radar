@@ -9,7 +9,7 @@ import { queryable } from './records';
 
 export type ExportFormat = 'csv' | 'xlsx';
 
-const NOT_EXPORTABLE = new Set(['password', 'permissions']);
+const NOT_EXPORTABLE = new Set(['password', 'permissions', 'image']);
 
 /** Colunas exportáveis; `pedidas` (da tela) limita e ordena */
 export function exportColumns(ent: EntityDef, pedidas?: string[]): FieldDef[] {
@@ -76,7 +76,8 @@ async function toXlsx(ent: EntityDef, cols: FieldDef[], rows: Row[], totais?: Re
           const v = r[c.name];
           if (v == null || v === '') return [c.name, null];
           if (['money', 'number', 'percent'].includes(c.type)) return [c.name, Number(v)];
-          if (c.type === 'date') return [c.name, new Date(`${v}T00:00:00`)];
+          // data pura em UTC: o Excel não tem fuso, e meia-noite local (Brasil) virava "03:00" na planilha
+          if (c.type === 'date') return [c.name, new Date(`${String(v).slice(0, 10)}T00:00:00Z`)];
           return [c.name, cellText(c, r)];
         }),
       ),

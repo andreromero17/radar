@@ -13,6 +13,7 @@ import { crudRouter } from './routes/crud';
 import { systemRouter } from './routes/system';
 import type { Mailer } from './services/mailer';
 import { configureAnexos } from './services/anexos';
+import { lerFonte, pesoValido } from './services/fonte';
 import { getPublicSettings } from './services/settings';
 import { HttpError } from './utils/http';
 import { VERSION } from './version';
@@ -94,6 +95,14 @@ export function createApp(opts: AppOptions) {
   });
   app.get('/api/settings/publicas', async (_req, res) => {
     res.json(await getPublicSettings(db));
+  });
+  // fonte própria (pública: a tela de login também usa); a URL leva ?v=versão, então pode ficar em cache
+  app.get('/api/settings/fonte/:peso', async (req, res) => {
+    const f = pesoValido(req.params.peso) ? await lerFonte(db, req.params.peso) : null;
+    if (!f) return res.status(404).json({ error: 'Fonte não encontrada' });
+    res.set('Content-Type', f.mime);
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(f.buf);
   });
   app.use(
     '/api/auth',

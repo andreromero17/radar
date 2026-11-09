@@ -568,13 +568,13 @@ export default function CrudList(props: Props) {
                         {selectable && <td className="ps-4 col-check" />}
                         {cols.map((f) => (
                           <td key={f.name} className={isNumeric(f) ? 'text-end text-nowrap' : undefined}>
-                            {f.name === ent.labelField && (
+                            {f.name === (extra.campo ?? ent.labelField) && (
                               <span className="selo-extra">
                                 {extra.icon && <i className={`bi bi-${extra.icon}`} />}
                                 {extra.rotulo}
                               </span>
                             )}
-                            {renderCell(f, row)}
+                            {(f.name !== extra.campo || row[f.name] != null) && renderCell(f, row)}
                           </td>
                         ))}
                         <td className="text-end pe-4 text-nowrap" onClick={(e) => e.stopPropagation()}>

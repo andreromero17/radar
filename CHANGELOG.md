@@ -7,7 +7,7 @@ novidades, **CORREÇÃO** só corrige.
 ## 0.10.0 — 09/11/2026
 
 - **Linhas extras na listagem**: hook `listExtras(query, { db, actor })` por entidade devolve linhas de outras
-  entidades (mesmos campos + `__extra: { rotulo, link, icon }`) que aparecem intercaladas na mesma ordenação, com
+  entidades (mesmos campos + `__extra: { rotulo, link, icon, campo }`) que aparecem intercaladas na mesma ordenação, com
   selo, fundo suave e clique abrindo `link`. Não têm seleção nem edição na linha, não entram nos totais nem na
   contagem "N registro(s)", e ficam fora da lixeira e da exportação. A API devolve `extras` (quantas linhas extras
   há em `total`). Com extras, a listagem busca os registros filtrados e pagina em memória

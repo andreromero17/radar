@@ -182,6 +182,8 @@ export interface ExtraInfo {
   link?: string;
   /** Ícone do Bootstrap Icons, sem o prefixo "bi-" */
   icon?: string;
+  /** Coluna onde o selo aparece (padrão: o labelField); vazia na linha extra = só o selo */
+  campo?: string;
 }
 
 export interface ListResponse<T = Row> {

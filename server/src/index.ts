@@ -11,6 +11,7 @@ import { createMailer } from './services/mailer';
 import { setupDemo } from './demo/setup';
 import { getSettings } from './services/settings';
 import { purgeTrash } from './services/records';
+import { appMaintenance } from './app/maintenance';
 import { configureAnexos } from './services/anexos';
 import { entities } from '@frame/shared';
 
@@ -49,6 +50,8 @@ const manutencao = async () => {
   const acessos = await purgeExpiredAuth(db);
   const lixeira = await purgeTrash(db, entities, settings.dias_lixeira);
   if (logs || acessos || lixeira) logger.info({ logs, acessos, lixeira }, 'limpeza de registros antigos');
+  const app = Object.fromEntries(Object.entries(await appMaintenance(db)).filter(([, n]) => n));
+  if (Object.keys(app).length) logger.info(app, 'manutenção da aplicação');
 };
 await manutencao();
 setInterval(() => manutencao().catch((err) => logger.error({ err }, 'falha na manutenção')), 86_400_000).unref();

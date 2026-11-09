@@ -65,7 +65,7 @@ frame-app/
 ├── server/
 │   ├── .env.example        variáveis de ambiente (copiado para .env no setup)
 │   └── src/
-│       ├── app/            ★ APLICAÇÃO: hooks.ts, routes.ts, seed.ts, migrations/
+│       ├── app/            ★ APLICAÇÃO: hooks.ts, routes.ts, seed.ts, maintenance.ts, migrations/
 │       ├── auth/           senhas, sessões, middleware de login/permissão
 │       ├── db/             Knex, migrador, migrações do núcleo, diff, seed, CLI
 │       ├── hooks/          regras do núcleo (usuários, perfis)
@@ -171,6 +171,8 @@ Opções úteis:
 | entidade | `importar: false`                             | desliga a importação de planilha (ligada por padrão, exceto núcleo e sub-tabelas)              |
 | entidade | `activeField: 'ativa'`                        | inativos somem dos selects de outros cadastros (continuam nos filtros)                         |
 | campo    | `default: 'hoje'` / `'agora'`                 | data de hoje / data e hora atuais ao criar                                                     |
+| campo    | `hidden: true`                                | coluna técnica preenchida por hook (fora das telas, filtrável pela URL)                        |
+| campo    | `createOnly: true`                            | só no formulário de criação (ex.: "parcelar em")                                               |
 | campo    | `compute: (v) => ...`                         | campo calculado (somente leitura): a tela mostra e a API grava                                 |
 
 Filtros também funcionam pela URL (dá para fazer links prontos): `?tipo=Despesa&tipo=Receita`,

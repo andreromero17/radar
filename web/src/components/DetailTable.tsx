@@ -18,7 +18,7 @@ interface Props {
 export default function DetailTable({ detail, rows, onChange, errors, options, readOnly }: Props) {
   const child = detailEntity(detail);
   if (!child) return null;
-  const fields = child.fields;
+  const fields = child.fields.filter((f) => !f.hidden);
   const titulo = detail.label ?? child.label;
   const totais = fields.filter((f) => f.total === 'sum' || Object.values(detail.sum ?? {}).includes(f.name));
 

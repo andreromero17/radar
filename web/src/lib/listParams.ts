@@ -10,17 +10,17 @@ const HIDDEN = new Set(['password', 'permissions']);
 
 /** Campos que aparecem no painel de filtros */
 export const filterableFields = (ent: EntityDef) =>
-  ent.fields.filter((f) => !HIDDEN.has(f.type) && (f.filter ?? DEFAULT_FILTER_TYPES.has(f.type)));
+  ent.fields.filter((f) => !HIDDEN.has(f.type) && !f.hidden && (f.filter ?? DEFAULT_FILTER_TYPES.has(f.type)));
 
 /** Campos que podem virar coluna na listagem */
 export const listableFields = (ent: EntityDef) =>
-  ent.fields.filter((f) => !HIDDEN.has(f.type) && f.type !== 'textarea');
+  ent.fields.filter((f) => !HIDDEN.has(f.type) && !f.hidden && f.type !== 'textarea');
 
 const BULK_TYPES = new Set(['select', 'boolean', 'relation', 'multiselect', 'date']);
 
 /** Campos que fazem sentido alterar em lote (categoria, status, situação...) */
 export const bulkEditableFields = (ent: EntityDef) =>
-  ent.fields.filter((f) => BULK_TYPES.has(f.type) && !f.readonly && !f.dependsOn);
+  ent.fields.filter((f) => BULK_TYPES.has(f.type) && !f.readonly && !f.hidden && !f.createOnly && !f.dependsOn);
 
 export const isRangeType = (f: FieldDef) => ['date', 'datetime', 'number', 'money', 'percent'].includes(f.type);
 

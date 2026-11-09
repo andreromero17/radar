@@ -1,6 +1,9 @@
 export function fmtDate(v: unknown, withTime = false): string {
   if (!v) return '—';
-  const d = new Date(String(v).replace(' ', 'T'));
+  // data sem hora ('2026-10-28') seria lida como meia-noite UTC e, no Brasil, viraria o dia anterior:
+  // sempre interpretar no fuso local
+  const t = String(v);
+  const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(t) ? `${t}T00:00:00` : t.replace(' ', 'T'));
   if (Number.isNaN(d.getTime())) return String(v);
   return withTime
     ? d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })

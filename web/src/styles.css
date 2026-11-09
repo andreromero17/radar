@@ -1777,3 +1777,22 @@ a.bg-grad-yellow:hover {
   padding-right: 0.25rem;
   font-size: 0.8125rem;
 }
+
+/* Linhas de outra entidade mostradas na listagem (hook listExtras): só consulta, sem entrar nos totais */
+.table-app tr.linha-extra > td {
+  background: rgba(var(--brand-1-rgb), 0.04);
+  color: var(--text-muted);
+}
+.selo-extra {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-right: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: var(--weight-strong);
+  color: var(--brand-1);
+  background: rgba(var(--brand-1-rgb), 0.1);
+  white-space: nowrap;
+}

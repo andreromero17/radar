@@ -148,15 +148,62 @@ export interface ListOptions {
   limit?: number;
 }
 
+/** Campo e direção de ordenação pedidos na URL (ou o padrão da entidade) */
+function ordenacao(ent: EntityDef, query: Query) {
+  const sortable = ['id', 'criado_em', 'atualizado_em', ...queryable(ent).map((f) => f.name)];
+  const sortField = sortable.includes(str(query.sort)) ? str(query.sort) : (ent.defaultSort?.field ?? 'id');
+  const dir: 'asc' | 'desc' =
+    query.dir === 'asc' || query.dir === 'desc' ? query.dir : (ent.defaultSort?.dir ?? 'desc');
+  return { sortField, dir };
+}
+
+/**
+ * Listagem com as linhas extras da aplicação (hook `listExtras`) intercaladas na mesma ordenação.
+ * Busca todos os registros filtrados (o período limita), junta, ordena e pagina em memória;
+ * os totais continuam sendo só dos registros da entidade.
+ */
+export async function listWithExtras(db: Db, table: string, ent: EntityDef, query: Query, extras: Row[]) {
+  if (!extras.length) return listRecords(db, table, ent, query);
+  const base = await listRecords(db, table, ent, query, { all: true });
+  const page = Math.max(1, Number(query.page) || 1);
+  const pageSize = Math.min(1000, Math.max(1, Number(query.pageSize) || 10));
+  const { sortField, dir } = ordenacao(ent, query);
+  const def = ent.fields.find((f) => f.name === sortField);
+  const chave = def?.type === 'relation' ? `${sortField}__label` : sortField;
+  const valor = (r: Row) => r[chave] as string | number | null | undefined;
+  const sinal = dir === 'asc' ? 1 : -1;
+  const todas = [...base.rows, ...extras];
+  const ordem = new Map(todas.map((r, i) => [r, i]));
+  todas.sort((a, b) => {
+    const va = valor(a);
+    const vb = valor(b);
+    if (va !== vb) {
+      if (va == null || va === '') return 1;
+      if (vb == null || vb === '') return -1;
+      const c =
+        typeof va === 'number' && typeof vb === 'number' ? va - vb : String(va).localeCompare(String(vb), 'pt-BR');
+      if (c) return c * sinal;
+    }
+    // empate: registros da entidade na ordem do banco, extras depois deles
+    return ordem.get(a)! - ordem.get(b)!;
+  });
+  return {
+    rows: todas.slice((page - 1) * pageSize, page * pageSize),
+    total: todas.length,
+    extras: extras.length,
+    page,
+    pageSize,
+    ...(base.totais && { totais: base.totais }),
+  };
+}
+
 /** Lista com filtros, ordenação, paginação e totais das colunas com `total: 'sum'` */
 export async function listRecords(db: Db, table: string, ent: EntityDef, query: Query, opts: ListOptions = {}) {
   const page = Math.max(1, opts.page ?? (Number(query.page) || 1));
   const pageSize = Math.min(1000, Math.max(1, opts.pageSize ?? (Number(query.pageSize) || 10)));
   const fields = queryable(ent);
 
-  const sortable = ['id', 'criado_em', 'atualizado_em', ...fields.map((f) => f.name)];
-  const sortField = sortable.includes(str(query.sort)) ? str(query.sort) : (ent.defaultSort?.field ?? 'id');
-  const dir = query.dir === 'asc' || query.dir === 'desc' ? query.dir : (ent.defaultSort?.dir ?? 'desc');
+  const { sortField, dir } = ordenacao(ent, query);
   const sortDef = fields.find((f) => f.name === sortField);
   // relação ordena pelo nome do registro relacionado, não pelo id
   const orderCol = sortDef?.type === 'relation' ? `${sortField}__label` : `${table}.${sortField}`;

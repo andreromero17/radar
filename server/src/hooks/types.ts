@@ -1,4 +1,4 @@
-import type { AuthUser, Row } from '@frame/shared';
+import type { AuthUser, ExtraInfo, Row } from '@frame/shared';
 import type { Db } from '../db/knex';
 
 export interface HookContext {
@@ -23,4 +23,12 @@ export interface EntityHooks {
   afterSave?(row: Row, data: Record<string, unknown>, ctx: HookContext): Promise<void>;
   /** Antes de excluir */
   beforeDelete?(current: Row, ctx: Omit<HookContext, 'mode' | 'current'>): Promise<void>;
+  /**
+   * Linhas de outras entidades mostradas junto na listagem (ex.: transferências entre os lançamentos), com os
+   * mesmos campos da entidade + `__extra`. Recebe os filtros da URL: devolva só as linhas que fazem sentido
+   * com eles (ou nenhuma). Não é chamado na lixeira nem na exportação; não entra nos totais.
+   */
+  listExtras?(query: Record<string, unknown>, ctx: { db: Db; actor: AuthUser }): Promise<ExtraRow[]>;
 }
+
+export type ExtraRow = Row & { __extra: ExtraInfo };

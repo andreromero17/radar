@@ -7,6 +7,7 @@ import {
   getEntity,
   type BulkRequest,
   type BulkResponse,
+  type ExtraInfo,
   type FieldDef,
   type ListResponse,
   type RelationOption,
@@ -63,6 +64,9 @@ interface Props {
   /** Conteúdo extra entre o título e a tabela (cards, avisos, gráficos...) */
   before?: ReactNode;
 }
+
+/** Linha de outra entidade que a aplicação mostra junto (hook `listExtras` no servidor) */
+const extraDe = (row: Row) => row.__extra as ExtraInfo | undefined;
 
 export default function CrudList(props: Props) {
   const params0 = useParams();
@@ -186,7 +190,9 @@ export default function CrudList(props: Props) {
   const filters = activeFilters(ent, params, labels);
   const hasTotals = cols.some((f) => data.totais && f.name in data.totais);
   const selectable = podeExcluir || (podeEditar && !trash && bulkEditableFields(ent).length > 0);
-  const allChecked = data.rows.length > 0 && data.rows.every((r) => selected.has(r.id));
+  const proprias = data.rows.filter((r) => !extraDe(r));
+  const allChecked = proprias.length > 0 && proprias.every((r) => selected.has(r.id));
+  const registros = data.total - (data.extras ?? 0);
 
   const update = (changes: Record<string, string | null>, keepPage = false) => {
     const next = new URLSearchParams(params);
@@ -343,7 +349,7 @@ export default function CrudList(props: Props) {
       <PageHeader
         title={trash ? `Lixeira · ${ent.label}` : ent.label}
         icon={trash ? 'trash3' : ent.icon}
-        subtitle={`${data.total} registro(s)`}
+        subtitle={`${registros} registro(s)`}
         back={trash ? `/${entity}` : undefined}
       >
         {!trash && ent.lixeira && podeExcluir && (
@@ -531,7 +537,7 @@ export default function CrudList(props: Props) {
                       <Form.Check
                         aria-label="Selecionar todos"
                         checked={allChecked}
-                        onChange={() => setSelected(allChecked ? new Set() : new Set(data.rows.map((r) => r.id)))}
+                        onChange={() => setSelected(allChecked ? new Set() : new Set(proprias.map((r) => r.id)))}
                       />
                     </th>
                   )}
@@ -550,77 +556,108 @@ export default function CrudList(props: Props) {
                 </tr>
               </thead>
               <tbody>
-                {data.rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className={`${trash ? '' : 'cursor-pointer'}${selected.has(row.id) ? ' table-active' : ''}`}
-                    onClick={() => !trash && navigate(`/${entity}/${row.id}`)}
-                  >
-                    {selectable && (
-                      <td className="ps-4 col-check" onClick={(e) => e.stopPropagation()}>
-                        <Form.Check
-                          aria-label={`Selecionar ${nomeDe(row)}`}
-                          checked={selected.has(row.id)}
-                          onChange={() => toggleRow(row.id)}
-                        />
-                      </td>
-                    )}
-                    {cols.map((f) => (
-                      <td key={f.name} className={isNumeric(f) ? 'text-end text-nowrap' : undefined}>
-                        {renderCell(
-                          f,
-                          row,
-                          podeEditar && !trash ? { onToggle: toggleInline, busy: toggling === row.id } : undefined,
-                        )}
-                      </td>
-                    ))}
-                    <td className="text-end pe-4 text-nowrap" onClick={(e) => e.stopPropagation()}>
-                      {trash ? (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="light"
-                            className="me-1"
-                            title="Restaurar"
-                            onClick={() => restoreOne(row)}
-                          >
-                            <i className="bi bi-arrow-counterclockwise" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="light"
-                            className="text-danger"
-                            title="Excluir definitivamente"
-                            onClick={() => setConfirm({ kind: 'definitivo', row })}
-                          >
-                            <i className="bi bi-x-octagon" />
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Link
-                            to={`/${entity}/${row.id}`}
-                            className="btn btn-sm btn-light me-1"
-                            title={podeEditar ? 'Editar' : 'Visualizar'}
-                          >
-                            <i className={`bi bi-${podeEditar ? 'pencil' : 'eye'}`} />
-                          </Link>
-                          {podeExcluir && (
+                {data.rows.map((row) => {
+                  const extra = extraDe(row);
+                  if (extra)
+                    return (
+                      <tr
+                        key={`extra-${extra.link ?? ''}-${row.id}`}
+                        className={`linha-extra${extra.link ? ' cursor-pointer' : ''}`}
+                        onClick={() => extra.link && navigate(extra.link)}
+                      >
+                        {selectable && <td className="ps-4 col-check" />}
+                        {cols.map((f) => (
+                          <td key={f.name} className={isNumeric(f) ? 'text-end text-nowrap' : undefined}>
+                            {f.name === (extra.campo ?? ent.labelField) && (
+                              <span className="selo-extra">
+                                {extra.icon && <i className={`bi bi-${extra.icon}`} />}
+                                {extra.rotulo}
+                              </span>
+                            )}
+                            {(f.name !== extra.campo || row[f.name] != null) && renderCell(f, row)}
+                          </td>
+                        ))}
+                        <td className="text-end pe-4 text-nowrap" onClick={(e) => e.stopPropagation()}>
+                          {extra.link && (
+                            <Link to={extra.link} className="btn btn-sm btn-light" title="Abrir">
+                              <i className="bi bi-box-arrow-up-right" />
+                            </Link>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  return (
+                    <tr
+                      key={row.id}
+                      className={`${trash ? '' : 'cursor-pointer'}${selected.has(row.id) ? ' table-active' : ''}`}
+                      onClick={() => !trash && navigate(`/${entity}/${row.id}`)}
+                    >
+                      {selectable && (
+                        <td className="ps-4 col-check" onClick={(e) => e.stopPropagation()}>
+                          <Form.Check
+                            aria-label={`Selecionar ${nomeDe(row)}`}
+                            checked={selected.has(row.id)}
+                            onChange={() => toggleRow(row.id)}
+                          />
+                        </td>
+                      )}
+                      {cols.map((f) => (
+                        <td key={f.name} className={isNumeric(f) ? 'text-end text-nowrap' : undefined}>
+                          {renderCell(
+                            f,
+                            row,
+                            podeEditar && !trash ? { onToggle: toggleInline, busy: toggling === row.id } : undefined,
+                          )}
+                        </td>
+                      ))}
+                      <td className="text-end pe-4 text-nowrap" onClick={(e) => e.stopPropagation()}>
+                        {trash ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="light"
+                              className="me-1"
+                              title="Restaurar"
+                              onClick={() => restoreOne(row)}
+                            >
+                              <i className="bi bi-arrow-counterclockwise" />
+                            </Button>
                             <Button
                               size="sm"
                               variant="light"
                               className="text-danger"
-                              title={ent.lixeira ? 'Enviar à lixeira' : 'Excluir'}
-                              onClick={() => setConfirm({ kind: 'excluir', row })}
+                              title="Excluir definitivamente"
+                              onClick={() => setConfirm({ kind: 'definitivo', row })}
                             >
-                              <i className="bi bi-trash" />
+                              <i className="bi bi-x-octagon" />
                             </Button>
-                          )}
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                          </>
+                        ) : (
+                          <>
+                            <Link
+                              to={`/${entity}/${row.id}`}
+                              className="btn btn-sm btn-light me-1"
+                              title={podeEditar ? 'Editar' : 'Visualizar'}
+                            >
+                              <i className={`bi bi-${podeEditar ? 'pencil' : 'eye'}`} />
+                            </Link>
+                            {podeExcluir && (
+                              <Button
+                                size="sm"
+                                variant="light"
+                                className="text-danger"
+                                title={ent.lixeira ? 'Enviar à lixeira' : 'Excluir'}
+                                onClick={() => setConfirm({ kind: 'excluir', row })}
+                              >
+                                <i className="bi bi-trash" />
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
               {hasTotals && (
                 <tfoot>
@@ -631,7 +668,7 @@ export default function CrudList(props: Props) {
                         {data.totais && f.name in data.totais
                           ? renderTotal(f, data.totais[f.name])
                           : i === 0
-                            ? `Total (${data.total})`
+                            ? `Total (${registros})`
                             : null}
                       </td>
                     ))}

@@ -10,6 +10,7 @@ import PeriodNav from '../src/components/list/PeriodNav';
 import { normalizarIntervalo, rotuloPeriodo } from '../src/lib/periodo';
 import { lembrarLista, paginacao, urlLista } from '../src/lib/listParams';
 import { useOrigem, useVolta } from '../src/lib/voltar';
+import AppSettingsFields from '../src/components/AppSettingsFields';
 import { Link, Route, Routes } from 'react-router-dom';
 
 describe('seletor de mês', () => {
@@ -141,6 +142,42 @@ describe('voltar para onde estava', () => {
     expect(screen.getByRole('heading')).toHaveTextContent('fatura');
     fireEvent.click(screen.getByText('voltar'));
     expect(screen.getByRole('heading')).toHaveTextContent('lista');
+  });
+});
+
+describe('configurações do sistema derivado', () => {
+  it('mostra select/switch com o valor e avisa a mudança', () => {
+    const mudou: [string, unknown][] = [];
+    render(
+      <AppSettingsFields
+        defs={[
+          {
+            chave: 'regime',
+            label: 'Regime',
+            type: 'select',
+            default: 'fatura',
+            options: [
+              { value: 'compra', label: 'Na compra' },
+              { value: 'fatura', label: 'Na fatura' },
+            ],
+            help: 'Vale para o dashboard',
+          },
+          { chave: 'avisar', label: 'Avisar', type: 'boolean', default: false },
+        ]}
+        value={{ regime: 'fatura', avisar: false }}
+        errors={{ regime: 'Opção inválida' }}
+        onChange={(k, v) => mudou.push([k, v])}
+      />,
+    );
+    expect(screen.getByLabelText('Regime')).toHaveValue('fatura');
+    expect(screen.getByText('Vale para o dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Opção inválida')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Regime'), { target: { value: 'compra' } });
+    fireEvent.click(screen.getByLabelText('Avisar'));
+    expect(mudou).toEqual([
+      ['regime', 'compra'],
+      ['avisar', true],
+    ]);
   });
 });
 

@@ -1,7 +1,11 @@
 import {
+  appSettings,
+  appSettingsSchema,
+  defaultAppSettings,
   DEFAULT_SETTINGS,
   PUBLIC_SETTINGS_KEYS,
   settingsSchema,
+  type AppSettings,
   type PublicSettings,
   type Settings,
 } from '@frame/shared';
@@ -68,4 +72,53 @@ export async function resetSettings(db: Db, actor: Actor = SYSTEM_ACTOR): Promis
 export async function getPublicSettings(db: Db): Promise<PublicSettings> {
   const s = await getSettings(db);
   return Object.fromEntries(PUBLIC_SETTINGS_KEYS.map((k) => [k, s[k]])) as PublicSettings;
+}
+
+// ---------------------------------------------------------------- configurações do sistema derivado
+const PREFIXO = 'app.';
+
+/** Configurações próprias do sistema (app/settings.ts), com os padrões no que não foi gravado ou ficou inválido */
+export async function getAppSettings(db: Db): Promise<AppSettings> {
+  const out: AppSettings = defaultAppSettings();
+  if (!appSettings.length) return out;
+  const rows = (await db('configuracoes').where('chave', 'like', `${PREFIXO}%`).select('chave', 'valor')) as {
+    chave: string;
+    valor: string;
+  }[];
+  const schema = appSettingsSchema();
+  for (const { chave, valor } of rows) {
+    const k = chave.slice(PREFIXO.length);
+    if (!(k in out)) continue;
+    const campo = schema.shape[k].safeParse(valor);
+    if (campo.success) out[k] = campo.data as string | number | boolean;
+  }
+  return out;
+}
+
+/** Uma configuração do sistema (no servidor, para as regras da aplicação) */
+export async function getAppSetting<T extends string | number | boolean = string>(db: Db, chave: string): Promise<T> {
+  return (await getAppSettings(db))[chave] as T;
+}
+
+export async function saveAppSettings(db: Db, data: AppSettings, actor: Actor = SYSTEM_ACTOR): Promise<AppSettings> {
+  const atual = await getAppSettings(db);
+  const entries = Object.entries(data).filter(([k, v]) => k in atual && String(v) !== String(atual[k]));
+  if (entries.length) {
+    await db('configuracoes')
+      .insert(entries.map(([k, v]) => ({ chave: `${PREFIXO}${k}`, valor: String(v) })))
+      .onConflict('chave')
+      .merge();
+    const rotulo = (k: string) => appSettings.find((d) => d.chave === k)?.label ?? k;
+    await addLog(
+      db,
+      {
+        entidade: 'sistema',
+        acao: 'configuração',
+        detalhe: `Alterado: ${entries.map(([k]) => rotulo(k)).join(', ')}`,
+        alteracoes: Object.fromEntries(entries.map(([k, v]) => [k, { de: atual[k], para: v }])),
+      },
+      actor,
+    );
+  }
+  return getAppSettings(db);
 }

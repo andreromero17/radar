@@ -4,6 +4,15 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.11.0 — 09/11/2026
+
+- **Configurações próprias do sistema derivado**: `shared/src/app/settings.ts` declara `appSettings`
+  (`select`, `boolean`, `number`, `text`, com padrão, opções e ajuda). Aparecem na tela de Configurações numa seção
+  com o nome do sistema e são gravadas junto (`app.<chave>` na tabela `configuracoes`, com log). API:
+  `GET /api/settings/app` (qualquer logado) e `PUT /api/settings/app` (editar configurações). No servidor:
+  `getAppSetting(db, chave)`; no front: `useAppSettings()` (`lib/appSettings.ts`). "Restaurar padrão" volta também
+  essas
+
 ## 0.10.1 — 09/11/2026
 
 - **Voltar para onde estava**: quem navega passa `state: useOrigem()` e a tela de destino volta com

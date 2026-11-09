@@ -52,3 +52,7 @@ export const mainEntities = () => Object.entries(entities).filter(([, e]) => !e.
 
 /** A entidade aceita importação de CSV/Excel? (padrão: sim, menos núcleo e sub-tabelas) */
 export const canImport = (name: string, ent: EntityDef) => ent.importar ?? (!isCoreEntity(name) && !ent.detailOf);
+
+/** "Novo cliente" / "Nova categoria" (conforme `feminino` da entidade) */
+export const novoRotulo = (ent: Pick<EntityDef, 'singular' | 'feminino'>) =>
+  `${ent.feminino ? 'Nova' : 'Novo'} ${ent.singular.toLowerCase()}`;

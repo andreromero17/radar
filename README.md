@@ -174,6 +174,7 @@ Opções úteis:
 | campo    | `hidden: true`                                | coluna técnica preenchida por hook (fora das telas, filtrável pela URL)                        |
 | campo    | `createOnly: true`                            | só no formulário de criação (ex.: "parcelar em")                                               |
 | campo    | `inlineEdit: true` ou `(row) => boolean`      | booleano com liga/desliga direto na listagem (ex.: "pago")                                     |
+| entidade | `feminino: true`                              | "Nova categoria" em vez de "Novo categoria"                                                    |
 | campo    | `type: 'image'`                               | imagem pequena (logo, foto) no próprio registro; miniatura na lista                            |
 | campo    | `compute: (v) => ...`                         | campo calculado (somente leitura): a tela mostra e a API grava                                 |
 

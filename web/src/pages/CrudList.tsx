@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Alert, Button, Card, Dropdown, Form, InputGroup, Pagination, Spinner, Table } from 'react-bootstrap';
 import {
+  novoRotulo,
   canImport,
   getEntity,
   type BulkRequest,
@@ -343,7 +344,7 @@ export default function CrudList(props: Props) {
         )}
         {!trash && podeCriar && (
           <Link to={`/${entity}/novo`} className="btn btn-primary">
-            <i className="bi bi-plus-lg me-1" /> Novo {ent.singular.toLowerCase()}
+            <i className="bi bi-plus-lg me-1" /> {novoRotulo(ent)}
           </Link>
         )}
       </PageHeader>

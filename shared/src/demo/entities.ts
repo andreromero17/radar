@@ -82,6 +82,7 @@ export const demoEntities: Record<string, EntityDef> = {
   demo_categorias: {
     label: 'Categorias (demo)',
     singular: 'Categoria',
+    feminino: true,
     icon: 'tags',
     labelField: 'nome',
     group: 'Demonstração',

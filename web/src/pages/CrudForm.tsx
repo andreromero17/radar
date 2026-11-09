@@ -18,6 +18,7 @@ import {
 } from '@frame/shared';
 import { api, ApiError, errorMessage } from '../lib/api';
 import { fmtDate } from '../lib/format';
+import { urlLista } from '../lib/listParams';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import PageHeader from '../components/PageHeader';
@@ -184,7 +185,7 @@ export default function CrudForm(props: Props) {
       if (isNew) await api.post(`/${entity}`, body);
       else await api.put(`/${entity}/${id}`, body);
       toast.success(`${ent.singular} ${isNew ? 'criado' : 'atualizado'} com sucesso`);
-      navigate(`/${entity}`);
+      navigate(urlLista(entity));
     } catch (err) {
       if (err instanceof ApiError) setErrors(err.fields);
       toast.error(errorMessage(err));
@@ -209,7 +210,7 @@ export default function CrudForm(props: Props) {
 
   return (
     <>
-      <PageHeader title={title} icon={ent.icon} back={`/${entity}`} subtitle={subtitle} />
+      <PageHeader title={title} icon={ent.icon} back={urlLista(entity)} subtitle={subtitle} />
 
       <Card className="card-app">
         <Card.Body className="p-4">
@@ -262,7 +263,7 @@ export default function CrudForm(props: Props) {
                 />
               ))}
               <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-                <Button variant="light" onClick={() => navigate(`/${entity}`)}>
+                <Button variant="light" onClick={() => navigate(urlLista(entity))}>
                   {readOnly ? 'Voltar' : 'Cancelar'}
                 </Button>
                 {!readOnly && (

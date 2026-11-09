@@ -3,6 +3,8 @@ import request from 'supertest';
 import { entitySchema, type EntityDef } from '@frame/shared';
 import { diffRecord } from '../src/services/logs';
 import { tipoFonte } from '../src/services/fonte';
+import { linhasPdf } from '../src/services/pdf';
+import { readFileSync } from 'node:fs';
 import { makeTestApp, type TestCtx } from './helpers';
 
 // v0.9.0: campo imagem e fonte própria
@@ -99,5 +101,20 @@ describe('fonte própria', () => {
     const r = await ctx.admin.delete('/api/settings/fonte/regular');
     expect(r.body).toMatchObject({ fonte: 'tema', fonte_propria_arquivos: '' });
     expect((await request(ctx.app).get('/api/settings/fonte/regular')).status).toBe(404);
+  });
+});
+
+describe('texto de PDF em linhas', () => {
+  it('agrupa por linha, na ordem da página, separando colunas com espaço largo', async () => {
+    const linhas = await linhasPdf(readFileSync(new URL('./fixtures-fatura.pdf', import.meta.url)));
+    const textos = linhas.map((l) => l.texto);
+    expect(textos[0]).toMatch(/^Fatura Cartão Exemplo/);
+    expect(textos).toContain('07/01 ESTORNO LOJA X   -50,00');
+    expect(textos.find((t) => t.startsWith('28/12'))).toMatch(/263,38.*10\/01 AMAZON MARKETPLACE 01\/02\s+184,54$/);
+    expect(linhas.every((l) => l.pagina === 1)).toBe(true);
+  });
+
+  it('recusa o que não é PDF', async () => {
+    await expect(linhasPdf(Buffer.from('oi'))).rejects.toThrow(/não é um PDF/);
   });
 });

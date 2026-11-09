@@ -18,6 +18,9 @@ novidades, **CORREÇÃO** só corrige.
 - **Seletor de mês** (`MonthPicker`, estilo Mobills): ‹ Janeiro 2025 › e, ao clicar, o ano com os 12 meses para
   pular direto, além dos atalhos (este mês, últimos 30 dias, ano inteiro, todo o período). Usado no período das
   listagens e disponível para as telas do sistema
+- **Texto de PDF** (`server/src/services/pdf.ts`, `linhasPdf`): lê o PDF e devolve as linhas na ordem da página
+  (pedaços agrupados pela altura; espaço largo entre colunas). Base para importar faturas, extratos e outros
+  documentos. Dependência nova: `unpdf`
 - Correção: na exportação para Excel, datas saíam como "31/01/2025 03:00" (fuso); agora só a data
 
 ## 0.8.0 — 09/11/2026

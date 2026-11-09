@@ -24,6 +24,13 @@ export type MenuStyle = (typeof MENU_STYLES)[number];
 export const TEMAS = ['vibrante', 'minimalista'] as const;
 export type Tema = (typeof TEMAS)[number];
 
+/**
+ * Fonte do sistema (o administrador escolhe). 'tema' = a do tema (Vibrante: Nunito; Minimalista: Inter);
+ * 'sistema' = a fonte do aparelho (não baixa nada). As demais vêm do Google Fonts.
+ */
+export const FONTES = ['tema', 'inter', 'nunito', 'roboto', 'open-sans', 'lato', 'source-sans', 'sistema'] as const;
+export type Fonte = (typeof FONTES)[number];
+
 const color = z.string().trim().regex(HEX, 'Use o formato #RRGGBB');
 const dias = 'Entre 0 e 3650 dias';
 
@@ -56,6 +63,7 @@ export const settingsSchema = z.object({
     .refine((v) => v === '' || /^https?:\/\/\S+\.\S+/.test(v), 'Use um endereço completo, começando com https://'),
   estilo_menu: z.enum(MENU_STYLES, { error: 'Estilo inválido' }),
   tema: z.enum(TEMAS, { error: 'Tema inválido' }),
+  fonte: z.enum(FONTES, { error: 'Fonte inválida' }),
 });
 
 /** Atualização parcial: só os campos enviados são validados/gravados */
@@ -79,6 +87,7 @@ export const DEFAULT_SETTINGS: Settings = {
   url_ajuda: '',
   estilo_menu: 'colorido',
   tema: 'vibrante',
+  fonte: 'tema',
 };
 
 /** Campos visíveis sem login (identidade visual da tela de entrada) */
@@ -90,5 +99,6 @@ export const PUBLIC_SETTINGS_KEYS = [
   'cor_secundaria',
   'estilo_menu',
   'tema',
+  'fonte',
 ] as const;
 export type PublicSettings = Pick<Settings, (typeof PUBLIC_SETTINGS_KEYS)[number]>;

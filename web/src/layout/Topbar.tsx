@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ButtonGroup, Dropdown, ToggleButton } from 'react-bootstrap';
-import { APARENCIAS, type Aparencia, type AuthUser } from '@frame/shared';
+import { APARENCIAS, TAMANHOS_TEXTO, type Aparencia, type AuthUser, type TamanhoTexto } from '@frame/shared';
 import { api } from '../lib/api';
 import { Link } from 'react-router-dom';
 import SettingsModal from '../components/SettingsModal';
@@ -14,6 +14,11 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
     if (!user || aparencia === user.aparencia) return;
     setUser({ ...user, aparencia }); // aplica na hora; grava em seguida
     await api.put<AuthUser>('/auth/perfil', { aparencia }).catch(() => {});
+  };
+  const mudarTamanho = async (tamanho_texto: TamanhoTexto) => {
+    if (!user || tamanho_texto === user.tamanho_texto) return;
+    setUser({ ...user, tamanho_texto });
+    await api.put<AuthUser>('/auth/perfil', { tamanho_texto }).catch(() => {});
   };
 
   return (
@@ -61,6 +66,25 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
                     className={`bi bi-${a === 'claro' ? 'sun' : a === 'escuro' ? 'moon-stars' : 'circle-half'} me-1`}
                   />
                   {a === 'sistema' ? 'Auto' : a === 'claro' ? 'Claro' : 'Escuro'}
+                </ToggleButton>
+              ))}
+            </ButtonGroup>
+            <div className="small text-muted mb-1 mt-2">Tamanho do texto</div>
+            <ButtonGroup size="sm" className="w-100 aparencia-group">
+              {TAMANHOS_TEXTO.map((t) => (
+                <ToggleButton
+                  key={t}
+                  id={`tamanho-${t}`}
+                  type="radio"
+                  variant="light"
+                  className="border"
+                  value={t}
+                  checked={(user?.tamanho_texto ?? 'normal') === t}
+                  onChange={() => void mudarTamanho(t)}
+                  aria-label={`Texto ${t}`}
+                  title={t === 'pequeno' ? 'Pequeno' : t === 'grande' ? 'Grande' : 'Normal'}
+                >
+                  <span className={`tamanho-amostra ${t}`}>A</span>
                 </ToggleButton>
               ))}
             </ButtonGroup>

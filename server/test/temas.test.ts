@@ -36,3 +36,33 @@ describe('tema e aparência', () => {
     expect(row.aparencia).not.toBe('claro');
   });
 });
+
+// v0.8.0: fonte do sistema (administrador) e tamanho do texto (cada usuário)
+describe('fonte e tamanho do texto', () => {
+  it('fonte é configuração pública, validada; padrão = a do tema', async () => {
+    expect((await ctx.admin.get('/api/settings/publicas')).body.fonte).toBe('tema');
+    expect((await ctx.admin.put('/api/settings').send({ fonte: 'roboto' })).status).toBe(200);
+    expect((await ctx.admin.get('/api/settings/publicas')).body.fonte).toBe('roboto');
+    const bad = await ctx.admin.put('/api/settings').send({ fonte: 'Comic Sans' });
+    expect(bad.status).toBe(422);
+    expect(bad.body.errors.fonte).toBeTruthy();
+    expect((await ctx.leitura.put('/api/settings').send({ fonte: 'lato' })).status).toBe(403);
+  });
+
+  it('cada usuário escolhe o tamanho do texto', async () => {
+    expect((await ctx.leitura.get('/api/auth/me')).body.tamanho_texto).toBe('normal');
+    const r = await ctx.leitura.put('/api/auth/perfil').send({ tamanho_texto: 'grande' });
+    expect(r.status).toBe(200);
+    expect(r.body.tamanho_texto).toBe('grande');
+    expect((await ctx.leitura.get('/api/auth/me')).body).toMatchObject({
+      tamanho_texto: 'grande',
+      aparencia: 'escuro',
+    });
+    expect((await ctx.admin.get('/api/auth/me')).body.tamanho_texto).toBe('normal');
+    expect((await ctx.leitura.put('/api/auth/perfil').send({ tamanho_texto: 'enorme' })).status).toBe(422);
+    // pelo cadastro de usuários não muda
+    const u = (await ctx.leitura.get('/api/auth/me')).body.id;
+    await ctx.admin.put(`/api/usuarios/${u}`).send({ tamanho_texto: 'pequeno' });
+    expect((await ctx.db('usuarios').where({ id: u }).first()).tamanho_texto).toBe('grande');
+  });
+});

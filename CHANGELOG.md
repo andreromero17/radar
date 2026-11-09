@@ -4,6 +4,18 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.8.0 — 09/11/2026
+
+**Fonte e tamanho do texto**
+
+- **Fonte do sistema** (Configurações → Fonte, administrador): a do tema (Vibrante = Nunito, Minimalista = Inter),
+  Inter, Nunito, Roboto, Open Sans, Lato, Source Sans ou a fonte do aparelho. Prévia de cada uma na tela; o
+  navegador baixa só a escolhida (`web/src/lib/fontes.ts`), e "do aparelho" não baixa nada
+- **Tamanho do texto por usuário** (menu do usuário: A pequeno · A normal · A grande): escala 93,75% / 100% / 112,5%
+  de tudo o que é medido em rem. Gravado no usuário (`usuarios.tamanho_texto`, via `PUT /api/auth/perfil`) e
+  lembrado no navegador para a tela de login
+- Larguras do menu lateral e altura do topo em rem: acompanham o tamanho do texto
+
 ## 0.7.0 — 09/11/2026
 
 **Temas e aparência**

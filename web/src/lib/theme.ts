@@ -1,5 +1,6 @@
-// Aplica as configurações visuais (cores, título, favicon) no documento.
-import type { Aparencia, Settings } from '@frame/shared';
+// Aplica as configurações visuais (cores, fonte, título, favicon) no documento.
+import type { Aparencia, Settings, TamanhoTexto } from '@frame/shared';
+import { applyFonte } from './fontes';
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -31,6 +32,7 @@ export function applyTheme(s: Partial<Settings> | null | undefined) {
   root.setProperty('--brand-1-soft', shade(p, 0.88));
   root.setProperty('--brand-contrast', contrastText(shade(p, -0.05)));
   document.documentElement.dataset.tema = s.tema === 'minimalista' ? 'minimalista' : 'vibrante';
+  applyFonte(s.fonte, s.tema);
 
   if (s.nome_sistema) document.title = s.nome_sistema;
 
@@ -78,6 +80,32 @@ export function cachedAparencia(): Aparencia {
     return v === 'claro' || v === 'escuro' ? v : 'sistema';
   } catch {
     return 'sistema';
+  }
+}
+
+// ---------------------------------------------------------------- tamanho do texto
+const TAMANHO_KEY = 'tamanho_texto';
+
+/**
+ * Tamanho do texto do usuário: muda o tamanho base do <html> (data-texto), e tudo o que é
+ * medido em rem (textos, botões, espaçamentos) acompanha. Também fica no cache local.
+ */
+export function applyTamanho(t: TamanhoTexto | undefined) {
+  const v = t === 'pequeno' || t === 'grande' ? t : 'normal';
+  document.documentElement.dataset.texto = v;
+  try {
+    localStorage.setItem(TAMANHO_KEY, v);
+  } catch {
+    /* armazenamento indisponível */
+  }
+}
+
+export function cachedTamanho(): TamanhoTexto {
+  try {
+    const v = localStorage.getItem(TAMANHO_KEY);
+    return v === 'pequeno' || v === 'grande' ? v : 'normal';
+  } catch {
+    return 'normal';
   }
 }
 

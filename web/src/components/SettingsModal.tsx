@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Button, Col, FloatingLabel, Form, Modal, Row, Spinner } from 'react-bootstrap';
 import {
+  FONTES,
   MAX_LOGO_BYTES,
   MENU_STYLES,
   TEMAS,
@@ -13,6 +14,7 @@ import { ApiError, errorMessage } from '../lib/api';
 import { useSettings } from '../context/SettingsContext';
 import { useToast } from '../context/ToastContext';
 import BrandMark from './BrandMark';
+import { AMOSTRA, carregarAmostras, FONTE_DO_TEMA, FONTES_DEF } from '../lib/fontes';
 import ConfirmModal from './ConfirmModal';
 
 const ICONES = [
@@ -87,6 +89,10 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
   }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pré-visualização ao vivo das cores/nome enquanto edita
+  useEffect(() => {
+    if (show) carregarAmostras();
+  }, [show]);
+
   useEffect(() => {
     if (show) preview(form);
   }, [form, show, preview]);
@@ -294,6 +300,33 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
                   </button>
                 </div>
               ))}
+            </div>
+
+            {/* ---------- Fonte ---------- */}
+            <h6 className="settings-section">
+              Fonte{' '}
+              <span className="text-muted fw-normal small">— o tamanho do texto cada usuário escolhe no seu menu</span>
+            </h6>
+            <div className="fonte-grid mb-1" role="radiogroup" aria-label="Fonte do sistema">
+              {FONTES.map((f) => {
+                const id = f === 'tema' ? FONTE_DO_TEMA[form.tema === 'minimalista' ? 'minimalista' : 'vibrante'] : f;
+                const def = FONTES_DEF[id];
+                return (
+                  <button
+                    type="button"
+                    key={f}
+                    role="radio"
+                    aria-checked={(form.fonte ?? 'tema') === f}
+                    className={`fonte-option ${(form.fonte ?? 'tema') === f ? 'active' : ''}`}
+                    onClick={() => set('fonte', f)}
+                  >
+                    <span className="fonte-amostra" style={{ fontFamily: def.family }}>
+                      {AMOSTRA.slice(0, 5)}
+                    </span>
+                    <span className="fonte-nome">{f === 'tema' ? `Do tema (${def.nome})` : def.nome}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* ---------- Cores ---------- */}

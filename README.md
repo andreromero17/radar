@@ -278,17 +278,20 @@ No menu do usuário → **Configurações** (precisa da permissão "Configuraç�
 - **Cores:** 6 paletas prontas ou cores próprias.
 - **Organização:** dados exibidos no rodapé.
 - **Tema:** Vibrante (colorido) ou Minimalista (neutro e limpo) — vale para todos os usuários.
+- **Fonte:** a do tema ou uma da lista (Inter, Nunito, Roboto, Open Sans, Lato, Source Sans, do aparelho).
 - **Menu e ajuda:** estilo do menu (colorido ou claro; no Minimalista o menu é sempre neutro) e link da Central de
   Ajuda (opcional).
 - **Manutenção:** por quantos dias manter os logs.
 
 Tudo fica salvo no banco e é aplicado na hora. A identidade visual também aparece na tela de login.
 
-Cada usuário escolhe a **aparência** no próprio menu: Automático (segue o aparelho), Claro ou Escuro.
+Cada usuário escolhe no próprio menu a **aparência** (Automático, Claro ou Escuro) e o **tamanho do texto**
+(pequeno, normal ou grande).
 
 **CSS e cores.** As telas usam só tokens (`var(--surface)`, `var(--text-muted)`, `var(--border)`,
 `var(--positive)`, `var(--negative)`, `var(--brand-1)`…), definidos em `web/src/styles.css` para cada tema e modo.
-Nunca escreva cor fixa: ela não acompanha o tema nem o modo escuro. Em gráficos, use `chartTheme()` e
+Nunca escreva cor fixa: ela não acompanha o tema nem o modo escuro. Tamanhos em `rem` (não `px`), para
+acompanharem o tamanho do texto do usuário; a fonte vem de `var(--font)`. Em gráficos, use `chartTheme()` e
 `useThemeVersion()` de `web/src/lib/themeVars.ts`. No celular, itens de menu com `tab: true` viram abas no rodapé.
 
 ## 8. Versão

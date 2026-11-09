@@ -32,6 +32,13 @@ export const coreEntities: Record<string, EntityDef> = {
       { name: 'ultimo_acesso', label: 'Último acesso', type: 'datetime', list: true, readonly: true },
       // preferência do próprio usuário (Meu perfil / menu do usuário); fora das telas de cadastro
       { name: 'aparencia', label: 'Aparência', type: 'select', options: ['sistema', 'claro', 'escuro'], hidden: true },
+      {
+        name: 'tamanho_texto',
+        label: 'Tamanho do texto',
+        type: 'select',
+        options: ['pequeno', 'normal', 'grande'],
+        hidden: true,
+      },
     ],
   },
 

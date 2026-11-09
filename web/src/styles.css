@@ -10,9 +10,9 @@
   --brand-1-soft: #eef2ff;
   --brand-contrast: #ffffff;
 
-  --sidebar-w: 260px;
-  --sidebar-w-collapsed: 78px;
-  --topbar-h: 68px;
+  --sidebar-w: 16.25rem; /* 260px no tamanho normal; cresce com o texto */
+  --sidebar-w-collapsed: 4.875rem;
+  --topbar-h: 4.25rem;
   --sidebar-grad: linear-gradient(180deg, var(--brand-1) 0%, var(--brand-2) 100%);
 
   /* ---- tokens: todo o visual sai daqui (temas e modo escuro só trocam valores) ---- */
@@ -1592,4 +1592,61 @@ a.bg-grad-yellow:hover {
 }
 .aparencia-group .btn {
   flex: 1;
+}
+
+/* ---------- Tamanho do texto (escolha do usuário) ---------- */
+/* tudo o que é medido em rem acompanha o tamanho base do <html> */
+:root[data-texto='pequeno'] {
+  font-size: 93.75%;
+}
+:root[data-texto='grande'] {
+  font-size: 112.5%;
+}
+.tamanho-amostra {
+  font-weight: var(--weight-strong);
+  line-height: 1;
+}
+.tamanho-amostra.pequeno {
+  font-size: 12px;
+}
+.tamanho-amostra.normal {
+  font-size: 15px;
+}
+.tamanho-amostra.grande {
+  font-size: 19px;
+}
+
+/* ---------- Fonte (Configurações) ---------- */
+.fonte-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.6rem;
+}
+.fonte-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+.fonte-option:hover {
+  background: var(--surface-hover);
+}
+.fonte-option.active {
+  border-color: var(--brand-1);
+  box-shadow: 0 0 0 2px rgba(var(--brand-1-rgb), 0.25);
+}
+.fonte-amostra {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.fonte-nome {
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }

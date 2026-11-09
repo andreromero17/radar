@@ -64,6 +64,9 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
   componentes são os mesmos; o tema muda tokens e poucos detalhes de layout (Minimalista: título no topo via
   portal do `PageHeader`). Gráficos: `chartTheme()`/`useThemeVersion()` (`lib/themeVars.ts`). Abas no celular:
   `tab: true` no item de menu. Booleano editável na listagem: `inlineEdit` no campo.
+- **Fonte e tamanho:** `fonte` é configuração do sistema (`lib/fontes.ts` carrega só a escolhida e define `--font`);
+  `tamanho_texto` é do usuário → `data-texto` no `<html>` muda o tamanho base. Medidas em `rem`, nunca `px`
+  (exceto bordas/sombras), para acompanhar o tamanho do texto.
 - **Segredos** (SMTP, tokens) vão no `.env`, nunca na tabela de configurações nem no git.
 - **Acesso:** toda rota de `/api` exige login, exceto `/api/health`, `/api/settings/publicas` e `/api/auth/*`
   (ordem em `app.ts`: helmet → originGuard → authenticate → públicas → requireAuth → system → CRUD).

@@ -41,6 +41,7 @@ describe('login e sessão', () => {
       'cor_primaria',
       'cor_secundaria',
       'estilo_menu',
+      'fonte',
       'icone',
       'logo',
       'nome_sistema',

@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { DEFAULT_SETTINGS, type FieldDef } from '@frame/shared';
-import { applyAparencia, applyTheme, cachedAparencia } from '../src/lib/theme';
+import { DEFAULT_SETTINGS, FONTES, type FieldDef } from '@frame/shared';
+import { applyAparencia, applyTamanho, applyTheme, cachedAparencia, cachedTamanho } from '../src/lib/theme';
+import { FONTES_DEF, fonteEfetiva } from '../src/lib/fontes';
 import { canInline, renderCell } from '../src/components/list/cells';
 import { menu, tabItems, visibleMenu } from '../src/config/menu';
 
@@ -77,5 +78,43 @@ describe('abas no celular', () => {
     expect(abas[0].to).toBe('/');
     const nada = () => false;
     expect(tabItems(visibleMenu(menu, nada)).every((m) => !m.perm)).toBe(true);
+  });
+});
+
+describe('fonte e tamanho do texto', () => {
+  afterEach(() => {
+    document.getElementById('fonte-sistema')?.remove();
+    document.documentElement.style.removeProperty('--font');
+    delete document.documentElement.dataset.texto;
+  });
+
+  it('"do tema" usa Nunito no Vibrante e Inter no Minimalista, baixando só ela', () => {
+    applyTheme({ ...DEFAULT_SETTINGS, tema: 'vibrante', fonte: 'tema' });
+    expect(document.documentElement.style.getPropertyValue('--font')).toMatch(/^'Nunito'/);
+    expect((document.getElementById('fonte-sistema') as HTMLLinkElement).href).toMatch(/family=Nunito/);
+    applyTheme({ ...DEFAULT_SETTINGS, tema: 'minimalista', fonte: 'tema' });
+    expect(document.documentElement.style.getPropertyValue('--font')).toMatch(/^'Inter'/);
+    expect(document.querySelectorAll('#fonte-sistema')).toHaveLength(1);
+  });
+
+  it('fonte escolhida vale para qualquer tema; a do aparelho não baixa nada', () => {
+    applyTheme({ ...DEFAULT_SETTINGS, tema: 'minimalista', fonte: 'roboto' });
+    expect(document.documentElement.dataset.fonte).toBe('roboto');
+    expect((document.getElementById('fonte-sistema') as HTMLLinkElement).href).toMatch(/family=Roboto/);
+    applyTheme({ ...DEFAULT_SETTINGS, fonte: 'sistema' });
+    expect(document.getElementById('fonte-sistema')).toBeNull();
+    expect(document.documentElement.style.getPropertyValue('--font')).toMatch(/system-ui/);
+  });
+
+  it('cada fonte do catálogo tem definição', () => {
+    for (const f of FONTES) expect(FONTES_DEF[fonteEfetiva(f, 'vibrante')]).toBeTruthy();
+  });
+
+  it('tamanho do texto vai para o <html> e fica guardado', () => {
+    applyTamanho('grande');
+    expect(document.documentElement.dataset.texto).toBe('grande');
+    expect(cachedTamanho()).toBe('grande');
+    applyTamanho(undefined);
+    expect(document.documentElement.dataset.texto).toBe('normal');
   });
 });

@@ -68,10 +68,16 @@ export interface AuthUser {
   trocar_senha: boolean;
   /** Modo claro/escuro escolhido pelo usuário ('sistema' = segue o aparelho) */
   aparencia: Aparencia;
+  /** Tamanho do texto escolhido pelo usuário */
+  tamanho_texto: TamanhoTexto;
 }
 
 export const APARENCIAS = ['sistema', 'claro', 'escuro'] as const;
 export type Aparencia = (typeof APARENCIAS)[number];
+
+/** Escala do texto (e de tudo o que é medido em rem): pequeno 93,75% · normal 100% · grande 112,5% */
+export const TAMANHOS_TEXTO = ['pequeno', 'normal', 'grande'] as const;
+export type TamanhoTexto = (typeof TAMANHOS_TEXTO)[number];
 
 export function can(
   user: Pick<AuthUser, 'admin' | 'permissoes'> | null | undefined,

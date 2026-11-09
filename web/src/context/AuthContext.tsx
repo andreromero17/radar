@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useNavigate } from 'react-router-dom';
 import { can as canDo, type Action, type AuthUser } from '@frame/shared';
 import { api, AUTH_EXPIRED, AUTH_MUST_CHANGE_PASSWORD } from '../lib/api';
-import { applyAparencia, cachedAparencia } from '../lib/theme';
+import { applyAparencia, applyTamanho, cachedAparencia, cachedTamanho } from '../lib/theme';
 import { useToast } from './ToastContext';
 
 interface AuthApi {
@@ -28,6 +28,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     applyAparencia(user?.aparencia ?? cachedAparencia());
   }, [user?.aparencia]);
+  useEffect(() => {
+    applyTamanho(user?.tamanho_texto ?? cachedTamanho());
+  }, [user?.tamanho_texto]);
 
   useEffect(() => {
     api

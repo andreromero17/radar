@@ -1,6 +1,6 @@
 import { Router, type CookieOptions, type Request, type Response } from 'express';
 import { z } from 'zod';
-import { APARENCIAS, passwordSchema, toFieldErrors, type SessionInfo } from '@frame/shared';
+import { APARENCIAS, TAMANHOS_TEXTO, passwordSchema, toFieldErrors, type SessionInfo } from '@frame/shared';
 import { COOKIE_NAME, parseCookies, userOf } from '../auth/middleware';
 import { hashPassword, verifyPassword } from '../auth/password';
 import { minutes, RateLimiter } from '../auth/rateLimit';
@@ -237,15 +237,22 @@ export function authRouter(db: Db, opts: AuthOptions) {
 
   router.put('/perfil', async (req, res) => {
     const me = userOf(req);
-    const { nome = me.nome, aparencia } = parse(
+    const {
+      nome = me.nome,
+      aparencia,
+      tamanho_texto,
+    } = parse(
       z.object({
         nome: z.string().trim().min(1, 'Informe o nome').max(120, 'Máximo de 120 caracteres').optional(),
         aparencia: z.enum(APARENCIAS, { error: 'Aparência inválida' }).optional(),
+        tamanho_texto: z.enum(TAMANHOS_TEXTO, { error: 'Tamanho inválido' }).optional(),
       }),
       req.body,
     );
     // preferência visual: sem log (não é dado de cadastro)
     if (aparencia && aparencia !== me.aparencia) await db('usuarios').where({ id: me.id }).update({ aparencia });
+    if (tamanho_texto && tamanho_texto !== me.tamanho_texto)
+      await db('usuarios').where({ id: me.id }).update({ tamanho_texto });
     if (nome !== me.nome) {
       await db('usuarios').where({ id: me.id }).update({ nome, atualizado_em: nowLocal() });
       await addLog(

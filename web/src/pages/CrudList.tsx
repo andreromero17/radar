@@ -23,6 +23,7 @@ import {
   monthRange,
   paginacao,
 } from '../lib/listParams';
+import { useOrigem } from '../lib/voltar';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import Forbidden from './Forbidden';
@@ -74,6 +75,7 @@ export default function CrudList(props: Props) {
   const ent = getEntity(entity);
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
+  const origem = useOrigem();
   const toast = useToast();
   const { can, user } = useAuth();
   const allowed = !!ent && can(entity, 'ver');
@@ -359,7 +361,7 @@ export default function CrudList(props: Props) {
           </Link>
         )}
         {!trash && podeCriar && (
-          <Link to={`/${entity}/novo`} className="btn btn-primary">
+          <Link to={`/${entity}/novo`} state={origem} className="btn btn-primary">
             <i className="bi bi-plus-lg me-1" /> {novoRotulo(ent)}
           </Link>
         )}
@@ -563,7 +565,7 @@ export default function CrudList(props: Props) {
                       <tr
                         key={`extra-${extra.link ?? ''}-${row.id}`}
                         className={`linha-extra${extra.link ? ' cursor-pointer' : ''}`}
-                        onClick={() => extra.link && navigate(extra.link)}
+                        onClick={() => extra.link && navigate(extra.link, { state: origem })}
                       >
                         {selectable && <td className="ps-4 col-check" />}
                         {cols.map((f) => (
@@ -579,7 +581,7 @@ export default function CrudList(props: Props) {
                         ))}
                         <td className="text-end pe-4 text-nowrap" onClick={(e) => e.stopPropagation()}>
                           {extra.link && (
-                            <Link to={extra.link} className="btn btn-sm btn-light" title="Abrir">
+                            <Link to={extra.link} state={origem} className="btn btn-sm btn-light" title="Abrir">
                               <i className="bi bi-box-arrow-up-right" />
                             </Link>
                           )}
@@ -590,7 +592,7 @@ export default function CrudList(props: Props) {
                     <tr
                       key={row.id}
                       className={`${trash ? '' : 'cursor-pointer'}${selected.has(row.id) ? ' table-active' : ''}`}
-                      onClick={() => !trash && navigate(`/${entity}/${row.id}`)}
+                      onClick={() => !trash && navigate(`/${entity}/${row.id}`, { state: origem })}
                     >
                       {selectable && (
                         <td className="ps-4 col-check" onClick={(e) => e.stopPropagation()}>
@@ -636,6 +638,7 @@ export default function CrudList(props: Props) {
                           <>
                             <Link
                               to={`/${entity}/${row.id}`}
+                              state={origem}
                               className="btn btn-sm btn-light me-1"
                               title={podeEditar ? 'Editar' : 'Visualizar'}
                             >

@@ -9,6 +9,8 @@ import { MemoryRouter, useSearchParams } from 'react-router-dom';
 import PeriodNav from '../src/components/list/PeriodNav';
 import { normalizarIntervalo, rotuloPeriodo } from '../src/lib/periodo';
 import { lembrarLista, paginacao, urlLista } from '../src/lib/listParams';
+import { useOrigem, useVolta } from '../src/lib/voltar';
+import { Link, Route, Routes } from 'react-router-dom';
 
 describe('seletor de mês', () => {
   it('meses e nomes', () => {
@@ -100,6 +102,45 @@ describe('listagem: volta do formulário e paginação', () => {
     expect(paginacao(ent, null)).toEqual({ opcoes: [100, 150, 200], pageSize: 200 });
     expect(paginacao(ent, '150').pageSize).toBe(150);
     expect(paginacao(ent, '10').pageSize).toBe(200);
+  });
+});
+
+describe('voltar para onde estava', () => {
+  it('sem origem usa o padrão; com origem volta para ela, em cadeia', () => {
+    function Tela({ nome, proxima, padrao }: { nome: string; proxima?: string; padrao: string }) {
+      const origem = useOrigem();
+      const volta = useVolta(padrao);
+      return (
+        <div>
+          <h1>{nome}</h1>
+          {proxima && (
+            <Link to={proxima} state={origem}>
+              ir
+            </Link>
+          )}
+          <Link to={volta.to} state={volta.state}>
+            voltar
+          </Link>
+        </div>
+      );
+    }
+    render(
+      <MemoryRouter initialEntries={['/lancamentos?data__de=2025-01-01']}>
+        <Routes>
+          <Route path="/lancamentos" element={<Tela nome="lista" proxima="/fatura?m=2025-01" padrao="/" />} />
+          <Route path="/fatura" element={<Tela nome="fatura" proxima="/lancamentos/7" padrao="/cartoes" />} />
+          <Route path="/lancamentos/7" element={<Tela nome="form" padrao="/lancamentos" />} />
+          <Route path="/cartoes" element={<Tela nome="cartoes" padrao="/" />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByText('ir'));
+    fireEvent.click(screen.getByText('ir'));
+    expect(screen.getByRole('heading')).toHaveTextContent('form');
+    fireEvent.click(screen.getByText('voltar'));
+    expect(screen.getByRole('heading')).toHaveTextContent('fatura');
+    fireEvent.click(screen.getByText('voltar'));
+    expect(screen.getByRole('heading')).toHaveTextContent('lista');
   });
 });
 

@@ -3,12 +3,14 @@ import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
 import { useIsDesktop } from '../lib/media';
+import type { Volta } from '../lib/voltar';
 
 interface Props {
   title: string;
   icon?: string;
   subtitle?: ReactNode;
-  back?: string;
+  /** Seta de voltar: caminho ou { to, state } (ver lib/voltar.ts) */
+  back?: string | Volta;
   children?: ReactNode;
 }
 
@@ -29,7 +31,12 @@ export default function PageHeader({ title, icon, subtitle, back, children }: Pr
   }, [noTopo]);
 
   const voltar = back && (
-    <Link to={back} className="btn btn-light btn-sm me-1" aria-label="Voltar">
+    <Link
+      to={typeof back === 'string' ? back : back.to}
+      state={typeof back === 'string' ? undefined : back.state}
+      className="btn btn-light btn-sm me-1"
+      aria-label="Voltar"
+    >
       <i className="bi bi-arrow-left" />
     </Link>
   );

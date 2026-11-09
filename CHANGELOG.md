@@ -4,6 +4,10 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.9.1 — 09/11/2026
+
+- `feminino: true` na entidade: botão e título dizem "Nova categoria" em vez de "Novo categoria" (`novoRotulo`)
+
 ## 0.9.0 — 09/11/2026
 
 **Campo imagem, fonte própria e seletor de mês**

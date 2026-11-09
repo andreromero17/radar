@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button, Card, Col, Form, Row as BsRow, Spinner } from 'react-bootstrap';
 import {
+  novoRotulo,
   computeFields,
   detailEntity,
   detailSums,
@@ -192,7 +193,7 @@ export default function CrudForm(props: Props) {
     }
   };
 
-  const title = `${isNew ? 'Novo' : readOnly ? 'Visualizar' : 'Editar'} ${ent.singular.toLowerCase()}`;
+  const title = isNew ? novoRotulo(ent) : `${readOnly ? 'Visualizar' : 'Editar'} ${ent.singular.toLowerCase()}`;
   const subtitle = record
     ? `Criado em ${fmtDate(record.criado_em, true)}${record.atualizado_em ? ` · atualizado em ${fmtDate(record.atualizado_em, true)}` : ''}`
     : undefined;

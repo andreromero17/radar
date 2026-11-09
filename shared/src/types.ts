@@ -126,6 +126,8 @@ export interface EntityDef {
   label: string;
   /** Nome no singular (botões, mensagens) */
   singular: string;
+  /** Singular feminino: "Nova categoria" em vez de "Novo categoria" */
+  feminino?: boolean;
   /** Ícone do Bootstrap Icons, sem o prefixo "bi-" */
   icon: string;
   /** Campo usado como "nome" do registro em relações, logs e confirmações */

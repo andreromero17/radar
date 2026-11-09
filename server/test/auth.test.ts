@@ -124,14 +124,15 @@ describe('limite de tentativas', () => {
   });
 
   it('janela do limitador expira', () => {
-    const rl = new RateLimiter(2, 1);
+    // janela de 200 ms: com 1 ms, a máquina do CI às vezes passava da janela entre os dois hits (teste instável)
+    const rl = new RateLimiter(2, 200);
     rl.hit('x');
     expect(rl.hit('x')).toBeGreaterThan(0);
     return new Promise<void>((r) =>
       setTimeout(() => {
         expect(rl.blockedFor('x')).toBe(0);
         r();
-      }, 5),
+      }, 250),
     );
   });
 });

@@ -4,6 +4,14 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.9.3 — 09/11/2026
+
+- Formulário volta para a listagem **como ela estava** (mês/período, filtros, página, ordenação), ao salvar, cancelar
+  ou pela seta do título; antes voltava para o mês atual. A listagem guarda a URL no `sessionStorage`
+  (`lembrarLista`/`urlLista` em `lib/listParams.ts`)
+- Entidade escolhe as opções de "registros por página" e o padrão: `pageSizes` e `pageSize` (padrão continua
+  10, 25, 50, 100)
+
 ## 0.9.2 — 09/11/2026
 
 - Seletor de período das listagens: **Período personalizado** (De/Até) abaixo dos atalhos. Aceita só uma das pontas

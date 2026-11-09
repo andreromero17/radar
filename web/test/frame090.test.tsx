@@ -8,6 +8,7 @@ import { renderCell } from '../src/components/list/cells';
 import { MemoryRouter, useSearchParams } from 'react-router-dom';
 import PeriodNav from '../src/components/list/PeriodNav';
 import { normalizarIntervalo, rotuloPeriodo } from '../src/lib/periodo';
+import { lembrarLista, paginacao, urlLista } from '../src/lib/listParams';
 
 describe('seletor de mês', () => {
   it('meses e nomes', () => {
@@ -82,6 +83,23 @@ describe('período personalizado', () => {
     fireEvent.click(screen.getByLabelText('Próximo mês'));
     expect(atual.get('data__de')).toBe('2025-02-01');
     expect(atual.get('data__ate')).toBe('2025-02-28');
+  });
+});
+
+describe('listagem: volta do formulário e paginação', () => {
+  it('o formulário volta para a URL que a listagem guardou (mês, filtros, página)', () => {
+    expect(urlLista('nada')).toBe('/nada');
+    lembrarLista('lancamentos', 'data__de=2025-01-01&data__ate=2025-01-31&page=2');
+    expect(urlLista('lancamentos')).toBe('/lancamentos?data__de=2025-01-01&data__ate=2025-01-31&page=2');
+  });
+
+  it('opções de registros por página da entidade, com padrão próprio', () => {
+    expect(paginacao(undefined, null)).toEqual({ opcoes: [10, 25, 50, 100], pageSize: 10 });
+    expect(paginacao(undefined, '50').pageSize).toBe(50);
+    const ent = { pageSizes: [100, 150, 200], pageSize: 200 };
+    expect(paginacao(ent, null)).toEqual({ opcoes: [100, 150, 200], pageSize: 200 });
+    expect(paginacao(ent, '150').pageSize).toBe(150);
+    expect(paginacao(ent, '10').pageSize).toBe(200);
   });
 });
 

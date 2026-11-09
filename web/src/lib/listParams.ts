@@ -75,6 +75,36 @@ export function activeFilters(
   return out;
 }
 
+// ---------------------------------------------------------------- volta para a listagem
+// A listagem guarda a sua URL (período, filtros, página) para o formulário voltar para o mesmo lugar
+const chaveLista = (entity: string) => `lista:${entity}`;
+export function lembrarLista(entity: string, search: string) {
+  try {
+    sessionStorage.setItem(chaveLista(entity), search);
+  } catch {
+    /* sem storage: volta para a listagem padrão */
+  }
+}
+export function urlLista(entity: string): string {
+  let search = '';
+  try {
+    search = sessionStorage.getItem(chaveLista(entity)) ?? '';
+  } catch {
+    /* idem */
+  }
+  return `/${entity}${search && !search.startsWith('?') ? '?' : ''}${search}`;
+}
+
+// ---------------------------------------------------------------- paginação
+export const PAGE_SIZES_PADRAO = [10, 25, 50, 100];
+/** Opções e tamanho inicial de página da entidade */
+export function paginacao(ent: { pageSizes?: number[]; pageSize?: number } | undefined, pedido: string | null) {
+  const opcoes = ent?.pageSizes?.length ? ent.pageSizes : PAGE_SIZES_PADRAO;
+  const padrao = ent?.pageSize && opcoes.includes(ent.pageSize) ? ent.pageSize : opcoes[0];
+  const n = Number(pedido);
+  return { opcoes, pageSize: opcoes.includes(n) ? n : padrao };
+}
+
 // ---------------------------------------------------------------- períodos
 const pad = (n: number) => String(n).padStart(2, '0');
 export const isoDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;

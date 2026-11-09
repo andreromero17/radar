@@ -13,7 +13,15 @@ import {
   type Row,
 } from '@frame/shared';
 import { api, download, errorMessage } from '../lib/api';
-import { activeFilters, bulkEditableFields, filterableFields, listableFields, monthRange } from '../lib/listParams';
+import {
+  activeFilters,
+  bulkEditableFields,
+  filterableFields,
+  lembrarLista,
+  listableFields,
+  monthRange,
+  paginacao,
+} from '../lib/listParams';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import Forbidden from './Forbidden';
@@ -27,8 +35,6 @@ import FilterPanel from '../components/list/FilterPanel';
 import ColumnChooser from '../components/list/ColumnChooser';
 import BulkEditModal from '../components/list/BulkEditModal';
 import ImportModal from '../components/list/ImportModal';
-
-const PAGE_SIZES = [10, 25, 50, 100];
 
 /** Colunas visíveis: guardadas por usuário e entidade neste navegador */
 const colsKey = (userId: number | undefined, entity: string) => `frame:colunas:${userId ?? 0}:${entity}`;
@@ -71,7 +77,7 @@ export default function CrudList(props: Props) {
 
   const q = params.get('q') || '';
   const page = Number(params.get('page')) || 1;
-  const pageSize = PAGE_SIZES.includes(Number(params.get('pageSize'))) ? Number(params.get('pageSize')) : 10;
+  const { opcoes: pageSizes, pageSize } = paginacao(ent, params.get('pageSize'));
   const sort = params.get('sort') || '';
   const dir = params.get('dir') === 'desc' ? 'desc' : 'asc';
 
@@ -105,6 +111,10 @@ export default function CrudList(props: Props) {
     next.set(`${periodField}__ate`, r.ate);
     setParams(next, { replace: true });
   }, [periodField, params, setParams]);
+  // guarda a URL atual (mês, filtros, página) para o formulário voltar para cá
+  useEffect(() => {
+    if (entity) lembrarLista(entity, params.toString());
+  }, [entity, params]);
   const waitingPeriod =
     !!periodField &&
     !params.has(`${periodField}__de`) &&
@@ -633,7 +643,7 @@ export default function CrudList(props: Props) {
           )}
         </Card.Body>
 
-        {data.total > PAGE_SIZES[0] && (
+        {data.total > pageSizes[0] && (
           <Card.Footer className="bg-body d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div className="d-flex align-items-center gap-2 small text-muted">
               <Form.Select
@@ -643,7 +653,7 @@ export default function CrudList(props: Props) {
                 aria-label="Registros por página"
                 onChange={(e) => update({ pageSize: e.target.value })}
               >
-                {PAGE_SIZES.map((n) => (
+                {pageSizes.map((n) => (
                   <option key={n} value={n}>
                     {n} por página
                   </option>

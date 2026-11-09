@@ -137,6 +137,10 @@ export interface EntityDef {
   lixeira?: boolean;
   /** Campo de data usado no seletor de período da listagem (ex.: mês a mês) */
   periodField?: string;
+  /** Opções de "registros por página" da listagem (padrão: 10, 25, 50, 100) */
+  pageSizes?: number[];
+  /** Registros por página ao abrir a listagem (padrão: a primeira opção de pageSizes) */
+  pageSize?: number;
   /** Ordenação padrão da listagem (padrão: id decrescente) */
   defaultSort?: { field: string; dir: 'asc' | 'desc' };
   /** Grupo na matriz de permissões (padrão: "Cadastros" ou "Acesso" para o núcleo) */

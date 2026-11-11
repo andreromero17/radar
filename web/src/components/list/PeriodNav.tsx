@@ -4,6 +4,7 @@ import type { SetURLSearchParams } from 'react-router-dom';
 import { asMonth, isoDate, monthRange } from '../../lib/listParams';
 import { normalizarIntervalo, rotuloPeriodo, type Intervalo } from '../../lib/periodo';
 import MonthPicker from '../MonthPicker';
+import { guardarPeriodo } from '../../lib/periodoGlobal';
 import { mesIso } from '../../lib/meses';
 
 interface Props {
@@ -23,6 +24,8 @@ export default function PeriodNav({ field, params, setParams }: Props) {
     next.delete('page');
     next.delete(`${field}__de`);
     next.delete(`${field}__ate`);
+    // o período escolhido vale para as outras telas até o usuário trocar (ou sair)
+    guardarPeriodo(range ?? 'todos');
     if (range) {
       if (range.de) next.set(`${field}__de`, range.de);
       if (range.ate) next.set(`${field}__ate`, range.ate);

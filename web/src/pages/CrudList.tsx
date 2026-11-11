@@ -20,10 +20,10 @@ import {
   filterableFields,
   lembrarLista,
   listableFields,
-  monthRange,
   paginacao,
 } from '../lib/listParams';
 import { useOrigem } from '../lib/voltar';
+import { periodoPadrao } from '../lib/periodoGlobal';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import Forbidden from './Forbidden';
@@ -104,17 +104,19 @@ export default function CrudList(props: Props) {
   useEffect(() => setSavedCols(loadCols(key)), [key]);
   useEffect(() => setTerm(q), [q]);
 
-  // Entidade com período: abre no mês atual (a menos que o usuário tenha escolhido outro)
+  // Entidade com período: abre no período escolhido na navegação (ou no mês atual)
   const periodField = ent?.periodField;
   useEffect(() => {
     if (!periodField) return;
     if (params.has(`${periodField}__de`) || params.has(`${periodField}__ate`) || params.get('periodo') === 'todos')
       return;
-    const hoje = new Date();
-    const r = monthRange(hoje.getFullYear(), hoje.getMonth());
+    const r = periodoPadrao();
     const next = new URLSearchParams(params);
-    next.set(`${periodField}__de`, r.de);
-    next.set(`${periodField}__ate`, r.ate);
+    if (!r) next.set('periodo', 'todos');
+    else {
+      if (r.de) next.set(`${periodField}__de`, r.de);
+      if (r.ate) next.set(`${periodField}__ate`, r.ate);
+    }
     setParams(next, { replace: true });
   }, [periodField, params, setParams]);
   // guarda a URL atual (mês, filtros, página) para o formulário voltar para cá

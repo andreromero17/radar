@@ -69,7 +69,8 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
   `tamanho_texto` é do usuário → `data-texto` no `<html>` muda o tamanho base. Medidas em `rem`, nunca `px`
   (exceto bordas/sombras), para acompanhar o tamanho do texto.
 - **Mês:** telas por mês usam `components/MonthPicker` (valor `'AAAA-MM'`, helpers em `lib/meses.ts`); o período
-  das listagens (`PeriodNav`) já usa. Campo `type: 'image'`: data URL reduzida no navegador (`lib/imagem.ts`).
+  das listagens (`PeriodNav`) já usa. O período escolhido vale para a navegação toda (`lib/periodoGlobal.ts`:
+  `periodoPadrao`/`mesPadrao`/`guardarMes`; limpo no login/logout). Campo `type: 'image'`: data URL reduzida no navegador (`lib/imagem.ts`).
 - **Configurações do sistema derivado:** `shared/src/app/settings.ts` (`appSettings`) → seção própria na tela de
   Configurações; servidor `getAppSetting(db, chave)` (`services/settings.ts`), front `useAppSettings()`.
 - **Segredos** (SMTP, tokens) vão no `.env`, nunca na tabela de configurações nem no git.

@@ -562,6 +562,18 @@ export default function CrudList(props: Props) {
               <tbody>
                 {data.rows.map((row) => {
                   const extra = extraDe(row);
+                  if (extra?.separador)
+                    return (
+                      <tr key={`sep-${row.id}-${extra.rotulo}`} className="linha-separadora">
+                        <td colSpan={cols.length + (selectable ? 2 : 1)}>
+                          <span className="pilula-separadora">
+                            {extra.icon && <i className={`bi bi-${extra.icon}`} />}
+                            {extra.rotulo}
+                            {extra.destaque && <strong>{extra.destaque}</strong>}
+                          </span>
+                        </td>
+                      </tr>
+                    );
                   if (extra)
                     return (
                       <tr

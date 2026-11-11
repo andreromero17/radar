@@ -4,6 +4,7 @@ import { can as canDo, type Action, type AuthUser } from '@frame/shared';
 import { api, AUTH_EXPIRED, AUTH_MUST_CHANGE_PASSWORD } from '../lib/api';
 import { applyAparencia, applyTamanho, cachedAparencia, cachedTamanho } from '../lib/theme';
 import { useToast } from './ToastContext';
+import { limparPeriodo } from '../lib/periodoGlobal';
 
 interface AuthApi {
   user: AuthUser | null;
@@ -57,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, senha: string, lembrar: boolean) => {
     const u = await api.post<AuthUser>('/auth/login', { email, senha, lembrar });
+    limparPeriodo(); // novo login começa no mês atual
     setUser(u);
     return u;
   }, []);
@@ -64,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Saída explícita vai para o login "limpo" (sem voltar à última tela de quem saiu)
   const logout = useCallback(async () => {
     await api.post('/auth/logout').catch(() => {});
+    limparPeriodo();
     setUser(null);
     navigate('/login', { replace: true });
   }, [navigate]);

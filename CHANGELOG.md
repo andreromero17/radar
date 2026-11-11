@@ -4,6 +4,13 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.12.0 — 10/11/2026
+
+- **Período da navegação**: o mês/período escolhido no seletor vale para as outras telas até o usuário trocar.
+  Listagem aberta sem período na URL usa o último escolhido (antes: sempre o mês atual). Novo login (ou sair)
+  volta ao mês atual. `lib/periodoGlobal.ts`: `periodoPadrao()`, `mesPadrao()` e `guardarMes()` para telas por
+  mês do sistema derivado (guardado no `sessionStorage`)
+
 ## 0.11.0 — 09/11/2026
 
 - **Configurações próprias do sistema derivado**: `shared/src/app/settings.ts` declara `appSettings`

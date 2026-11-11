@@ -11,6 +11,7 @@ import { normalizarIntervalo, rotuloPeriodo } from '../src/lib/periodo';
 import { lembrarLista, paginacao, urlLista } from '../src/lib/listParams';
 import { useOrigem, useVolta } from '../src/lib/voltar';
 import AppSettingsFields from '../src/components/AppSettingsFields';
+import { guardarMes, lerPeriodo, limparPeriodo, mesPadrao, periodoPadrao } from '../src/lib/periodoGlobal';
 import { Link, Route, Routes } from 'react-router-dom';
 
 describe('seletor de mês', () => {
@@ -178,6 +179,38 @@ describe('configurações do sistema derivado', () => {
       ['regime', 'compra'],
       ['avisar', true],
     ]);
+  });
+});
+
+describe('período escolhido vale para a navegação toda', () => {
+  it('sem escolha = mês atual; escolhido no seletor = o mesmo nas outras telas; limpar volta ao atual', () => {
+    limparPeriodo();
+    const h = new Date();
+    const atual = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}`;
+    expect(mesPadrao()).toBe(atual);
+    expect(periodoPadrao()?.de).toBe(`${atual}-01`);
+
+    let params = new URLSearchParams();
+    function Tela() {
+      const [p, setP] = useSearchParams();
+      params = p;
+      return <PeriodNav field="data" params={p} setParams={setP} />;
+    }
+    render(
+      <MemoryRouter initialEntries={['/?data__de=2025-01-01&data__ate=2025-01-31']}>
+        <Tela />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByLabelText('Próximo mês'));
+    expect(params.get('data__de')).toBe('2025-02-01');
+    expect(lerPeriodo()).toEqual({ de: '2025-02-01', ate: '2025-02-28' });
+    expect(periodoPadrao()).toEqual({ de: '2025-02-01', ate: '2025-02-28' });
+    expect(mesPadrao()).toBe('2025-02');
+
+    guardarMes('2024-12');
+    expect(periodoPadrao()).toEqual({ de: '2024-12-01', ate: '2024-12-31' });
+    limparPeriodo();
+    expect(mesPadrao()).toBe(atual);
   });
 });
 

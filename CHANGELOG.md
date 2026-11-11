@@ -4,6 +4,12 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.12.1 — 10/11/2026
+
+- Linha extra **separadora** na listagem (`__extra.separador`, com `rotulo`, `destaque` e `icon`): ocupa a largura
+  toda, centralizada numa pílula, sem seleção nem edição — para o sistema derivado intercalar, por exemplo, o
+  saldo do final de cada dia
+
 ## 0.12.0 — 10/11/2026
 
 - **Período da navegação**: o mês/período escolhido no seletor vale para as outras telas até o usuário trocar.

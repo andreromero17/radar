@@ -184,6 +184,12 @@ export interface ExtraInfo {
   icon?: string;
   /** Coluna onde o selo aparece (padrão: o labelField); vazia na linha extra = só o selo */
   campo?: string;
+  /**
+   * Linha separadora (ex.: "Saldo do final do dia"): ocupa a largura toda, centralizada, com `rotulo` e o
+   * `destaque` em negrito; sem colunas, seleção nem clique (a não ser que tenha `link`)
+   */
+  separador?: boolean;
+  destaque?: string;
 }
 
 export interface ListResponse<T = Row> {

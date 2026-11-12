@@ -26,6 +26,7 @@ import { useOrigem } from '../lib/voltar';
 import { periodoPadrao } from '../lib/periodoGlobal';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import Forbidden from './Forbidden';
 import NotFound from './NotFound';
 import PageHeader from '../components/PageHeader';
@@ -57,7 +58,7 @@ function saveCols(key: string, cols: string[] | null) {
   }
 }
 
-type Confirm = { kind: 'excluir' | 'definitivo' | 'lote_excluir' | 'lote_definitivo'; row?: Row } | null;
+type Confirm = { kind: 'excluir' | 'definitivo' | 'lote_excluir' | 'lote_definitivo' | 'esvaziar'; row?: Row } | null;
 
 interface Props {
   /** Entidade (padrão: a da URL) — para telas próprias que reaproveitam a listagem genérica */
@@ -78,6 +79,7 @@ export default function CrudList(props: Props) {
   const origem = useOrigem();
   const toast = useToast();
   const { can, user } = useAuth();
+  const { settings } = useSettings();
   const allowed = !!ent && can(entity, 'ver');
   const trash = params.get('lixeira') === '1';
 
@@ -251,6 +253,19 @@ export default function CrudList(props: Props) {
     }
   };
 
+  const esvaziar = async () => {
+    try {
+      const r = await api.post<{ apagados: number }>(`/${entity}/lixeira/esvaziar`, {});
+      toast.success(
+        r.apagados ? `Lixeira esvaziada: ${r.apagados} registro(s) apagado(s)` : 'A lixeira já estava vazia',
+      );
+      setSelected(new Set());
+      load();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  };
+
   const removeOne = async (row: Row, definitivo: boolean) => {
     try {
       const r = await api.del<{ lixeira?: boolean } | null>(`/${entity}/${row.id}${definitivo ? '?definitivo=1' : ''}`);
@@ -294,6 +309,7 @@ export default function CrudList(props: Props) {
     if (c.kind === 'definitivo' && c.row) await removeOne(c.row, true);
     if (c.kind === 'lote_excluir') await runBulk('excluir');
     if (c.kind === 'lote_definitivo') await runBulk('excluir_definitivo');
+    if (c.kind === 'esvaziar') await esvaziar();
   };
 
   const nomeDe = (row?: Row) => String(row?.[ent.labelField] ?? '');
@@ -333,6 +349,16 @@ export default function CrudList(props: Props) {
         : `Excluir ${selected.size} registro(s)? Essa ação não pode ser desfeita.`,
       label: ent.lixeira ? 'Enviar' : 'Excluir',
     },
+    esvaziar: {
+      title: 'Esvaziar lixeira',
+      msg: (
+        <>
+          Apagar para sempre <b>tudo</b> o que está na lixeira de {ent.label.toLowerCase()} (inclusive o que não aparece
+          nesta página ou no período escolhido)? Essa ação não pode ser desfeita.
+        </>
+      ),
+      label: 'Esvaziar',
+    },
     lote_definitivo: {
       title: 'Excluir definitivamente',
       msg: `Excluir ${selected.size} registro(s) para sempre? Essa ação não pode ser desfeita.`,
@@ -362,6 +388,12 @@ export default function CrudList(props: Props) {
             <span className="d-none d-md-inline ms-1">Lixeira</span>
           </Link>
         )}
+        {trash && podeExcluir && data.total > 0 && (
+          <Button variant="outline-danger" onClick={() => setConfirm({ kind: 'esvaziar' })}>
+            <i className="bi bi-trash3-fill" />
+            <span className="d-none d-md-inline ms-1">Esvaziar lixeira</span>
+          </Button>
+        )}
         {!trash && podeCriar && (
           <Link to={`/${entity}/novo`} state={origem} className="btn btn-primary">
             <i className="bi bi-plus-lg me-1" /> {novoRotulo(ent)}
@@ -372,7 +404,10 @@ export default function CrudList(props: Props) {
       {trash && (
         <Alert variant="light" className="border small">
           <i className="bi bi-info-circle me-2" />
-          Registros na lixeira não aparecem nas telas nem nos relatórios. Restaure para voltar a usá-los.
+          Registros na lixeira não aparecem nas telas nem nos relatórios. Restaure para voltar a usá-los.{' '}
+          {settings.dias_lixeira > 0
+            ? `O que está aqui há mais de ${settings.dias_lixeira} dia(s) é apagado de vez automaticamente.`
+            : 'A limpeza automática está desligada (prazo 0 nas Configurações).'}
         </Alert>
       )}
 

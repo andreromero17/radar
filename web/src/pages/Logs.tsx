@@ -15,6 +15,7 @@ const ACAO_COLORS: Record<string, string> = {
   'enviado à lixeira': '#f08c2e',
   restauração: '#2b8a5a',
   'exclusão definitiva': '#a61e1e',
+  'lixeira esvaziada': '#a61e1e',
   'anexo incluído': '#0ea5e9',
   'anexo excluído': '#64748b',
   importação: '#7048e8',

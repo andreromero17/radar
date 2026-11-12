@@ -12,6 +12,7 @@ import {
   listRecords,
   listWithExtras,
   relationOptions,
+  emptyTrash,
   removeRecord,
   restoreRecord,
   updateRecord,
@@ -26,6 +27,7 @@ import { nowLocal } from '../utils/time';
  *   GET    /api/:entity                  lista (busca, filtros, período, ordenação, totais)   [ver]
  *   GET    /api/:entity/opcoes           { value, label } para selects de relação           [logado]
  *   GET    /api/:entity/exportar         CSV ou XLSX com os mesmos filtros (?formato=xlsx)   [ver]
+ *   POST   /api/:entity/lixeira/esvaziar  apaga de vez tudo o que está na lixeira          [excluir]
  *   POST   /api/:entity/lote             ações em lote: excluir, restaurar, editar...         [excluir/editar]
  *   GET    /api/:entity/:id              detalhe                                             [ver]
  *   POST   /api/:entity                  cria                                                [criar]
@@ -158,6 +160,12 @@ export function crudRouter(db: Db, opts: { uploadMaxMb?: number } = {}) {
       }
     }
     res.json(result);
+  });
+
+  router.post('/:entity/lixeira/esvaziar', async (req, res) => {
+    const [table, ent] = resolve(req);
+    assertCan(req, table, 'excluir');
+    res.json({ apagados: await emptyTrash(ctxOf(req), table, ent) });
   });
 
   router.get('/:entity/:id', async (req, res) => {

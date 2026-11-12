@@ -31,7 +31,7 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
 ## Arquitetura (importante)
 
 - **Núcleo × aplicação.** O frame (núcleo) não tem regra de negócio. O sistema construído sobre ele vive só nas
-  pastas `app/`: `shared/src/app/entities.ts`, `shared/src/app/settings.ts`, `server/src/app/` (hooks.ts, routes.ts, seed.ts, maintenance.ts) e `web/src/app/`
+  pastas `app/`: `shared/src/app/entities.ts`, `shared/src/app/settings.ts`, `server/src/app/` (hooks.ts, routes.ts, paineis.ts, seed.ts, maintenance.ts) e `web/src/app/`
   (menu.ts, dashboard.tsx, screens.ts), mais `shared/src/app/info.ts` (nome/versão do sistema),
   `server/src/app/migrations/` e `docs/app/`. Não coloque nada de negócio no núcleo; se algo genérico faltar,
   evolua o núcleo **no repositório do frame** (PR lá) e traga com `git pull upstream main`.
@@ -104,6 +104,12 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
 - **Módulo de demonstração:** `shared/src/demo/`, `server/src/demo/setup.ts`, `web/src/demo/menu.ts`; ligado por
   `DEMO=true` no `.env` (o Vite lê o mesmo arquivo e define `__DEMO__`). Tabelas `demo_*` fora das migrações.
   Telas próprias de exemplo em `web/src/demo/pages.tsx`.
+- **Painéis e relatórios (Fase 4):** fontes de dados `registerDados(nome, { perm, carregar })` e conjuntos
+  `registerConjunto(nome, { dimensoes, carregar, link, sentido })` em `services/paineis.ts`, registrados pelo sistema em
+  `server/src/app/paineis.ts` (`registrarPaineis`); rotas em `routes/paineis.ts` (`/api/dados/:nome`,
+  `/api/relatorios[/:nome]`, `/api/preferencias/:chave`). Web: `<PainelWidgets>` (`components/painel/`, tipos em
+  `lib/paineis.ts`) e a tela `/relatorios/:conjunto` (`pages/Relatorio.tsx`). Gráficos sem cor própria usam
+  `--serie-1..8`. Exemplo completo no módulo de demonstração (`server/src/demo/paineis.ts`, `web/src/demo/painel.tsx`).
 - **Logs:** `addLog(db, entrada, actor)` com `diffRecord()` → coluna `alteracoes` `{ campo: { de, para } }`.
 - **Front:** `AuthContext` (`useAuth`), `RouteGuards` (`RequireAuth`, `PublicOnly`, `Guard`). A camada `lib/api.ts`
   dispara eventos em 401/TROCAR_SENHA. Relações no form usam `GET /api/:entidade/opcoes` (liberado a qualquer logado).

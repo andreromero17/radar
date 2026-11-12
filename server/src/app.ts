@@ -8,6 +8,8 @@ import { SERVER_ROOT } from './config';
 import { authenticate, originGuard, requireAuth } from './auth/middleware';
 import type { Db } from './db/knex';
 import { appRouter } from './app/routes';
+import { registrarPaineis } from './app/paineis';
+import { paineisRouter } from './routes/paineis';
 import { authRouter } from './routes/auth';
 import { crudRouter } from './routes/crud';
 import { systemRouter } from './routes/system';
@@ -42,6 +44,7 @@ export interface AppOptions {
 export function createApp(opts: AppOptions) {
   const { db, logger, dbFile, corsOrigins = [], webDist } = opts;
   const session = { sessionHours: opts.sessionHours ?? 12, rememberDays: opts.rememberDays ?? 30 };
+  registrarPaineis();
   const app = express();
   const uploadMaxMb = opts.uploadMaxMb ?? 10;
   if (opts.uploadDir) configureAnexos({ dir: opts.uploadDir, maxMb: uploadMaxMb });
@@ -117,6 +120,7 @@ export function createApp(opts: AppOptions) {
   // daqui para baixo: só com login (e senha em dia)
   app.use('/api', requireAuth);
   app.use('/api', systemRouter(db, { dbFile })); // antes do CRUD genérico
+  app.use('/api', paineisRouter(db)); // fontes de dados, relatórios dinâmicos e preferências
   app.use('/api', appRouter(db)); // rotas próprias da aplicação
   app.use('/api', crudRouter(db, { uploadMaxMb }));
   app.use('/api', (_req, res) => {

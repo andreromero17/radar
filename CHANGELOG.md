@@ -4,6 +4,27 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.14.0 — 12/11/2026
+
+**Fase 4A + 4B: painéis por configuração e relatório dinâmico**
+
+- **Fontes de dados** (`registerDados` em `server/src/services/paineis.ts`; o sistema registra em
+  `server/src/app/paineis.ts`): `GET /api/dados/:nome?de=&ate=&...` com permissão própria. Formatos: `valores`,
+  `serie`, `ranking`, `tabela` e `partes` (várias de um cálculo só)
+- **Widgets** (`<PainelWidgets id widgets de ate />`, tipos em `web/src/lib/paineis.ts`): card, gráfico
+  (barras/linhas), ranking, tabela ou componente próprio do sistema; mesma fonte = uma chamada só
+- **Personalizar painel**: cada usuário oculta, mostra e reordena os widgets; guardado no servidor (tabela
+  `preferencias`, `GET/PUT /api/preferencias/:chave`), vale em qualquer aparelho; "Restaurar padrão"
+- **Conjuntos** (`registerConjunto`): o sistema entrega movimentos planos (data, valor, dimensões) e o frame monta a
+  **tabela dinâmica** `GET /api/relatorios/:nome?de=&ate=&linhas=&f_<dim>=` (linhas × meses, total, média, opções
+  dos filtros, link de detalhamento por célula)
+- Tela **Relatórios** (`/relatorios` e `/relatorios/:conjunto`): **Evolução** (até 24 meses, gráfico de linhas das
+  linhas marcadas) e **Comparativo** (mês × mês anterior ou média de 3/6/12 meses, diferença e %, colorida pelo
+  sentido do conjunto); agrupar por qualquer dimensão, filtros múltiplos, CSV e **impressão/PDF** com cabeçalho da
+  organização (tudo na URL)
+- Paleta categórica dos gráficos (`--serie-1..8`, claro e escuro) e estilos de impressão
+- Demonstração: "Painel (widgets)" e "Relatório dinâmico" sobre os movimentos de exemplo
+
 ## 0.13.0 — 12/11/2026
 
 - **Esvaziar lixeira**: botão na lixeira de cada entidade (`POST /api/:entity/lixeira/esvaziar`, permissão de excluir)

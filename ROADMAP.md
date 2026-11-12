@@ -77,7 +77,14 @@ _Começa assim que a Fase 2 tiver o essencial; as duas andam juntas._
   Relatórios; botão "+ Novo" para lançar rápido; seletor de mês no topo; cards Saldo atual / Receitas / Despesas;
   gráficos de despesas e receitas por categoria
 
-## Fase 4 — Dashboards e relatórios configuráveis
+## Fase 4 — Dashboards e relatórios configuráveis · 4A e 4B concluídas (12/11/2026, v0.14.0)
+
+- ✅ 4A: fontes de dados + widgets declarativos (card, gráfico, ranking, tabela, componente) e personalização por
+  usuário (ocultar/reordenar, guardada no servidor)
+- ✅ 4B: conjuntos + relatório dinâmico (evolução mês a mês, comparativo com média, filtros, CSV, impressão/PDF com
+  cabeçalho da organização). No finanças: painel em widgets, evolução por categoria, comparativo e fluxo de caixa
+  projetado
+- 4C (próxima): notificações reais
 
 - Widgets declarativos (card, gráfico, tabela, ranking) definidos por config, sem código por sistema
 - Filtro global de período no dashboard

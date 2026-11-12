@@ -5,7 +5,7 @@
 Frame genérico de aplicação web responsiva (menu, CRUD dirigido por configuração, dashboard,
 configurações) que serve de base para vários sistemas. Primeiro sistema em cima dele: gestão de
 finanças pessoais. Interface, mensagens e nomes de tabelas/campos em português do Brasil.
-Roadmap em `ROADMAP.md` (Fases 0, 1 e 2 concluídas).
+Roadmap em `ROADMAP.md` (Fases 0, 1 e 2 concluídas; Fase 3 com as funcionalidades prontas, em uso).
 
 Cada sistema é um repositório derivado deste (remoto `upstream` = frame-app). Regras e contexto do sistema
 derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md

@@ -14,6 +14,8 @@ import Login from './pages/auth/Login';
 import EsqueciSenha from './pages/auth/EsqueciSenha';
 import RedefinirSenha from './pages/auth/RedefinirSenha';
 import TrocarSenha from './pages/auth/TrocarSenha';
+import AceitarConvite from './pages/auth/AceitarConvite';
+import Membros from './pages/Membros';
 
 export default function App() {
   return (
@@ -25,6 +27,7 @@ export default function App() {
       </Route>
       {/* link do e-mail: funciona logado ou não */}
       <Route path="redefinir-senha" element={<RedefinirSenha />} />
+      <Route path="convite/:token" element={<AceitarConvite />} />
 
       <Route element={<RequireAuth passwordChangePage />}>
         <Route path="trocar-senha" element={<TrocarSenha />} />
@@ -52,6 +55,14 @@ export default function App() {
           />
           {/* relatórios dinâmicos (conjuntos registrados no servidor; a permissão vem de cada conjunto) */}
           <Route path="notificacoes" element={<Notificacoes />} />
+          <Route
+            path="membros"
+            element={
+              <Guard resource="membros" action="ver">
+                <Membros />
+              </Guard>
+            }
+          />
           <Route path="relatorios" element={<Relatorios />} />
           <Route path="relatorios/:conjunto" element={<Relatorio />} />
           {/* páginas próprias da aplicação (web/src/app/screens.tsx) */}

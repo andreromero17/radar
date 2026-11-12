@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { canImport, getEntity, toFieldErrors, type BulkResponse, type EntityDef } from '@frame/shared';
 import { assertCan, userOf } from '../auth/middleware';
 import type { Db } from '../db/knex';
+import { ENTIDADES_DA_PLATAFORMA } from '../db/diff';
 import { anexoFile, INLINE_TYPES, listAnexos, removeAnexo, saveAnexo } from '../services/anexos';
 import { buildExport, exportColumns, type ExportFormat } from '../services/export';
 import { importTemplate, previewImport, runImport } from '../services/import';
@@ -45,7 +46,6 @@ import { nowLocal } from '../utils/time';
  * Regras específicas de cada entidade ficam nos hooks.
  */
 /** Entidades do núcleo que moram na PLATAFORMA (as demais ficam no banco do espaço da sessão) */
-export const ENTIDADES_DA_PLATAFORMA = new Set(['usuarios', 'perfis']);
 
 export function crudRouter(bancos: { plataforma: Db; espaco: Db }, opts: { uploadMaxMb?: number } = {}) {
   const router = Router();

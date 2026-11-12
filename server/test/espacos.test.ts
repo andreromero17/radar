@@ -179,6 +179,12 @@ describe('conversão da instalação antiga (um banco só)', () => {
     for (const [t, ent] of Object.entries(fixtureEntities)) await createEntityTable(antigo, t, ent);
     await seedFixtures(antigo);
     await antigo('logs').insert({ entidade: 'clientes', acao: 'criação', criado_em: nowLocal() });
+    await antigo('logs').insert({
+      entidade: 'auth',
+      acao: 'login',
+      detalhe: 'admin@sistema.com',
+      criado_em: nowLocal(),
+    });
     await antigo.destroy();
 
     expect(await precisaConverter(arquivo)).toBe(true);
@@ -201,6 +207,9 @@ describe('conversão da instalação antiga (um banco só)', () => {
     expect(Number((await e1('clientes').count({ n: '*' }).first())?.n)).toBe(5);
     expect(await e1('logs').where({ entidade: 'clientes' }).first()).toBeTruthy();
     expect(await e1('usuarios').whereNot('senha', '!').first()).toBeUndefined();
+    // logs de acesso ficam só na plataforma (membros do espaço não veem logins de ninguém)
+    expect(await e1('logs').where({ entidade: 'auth' }).first()).toBeUndefined();
+    expect(await plat('logs').where({ entidade: 'auth', acao: 'login' }).first()).toBeTruthy();
 
     const app = createApp({
       db: plat,

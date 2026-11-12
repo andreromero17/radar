@@ -19,8 +19,8 @@ import { migrateLatest, migrationStatus } from '../db/migrator';
 import { nowLocal } from '../utils/time';
 import { HttpError } from '../utils/http';
 
-export type Papel = 'dono' | 'editor' | 'leitor';
-export const PAPEIS: Papel[] = ['dono', 'editor', 'leitor'];
+import { PAPEIS, type Papel } from '@frame/shared';
+export { PAPEIS, type Papel };
 
 export interface EspacoInfo {
   id: number;
@@ -213,6 +213,8 @@ export async function adicionarMembro(espacoId: number, usuarioId: number, papel
   if (aberto) await sincronizarUsuarios(espacoId, aberto.db);
 }
 
+const LOGS_SO_DA_PLATAFORMA = ['auth', 'usuarios', 'perfis'];
+
 /**
  * O banco do espaço tem uma cópia LEVE dos usuários que são membros (id, nome, e-mail, ativo) — sem senha —
  * para os nomes nos logs/anexos e as chaves estrangeiras. Quem decide acesso é sempre a plataforma.
@@ -250,10 +252,17 @@ export async function sincronizarUsuarios(espacoId: number, db: Db) {
           criado_em: m.criado_em ?? nowLocal(),
         });
     }
+    // quem saiu do espaço fica na cópia (nomes nos registros antigos), mas inativo
+    const ids = membros.map((m) => m.id);
+    await trx('usuarios')
+      .whereNotIn('id', ids.length ? ids : [0])
+      .update({ ativo: toDbValue(db, false) });
     // nada de credencial no banco do espaço (o backup do espaço é baixável)
     await trx('usuarios').whereNot('senha', '!').update({ senha: '!' });
     await trx('sessoes').del();
     await trx('tokens_senha').del();
+    // logs de acesso e de contas são da plataforma (vieram na cópia da conversão): membros do espaço não os veem
+    await trx('logs').whereIn('entidade', LOGS_SO_DA_PLATAFORMA).del();
   });
 }
 

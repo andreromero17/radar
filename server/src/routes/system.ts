@@ -14,7 +14,7 @@ import {
   type ListResponse,
   type LogRow,
 } from '@frame/shared';
-import { requirePermission, userOf } from '../auth/middleware';
+import { requireAdmin, requirePermission, userOf } from '../auth/middleware';
 import { count, type Db } from '../db/knex';
 import { addLog, type Actor } from '../services/logs';
 import { backupInfo, createBackup } from '../services/backup';
@@ -50,11 +50,12 @@ export function systemRouter(plataforma: Db, db: Db, opts: { arquivo: () => stri
     res.json(await saveAppSettings(db, parsed.data as AppSettings, actor(req)));
   });
 
+  // identidade visual: da PLATAFORMA (vale para todos os espaços) → só administradores alteram
   router.get('/settings', async (_req, res) => {
     res.json(await getSettings(plataforma));
   });
 
-  router.put('/settings', requirePermission('configuracoes', 'editar'), async (req, res) => {
+  router.put('/settings', requireAdmin, async (req, res) => {
     const parsed = settingsUpdateSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       return res.status(422).json({ error: 'Verifique os campos', errors: toFieldErrors(parsed.error) });
@@ -62,20 +63,20 @@ export function systemRouter(plataforma: Db, db: Db, opts: { arquivo: () => stri
     res.json(await saveSettings(plataforma, parsed.data, actor(req)));
   });
 
-  router.delete('/settings', requirePermission('configuracoes', 'editar'), async (req, res) => {
+  router.delete('/settings', requireAdmin, async (req, res) => {
     res.json(await resetSettings(plataforma, actor(req)));
   });
 
   // fonte própria: arquivo cru no corpo (?arquivo=nome.woff2); a leitura é pública (app.ts)
   const rawFonte = express.raw({ type: () => true, limit: '1mb' });
-  router.post('/settings/fonte/:peso', requirePermission('configuracoes', 'editar'), rawFonte, async (req, res) => {
+  router.post('/settings/fonte/:peso', requireAdmin, rawFonte, async (req, res) => {
     if (!pesoValido(req.params.peso)) throw badRequest('Peso inválido (regular ou negrito)');
     if (!Buffer.isBuffer(req.body) || !req.body.length) throw badRequest('Envie o arquivo da fonte');
     const nome = typeof req.query.arquivo === 'string' ? req.query.arquivo : '';
     await salvarFonte(plataforma, req.params.peso, req.body, nome, actor(req));
     res.json(await getSettings(plataforma));
   });
-  router.delete('/settings/fonte/:peso', requirePermission('configuracoes', 'editar'), async (req, res) => {
+  router.delete('/settings/fonte/:peso', requireAdmin, async (req, res) => {
     if (!pesoValido(req.params.peso)) throw badRequest('Peso inválido (regular ou negrito)');
     await removerFonte(plataforma, req.params.peso, actor(req));
     res.json(await getSettings(plataforma));

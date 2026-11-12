@@ -1,5 +1,5 @@
 // =============================================================================
-// Permissões: perfil × recurso × ação.
+// Permissões: (papel no espaço × perfil) × recurso × ação.
 // Recursos = entidades (CRUD) + áreas do sistema (logs, backup, configurações).
 // A mesma função `can()` decide no servidor (bloqueia a rota) e no front
 // (esconde menu e botões).
@@ -61,8 +61,10 @@ export interface AuthUser {
   nome: string;
   email: string;
   perfil: string;
-  /** Perfil com acesso total */
+  /** Perfil com acesso total (administrador da plataforma) */
   admin: boolean;
+  /** Perfil com acesso a todos os dados dos espaços (sem poder na plataforma): o papel decide */
+  completo?: boolean;
   permissoes: Permissions;
   /** Precisa trocar a senha antes de usar o sistema */
   trocar_senha: boolean;
@@ -76,13 +78,33 @@ export interface AuthUser {
   espacos?: EspacoDoUsuario[];
 }
 
+export const PAPEIS = ['dono', 'editor', 'leitor'] as const;
+export type Papel = (typeof PAPEIS)[number];
+export const PAPEL_LABELS: Record<Papel, string> = { dono: 'Dono', editor: 'Editor', leitor: 'Leitor' };
+export const PAPEL_DESCRICOES: Record<Papel, string> = {
+  dono: 'Pode tudo no espaço, inclusive convidar e gerenciar membros, configurações e backup',
+  editor: 'Vê e altera os dados (conforme o perfil de acesso)',
+  leitor: 'Só vê os dados',
+};
+export const TIPOS_ESPACO = ['pessoal', 'holding', 'empresa'] as const;
+export const TIPO_ESPACO_LABELS: Record<string, string> = {
+  pessoal: 'Pessoal',
+  holding: 'Holding',
+  empresa: 'Empresa',
+};
+
 /** Um espaço (as finanças de um assinante: pessoal, holding, empresa...) e o papel do usuário nele */
 export interface EspacoDoUsuario {
   id: number;
   nome: string;
   tipo: string;
-  papel: 'dono' | 'editor' | 'leitor';
+  papel: Papel;
 }
+
+/** Recursos da PLATAFORMA (valem fora dos espaços): só o perfil decide */
+const DA_PLATAFORMA = new Set(['usuarios', 'perfis']);
+/** Recursos do espaço que só o dono acessa (o banco inteiro, configurações do sistema) */
+const SO_DO_DONO = new Set(['backup', 'configuracoes']);
 
 export const APARENCIAS = ['sistema', 'claro', 'escuro'] as const;
 export type Aparencia = (typeof APARENCIAS)[number];
@@ -91,18 +113,34 @@ export type Aparencia = (typeof APARENCIAS)[number];
 export const TAMANHOS_TEXTO = ['pequeno', 'normal', 'grande'] as const;
 export type TamanhoTexto = (typeof TAMANHOS_TEXTO)[number];
 
+/**
+ * Pode executar a ação no recurso?
+ * - Recursos da plataforma (usuários, perfis) e uso fora de um espaço: só o perfil (administrador pode tudo).
+ * - `membros`: todo membro vê; só o dono gerencia.
+ * - Dentro do espaço: dono pode tudo; backup e configurações só o dono; leitor só vê; editor segue o perfil
+ *   (administrador ou perfil "completo" = tudo).
+ */
 export function can(
-  user: Pick<AuthUser, 'admin' | 'permissoes'> | null | undefined,
+  user: Pick<AuthUser, 'admin' | 'permissoes' | 'completo' | 'espaco'> | null | undefined,
   resource: string,
   action: Action,
 ): boolean {
   if (!user) return false;
-  if (user.admin) return true;
   // sub-tabela segue o "pai": ver → ver; criar/editar/excluir linhas → editar o pai
   const pai = getEntity(resource)?.detailOf;
   if (pai) return can(user, pai, action === 'ver' ? 'ver' : 'editar');
-  if (ADMIN_ONLY[resource]?.includes(action)) return false;
-  return user.permissoes[resource]?.includes(action) ?? false;
+  const papel = user.espaco?.papel;
+  if (resource === 'membros') return papel != null && (action === 'ver' || papel === 'dono');
+  const doPerfil = () => {
+    if (user.admin) return true;
+    if (ADMIN_ONLY[resource]?.includes(action)) return false;
+    return user.permissoes[resource]?.includes(action) ?? false;
+  };
+  if (!papel || DA_PLATAFORMA.has(resource)) return doPerfil();
+  if (papel === 'dono') return true;
+  if (SO_DO_DONO.has(resource)) return false;
+  if (papel === 'leitor' && action !== 'ver') return false;
+  return !!user.completo || doPerfil();
 }
 
 /** Remove recursos/ações inexistentes e ordena (normaliza o que vai para o banco) */

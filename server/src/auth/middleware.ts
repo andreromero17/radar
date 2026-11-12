@@ -71,6 +71,12 @@ export const requirePermission =
     next();
   };
 
+/** Só administradores da plataforma (identidade visual, perfis, logs da plataforma) */
+export const requireAdmin: RequestHandler = (req, _res, next) => {
+  if (!userOf(req).admin) throw new HttpError(403, 'Apenas administradores podem fazer isto');
+  next();
+};
+
 /**
  * Proteção contra CSRF: requisições que alteram dados só são aceitas sem
  * cabeçalho Origin (ferramentas como curl) ou vindas de origem conhecida.

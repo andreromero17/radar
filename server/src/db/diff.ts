@@ -8,7 +8,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Knex } from 'knex';
-import type { EntityDef, FieldDef } from '@frame/shared';
+import { entities, type EntityDef, type FieldDef } from '@frame/shared';
+
+/** Entidades cujas tabelas valem na PLATAFORMA (no espaço há só a cópia leve, das migrações do núcleo) */
+export const ENTIDADES_DA_PLATAFORMA = new Set(['usuarios', 'perfis']);
+/** Entidades de cada tipo de banco (o diff compara o espaço com as do espaço) */
+export const entidadesDe = (tipo: 'espaco' | 'plataforma'): Record<string, EntityDef> =>
+  Object.fromEntries(
+    Object.entries(entities).filter(([t]) => ENTIDADES_DA_PLATAFORMA.has(t) === (tipo === 'plataforma')),
+  );
 
 const SYSTEM_COLUMNS = new Set(['id', 'criado_em', 'atualizado_em']);
 

@@ -1,6 +1,13 @@
 import { Router, type CookieOptions, type Request, type Response } from 'express';
 import { z } from 'zod';
-import { APARENCIAS, TAMANHOS_TEXTO, passwordSchema, toFieldErrors, type SessionInfo } from '@frame/shared';
+import {
+  APARENCIAS,
+  TAMANHOS_TEXTO,
+  passwordSchema,
+  toFieldErrors,
+  type AuthUser,
+  type SessionInfo,
+} from '@frame/shared';
 import { COOKIE_NAME, parseCookies, userOf } from '../auth/middleware';
 import { hashPassword, verifyPassword } from '../auth/password';
 import { minutes, RateLimiter } from '../auth/rateLimit';
@@ -14,6 +21,7 @@ import {
   type SessionConfig,
 } from '../auth/sessions';
 import { atualizarCopias, espacosDoUsuario } from '../espacos';
+import { aceitarConvite, novaContaSchema, verConvite } from '../services/membros';
 import { hashToken, newToken } from '../auth/tokens';
 import type { Db } from '../db/knex';
 import { addLog, type Actor } from '../services/logs';
@@ -29,6 +37,13 @@ export interface AuthOptions extends SessionConfig {
 }
 
 const RESET_HOURS = 1;
+
+/** Usuário com os espaços dele e o em uso (o da sessão ou, sem ele, o primeiro): o que o front recebe */
+async function comEspacos(u: AuthUser | null, espacoIdDaSessao: number | null | undefined) {
+  if (!u) return u;
+  const espacos = await espacosDoUsuario(u.id);
+  return { ...u, espacos, espaco: espacos.find((e) => e.id === espacoIdDaSessao) ?? espacos[0] };
+}
 const GENERIC_LOGIN_ERROR = 'E-mail ou senha inválidos.';
 
 const loginSchema = z.object({
@@ -53,6 +68,9 @@ const parse = <T extends z.ZodType>(schema: T, body: unknown): z.infer<T> => {
  *   POST /api/auth/redefinir/validar  confere se o link ainda vale
  *   POST /api/auth/redefinir          define nova senha pelo link
  *   PUT  /api/auth/perfil             altera o próprio nome e/ou a aparência (claro/escuro)
+ *   GET  /api/auth/convites/:token    dados do convite (público)
+ *   POST /api/auth/convites/:token/aceitar  aceita (logado com o e-mail do convite, ou cria a conta)
+ *   POST /api/auth/espaco             troca o espaço em uso nesta sessão
  *   GET  /api/auth/sessoes            sessões abertas do próprio usuário
  *   DELETE /api/auth/sessoes/:id      encerra uma sessão
  *   DELETE /api/auth/sessoes          encerra todas as outras
@@ -113,7 +131,7 @@ export function authRouter(db: Db, opts: AuthOptions) {
     await addLog(db, { entidade: 'auth', registro_id: user.id, acao: 'login', detalhe: email }, actor(req, user));
 
     res.cookie(COOKIE_NAME, token, cookieOptions(lembrar));
-    res.json(await loadAuthUser(db, user.id));
+    res.json(await comEspacos(await loadAuthUser(db, user.id), null));
   });
 
   router.post('/logout', async (req, res) => {
@@ -134,11 +152,55 @@ export function authRouter(db: Db, opts: AuthOptions) {
   });
 
   // Não usa requireAuth: precisa funcionar mesmo quando o usuário deve trocar a senha
+  // ---------- Convites (Fase 5B) ----------
+  // Públicos: quem recebe o link pode não ter conta. O token é a credencial: vale uma vez, 7 dias, só para o
+  // e-mail convidado. Falhas contam no limite por IP (não dá para varrer tokens).
+  const convitesPorIp = new RateLimiter(30, 60 * 60_000);
+  const conviteToken = (req: Request) => {
+    const ip = req.ip ?? 'desconhecido';
+    const bloqueado = convitesPorIp.blockedFor(ip);
+    if (bloqueado) throw tooMany(bloqueado);
+    return String(req.params.token ?? '');
+  };
+  const contarFalha = async <T>(req: Request, fn: () => Promise<T>) => {
+    try {
+      return await fn();
+    } catch (e) {
+      if (e instanceof HttpError && e.status === 400) convitesPorIp.hit(req.ip ?? 'desconhecido');
+      throw e;
+    }
+  };
+
+  router.get('/convites/:token', async (req, res) => {
+    const token = conviteToken(req);
+    const c = await contarFalha(req, () => verConvite(token));
+    const logado = req.auth?.user;
+    res.json({ ...c, logado_como: logado ? { nome: logado.nome, email: logado.email } : null });
+  });
+
+  router.post('/convites/:token/aceitar', async (req, res) => {
+    const token = conviteToken(req);
+    const logado = req.auth;
+    if (logado) {
+      const r = await contarFalha(req, () => aceitarConvite(token, { usuario: logado.user }, req.ip));
+      await definirEspacoDaSessao(db, logado.sessionId, r.espacoId);
+      return res.json({ ok: true, espaco_id: r.espacoId });
+    }
+    const dados = parse(z.object({ nome: novaContaSchema.shape.nome, senha: passwordSchema }), req.body);
+    const r = await contarFalha(req, () => aceitarConvite(token, { nova: dados }, req.ip));
+    const sessao = await createSession(db, opts, r.usuarioId, {
+      lembrar: false,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+    await definirEspacoDaSessao(db, sessao.id, r.espacoId);
+    await db('usuarios').where({ id: r.usuarioId }).update({ ultimo_acesso: nowLocal() });
+    res.cookie(COOKIE_NAME, sessao.token, cookieOptions(false));
+    res.json({ ok: true, espaco_id: r.espacoId });
+  });
+
   router.get('/me', async (req, res) => {
-    const u = userOf(req);
-    const espacos = await espacosDoUsuario(u.id);
-    const espaco = espacos.find((e) => e.id === req.auth?.espacoId) ?? espacos[0];
-    res.json({ ...u, espacos, espaco });
+    res.json(await comEspacos(userOf(req), req.auth?.espacoId));
   });
 
   // Troca o espaço em uso nesta sessão (só para um espaço em que o usuário é membro ativo)
@@ -176,7 +238,7 @@ export function authRouter(db: Db, opts: AuthOptions) {
       { entidade: 'auth', registro_id: me.id, acao: 'senha alterada', detalhe: me.email },
       actor(req, me),
     );
-    res.json(await loadAuthUser(db, me.id));
+    res.json(await comEspacos(await loadAuthUser(db, me.id), req.auth?.espacoId));
   });
 
   router.post('/esqueci', async (req, res) => {
@@ -289,7 +351,7 @@ export function authRouter(db: Db, opts: AuthOptions) {
         actor(req, { id: me.id, nome }),
       );
     }
-    res.json(await loadAuthUser(db, me.id));
+    res.json(await comEspacos(await loadAuthUser(db, me.id), req.auth?.espacoId));
   });
 
   router.get('/sessoes', async (req, res) => {

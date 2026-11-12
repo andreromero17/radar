@@ -105,8 +105,11 @@ _Começa assim que a Fase 2 tiver o essencial; as duas andam juntas._
   espaços, membros) + um banco por espaço, escolhido pela sessão a cada requisição; conversão automática da
   instalação antiga (backup + espaço 1); teste de isolamento que percorre todas as rotas, fontes, relatórios e
   alertas de um espaço procurando dados do outro
-- **5B — Membros:** papéis no espaço no lugar dos perfis, convites por e-mail (link único, 7 dias), inativar/remover,
-  seletor de espaço, criar outros espaços
+- ✅ **5B — Membros** (12/11/2026, v0.17.0): papel no espaço × perfil (dono pode tudo no espaço; editor segue o
+  perfil; leitor só vê; backup e configurações só o dono; usuários, perfis e identidade continuam da plataforma);
+  perfil "Membro" (acesso completo aos dados, nenhum poder na plataforma) para quem entra por convite; convites por
+  e-mail (link único, 7 dias, só para o e-mail convidado, cria a conta se preciso); inativar/reativar/remover, sair;
+  ao menos um dono ativo; seletor de espaço no menu do usuário; criar espaços (quem já é dono ou administrador)
 - **5C — Super usuário:** painel da plataforma (assinantes, espaços, uso), identidade global, acesso de suporte com
   consentimento e auditoria, 2FA
 - **5D — Cadastro e LGPD:** cadastro com confirmação de e-mail, termos e privacidade, baixar meus dados, excluir conta

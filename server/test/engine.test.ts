@@ -160,6 +160,24 @@ describe('lixeira', () => {
     expect(await purgeTrash(ctx.db, entities, 0)).toBe(0);
   });
 
+  it('esvaziar a lixeira apaga de vez só o que está nela, com um log de resumo', async () => {
+    for (const nome of ['Temporário Um', 'Temporário Dois']) {
+      const [id] = await ctx.db('demo_clientes').insert({ nome, tipo_pessoa: 'PF', criado_em: '2026-01-01 00:00:00' });
+      await ctx.admin.delete(`/api/demo_clientes/${id}`);
+    }
+    const antes = Number((await ctx.db('demo_clientes').count({ n: '*' }).first())?.n);
+    expect((await ctx.leitura.post('/api/demo_clientes/lixeira/esvaziar')).status).toBe(403);
+    const r = await ctx.admin.post('/api/demo_clientes/lixeira/esvaziar');
+    expect(r.status).toBe(200);
+    expect(r.body.apagados).toBeGreaterThanOrEqual(2);
+    expect(await ctx.db('demo_clientes').whereNotNull('excluido_em').count({ n: '*' }).first()).toEqual({ n: 0 });
+    expect(Number((await ctx.db('demo_clientes').count({ n: '*' }).first())?.n)).toBe(antes - r.body.apagados);
+    const log = await ctx.db('logs').where({ entidade: 'demo_clientes', acao: 'lixeira esvaziada' }).first();
+    expect(log?.detalhe).toBe(`${r.body.apagados} registro(s) apagado(s) de vez`);
+    expect((await ctx.admin.post('/api/demo_clientes/lixeira/esvaziar')).body.apagados).toBe(0);
+    expect((await ctx.admin.post('/api/demo_categorias/lixeira/esvaziar')).status).toBe(400);
+  });
+
   it('ver a lixeira exige permissão de excluir', async () => {
     expect((await ctx.leitura.get('/api/clientes?lixeira=1')).status).toBe(403);
   });

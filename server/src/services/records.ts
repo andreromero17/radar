@@ -493,6 +493,23 @@ export async function relationOptions(db: Db, table: string, ent: EntityDef, que
   return rows.map((r) => ({ value: r.id as number, label: String(r.label ?? r.id) }));
 }
 
+/** Esvazia a lixeira de uma entidade agora (botão "Esvaziar lixeira"): apaga de vez, com um log de resumo. */
+export async function emptyTrash(c: OpCtx, table: string, ent: EntityDef) {
+  if (!ent.lixeira) throw new HttpError(400, 'Esta entidade não usa lixeira');
+  return inTransaction(c, ent, async (c) => {
+    const ids = (await c.db(table).whereNotNull(TRASH_COLUMN).select('id')).map((r) => Number(r.id));
+    if (!ids.length) return 0;
+    for (let i = 0; i < ids.length; i += 500) await deleteDependents(c.db, table, ent, ids.slice(i, i + 500));
+    await c.db(table).whereNotNull(TRASH_COLUMN).del();
+    await addLog(
+      c.db,
+      { entidade: table, acao: 'lixeira esvaziada', detalhe: `${ids.length} registro(s) apagado(s) de vez` },
+      actorOf(c),
+    );
+    return ids.length;
+  });
+}
+
 /** Esvazia da lixeira o que está lá há mais de `dias` (0 = nunca). Retorna quantos apagou. */
 export async function purgeTrash(db: Db, entities: Record<string, EntityDef>, dias: number) {
   if (!dias) return 0;

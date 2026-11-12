@@ -4,6 +4,14 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.13.0 — 12/11/2026
+
+- **Esvaziar lixeira**: botão na lixeira de cada entidade (`POST /api/:entity/lixeira/esvaziar`, permissão de excluir)
+  apaga de vez tudo o que está nela — anexos e linhas de sub-tabelas juntos — com um log de resumo ("lixeira
+  esvaziada")
+- A lixeira passa a dizer o prazo da limpeza automática (`dias_lixeira` das Configurações, padrão 30 dias), que já
+  rodava na manutenção diária mas não aparecia na tela
+
 ## 0.12.1 — 10/11/2026
 
 - Linha extra **separadora** na listagem (`__extra.separador`, com `rotulo`, `destaque` e `icon`): ocupa a largura

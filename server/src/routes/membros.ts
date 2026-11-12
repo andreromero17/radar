@@ -3,6 +3,7 @@ import { requirePermission, userOf } from '../auth/middleware';
 import { definirEspacoDaSessao } from '../auth/sessions';
 import type { Db } from '../db/knex';
 import { espacoAtivo, espacosDoUsuario, plataformaDb } from '../espacos';
+import { liberacaoAtiva, liberacaoSchema, liberarSuporte, revogarSuporte } from '../espacos/suporte';
 import type { Actor } from '../services/logs';
 import type { Mailer } from '../services/mailer';
 import {
@@ -33,6 +34,9 @@ import { HttpError } from '../utils/http';
  *   POST   /api/membros/convites              { email, papel }                         (dono)
  *   POST   /api/membros/convites/:id/reenviar link novo, prazo renovado                (dono)
  *   DELETE /api/membros/convites/:id          cancela                                  (dono)
+ *   GET    /api/suporte                       liberação do suporte em vigor + histórico
+ *   POST   /api/suporte                       { horas: 24|72|168, papel: leitor|editor } (dono)
+ *   DELETE /api/suporte                       revoga (quem estiver dentro sai na hora)  (dono)
  *   PUT    /api/espaco                        { nome, tipo } do espaço em uso          (dono)
  *   POST   /api/espacos                       { nome, tipo } cria um espaço e entra nele
  */
@@ -97,6 +101,28 @@ export function membrosRouter(plataforma: Db, opts: { mailer: Mailer; appUrl: st
 
   router.delete('/membros/convites/:id', gerencia, async (req, res) => {
     await cancelarConvite(espacoId(), idDe(req.params.id), actor(req));
+    res.status(204).end();
+  });
+
+  // ---------- acesso do suporte (só o dono libera/revoga; todos os membros veem se está liberado) ----------
+  router.get('/suporte', requirePermission('membros', 'ver'), async (_req, res) => {
+    const id = espacoId();
+    const historico = await espacoAtivo()
+      .db('logs')
+      .where({ entidade: 'suporte' })
+      .orderBy('id', 'desc')
+      .limit(30)
+      .select('acao', 'detalhe', 'usuario', 'criado_em');
+    res.json({ liberacao: await liberacaoAtiva(id), historico });
+  });
+
+  router.post('/suporte', gerencia, async (req, res) => {
+    const dados = lerOuFalhar(liberacaoSchema, req.body);
+    res.status(201).json(await liberarSuporte(espacoId(), dados, actor(req)));
+  });
+
+  router.delete('/suporte', gerencia, async (req, res) => {
+    await revogarSuporte(espacoId(), actor(req));
     res.status(204).end();
   });
 

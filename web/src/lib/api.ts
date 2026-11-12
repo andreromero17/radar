@@ -15,6 +15,7 @@ export class ApiError extends Error {
 /** Eventos globais disparados pela camada de API (ouvidos pelo AuthContext) */
 export const AUTH_EXPIRED = 'auth:expired';
 export const AUTH_MUST_CHANGE_PASSWORD = 'auth:trocar-senha';
+export const AUTH_MUST_SETUP_2FA = 'auth:configurar-2fa';
 
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
   // arquivos vão crus no corpo (a API lê application/octet-stream)
@@ -31,6 +32,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
     // Sessão expirada fora das rotas de login: avisa o app para voltar à tela de entrada
     if (res.status === 401 && !url.startsWith('/auth/')) window.dispatchEvent(new Event(AUTH_EXPIRED));
     if (err?.code === 'TROCAR_SENHA') window.dispatchEvent(new Event(AUTH_MUST_CHANGE_PASSWORD));
+    if (err?.code === 'CONFIGURAR_2FA') window.dispatchEvent(new Event(AUTH_MUST_SETUP_2FA));
     throw new ApiError(err?.error || `Erro ${res.status}`, res.status, err?.errors, err?.code);
   }
   return data as T;

@@ -31,6 +31,8 @@ const schema = z.object({
   REMEMBER_DAYS: z.coerce.number().int().positive().max(365).default(30),
   /** Cookie só trafega em HTTPS. Padrão: ligado em produção */
   COOKIE_SECURE: z.enum(['true', 'false']).optional(),
+  /** Administradores precisam da verificação em duas etapas (Fase 5C). Padrão: ligado em produção */
+  ADMIN_2FA_OBRIGATORIO: z.enum(['true', 'false']).optional(),
   /** Número de proxies na frente do servidor (para obter o IP real). 0 = nenhum */
   TRUST_PROXY: z.coerce.number().int().min(0).default(0),
 
@@ -52,7 +54,11 @@ const schema = z.object({
   DEMO: z.enum(['true', 'false']).default('false'),
 });
 
-export type Config = Omit<z.infer<typeof schema>, 'COOKIE_SECURE' | 'SMTP_SECURE' | 'DEMO'> & {
+export type Config = Omit<
+  z.infer<typeof schema>,
+  'COOKIE_SECURE' | 'SMTP_SECURE' | 'DEMO' | 'ADMIN_2FA_OBRIGATORIO'
+> & {
+  admin2faObrigatorio: boolean;
   demo: boolean;
   dbFile: string;
   espacosDir: string;
@@ -69,11 +75,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     console.error(`\n✖ Configuração inválida em server/.env:\n${lines}\n`);
     process.exit(1);
   }
-  const { COOKIE_SECURE, SMTP_SECURE, DEMO, ...c } = parsed.data;
+  const { COOKIE_SECURE, SMTP_SECURE, DEMO, ADMIN_2FA_OBRIGATORIO, ...c } = parsed.data;
   return {
     ...c,
     cookieSecure: COOKIE_SECURE ? COOKIE_SECURE === 'true' : c.NODE_ENV === 'production',
     smtpSecure: SMTP_SECURE === 'true',
+    admin2faObrigatorio: ADMIN_2FA_OBRIGATORIO ? ADMIN_2FA_OBRIGATORIO === 'true' : c.NODE_ENV === 'production',
     demo: DEMO === 'true',
     uploadDir: path.resolve(SERVER_ROOT, c.UPLOAD_DIR),
     espacosDir: path.resolve(SERVER_ROOT, c.ESPACOS_DIR),

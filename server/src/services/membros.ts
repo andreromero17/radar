@@ -156,6 +156,11 @@ export async function removerMembro(espacoId: number, usuarioId: number, actor: 
       .update({ dono_id: outro?.usuario_id ?? null });
   }
   await ressincronizar(espacoId);
+  // o que era só dele neste espaço sai junto (avisos e preferências de tela)
+  await comEspaco(espacoId, async (db) => {
+    await db('notificacoes').where({ usuario_id: usuarioId }).del();
+    await db('preferencias').where({ usuario_id: usuarioId }).del();
+  });
   const saiu = actor.id === usuarioId;
   await logEspaco(espacoId, saiu ? 'saiu do espaço' : 'membro removido', `${m.nome} (${m.email})`, actor, usuarioId);
 }

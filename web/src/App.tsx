@@ -15,6 +15,8 @@ import EsqueciSenha from './pages/auth/EsqueciSenha';
 import RedefinirSenha from './pages/auth/RedefinirSenha';
 import TrocarSenha from './pages/auth/TrocarSenha';
 import AceitarConvite from './pages/auth/AceitarConvite';
+import ConfigurarDoisFatores from './pages/auth/ConfigurarDoisFatores';
+import Plataforma from './pages/Plataforma';
 import Membros from './pages/Membros';
 
 export default function App() {
@@ -31,6 +33,9 @@ export default function App() {
 
       <Route element={<RequireAuth passwordChangePage />}>
         <Route path="trocar-senha" element={<TrocarSenha />} />
+      </Route>
+      <Route element={<RequireAuth configurar2faPage />}>
+        <Route path="configurar-2fa" element={<ConfigurarDoisFatores />} />
       </Route>
 
       <Route element={<RequireAuth />}>
@@ -55,6 +60,14 @@ export default function App() {
           />
           {/* relatórios dinâmicos (conjuntos registrados no servidor; a permissão vem de cada conjunto) */}
           <Route path="notificacoes" element={<Notificacoes />} />
+          <Route
+            path="plataforma"
+            element={
+              <Guard resource="plataforma" action="ver">
+                <Plataforma />
+              </Guard>
+            }
+          />
           <Route
             path="membros"
             element={

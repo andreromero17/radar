@@ -45,3 +45,63 @@ export interface ConvitePublico {
   tem_conta: boolean;
   logado_como?: { nome: string; email: string } | null;
 }
+
+// ---------------------------------------------------------------- Fase 5C: suporte e plataforma
+
+/** Liberação do acesso de suporte dada pelo dono */
+export interface LiberacaoSuporte {
+  id: number;
+  papel: Papel;
+  liberado_por: string | null;
+  liberado_em: string;
+  expira_em: string;
+}
+
+/** GET /api/suporte */
+export interface SuporteResposta {
+  liberacao: LiberacaoSuporte | null;
+  historico: { acao: string; detalhe: string; usuario: string; criado_em: string }[];
+}
+
+export interface EspacoPlataforma {
+  id: number;
+  nome: string;
+  tipo: string;
+  ativo: boolean;
+  criado_em: string;
+  dono: string | null;
+  dono_email: string | null;
+  membros: number;
+  convites: number;
+  /** Bytes do banco do espaço */
+  tamanho: number;
+  ultimo_acesso: string | null;
+  suporte: LiberacaoSuporte | null;
+}
+
+export interface UsuarioPlataforma {
+  id: number;
+  nome: string;
+  email: string;
+  perfil: string;
+  admin: boolean;
+  ativo: boolean;
+  dois_fatores: boolean;
+  ultimo_acesso: string | null;
+  criado_em: string;
+  espacos: number;
+}
+
+/** GET /api/plataforma (só metadados) */
+export interface PlataformaResposta {
+  totais: {
+    usuarios: number;
+    espacos: number;
+    membros: number;
+    sessoes: number;
+    tamanho: number;
+    sem_2fa_admin: number;
+  };
+  espacos: EspacoPlataforma[];
+  usuarios: UsuarioPlataforma[];
+}

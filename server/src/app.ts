@@ -16,6 +16,8 @@ import { notificacoesRouter } from './routes/notificacoes';
 import { authRouter } from './routes/auth';
 import { crudRouter } from './routes/crud';
 import { membrosRouter } from './routes/membros';
+import { configurarDoisFatores } from './services/doisFatores';
+import { plataformaRouter } from './routes/plataforma';
 import { systemRouter } from './routes/system';
 import type { Mailer } from './services/mailer';
 import { configureAnexos } from './services/anexos';
@@ -35,6 +37,8 @@ export interface AppOptions {
   sessionHours?: number;
   rememberDays?: number;
   cookieSecure?: boolean;
+  /** Verificação em duas etapas obrigatória para administradores (padrão: não) */
+  admin2faObrigatorio?: boolean;
   /** Quantos proxies confiáveis na frente do servidor (IP real do cliente) */
   trustProxy?: number;
   /** Pasta dos anexos e limite de tamanho (MB) de upload/importação */
@@ -51,6 +55,7 @@ export function createApp(opts: AppOptions) {
   const { db, logger, corsOrigins = [], webDist } = opts;
   const session = { sessionHours: opts.sessionHours ?? 12, rememberDays: opts.rememberDays ?? 30 };
   registrarPaineis();
+  configurarDoisFatores({ exigirParaAdmin: !!opts.admin2faObrigatorio });
   const app = express();
   const uploadMaxMb = opts.uploadMaxMb ?? 10;
   if (opts.uploadDir) configureAnexos({ dir: opts.uploadDir, maxMb: uploadMaxMb });
@@ -125,6 +130,7 @@ export function createApp(opts: AppOptions) {
 
   // daqui para baixo: só com login (e senha em dia), DENTRO do espaço da sessão — `dbEspaco` é o banco dele
   app.use('/api', requireAuth);
+  app.use('/api', plataformaRouter(db)); // antes do espaço: o administrador pode não estar em nenhum
   app.use('/api', resolverEspaco(db));
   const arquivo = () => arquivoEspaco(espacoAtivo().espacoId);
   app.use('/api', systemRouter(db, dbEspaco, { arquivo })); // antes do CRUD genérico

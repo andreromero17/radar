@@ -10,12 +10,12 @@ import { purgeLogs } from './services/logs';
 import { createMailer } from './services/mailer';
 import { registrarPaineis } from './app/paineis';
 import { enviarResumos, purgeNotificacoes, verificarAlertas } from './services/notificacoes';
-import { setupDemo } from './demo/setup';
+import { registerDemo, setupDemo } from './demo/setup';
 import { getSettings } from './services/settings';
 import { purgeTrash } from './services/records';
 import { appMaintenance } from './app/maintenance';
 import { configureAnexos } from './services/anexos';
-import { comEspaco, configurarEspacos, criarEspaco, fecharEspacos, idsEspacosAtivos } from './espacos';
+import { aoAbrirEspaco, comEspaco, configurarEspacos, criarEspaco, fecharEspacos, idsEspacosAtivos } from './espacos';
 import { converterInstalacaoUnica, garantirEspacoInicial } from './espacos/conversao';
 import { entities } from '@frame/shared';
 
@@ -45,17 +45,15 @@ if (pending.length) {
   logger.info({ applied }, 'migrações da plataforma aplicadas');
 }
 // espaços: em dev migram ao abrir; em produção um espaço desatualizado não abre (rode db:migrate no deploy)
+if (config.demo) {
+  // em cada espaço que abrir: tabelas de exemplo (e dados, se vazias)
+  aoAbrirEspaco((edb) => setupDemo(edb));
+  registerDemo();
+  logger.info('módulo de demonstração ativo');
+}
 configurarEspacos({ plataforma: db, dir: config.espacosDir, autoMigrar: !producao });
 const inicial = await garantirEspacoInicial(db, criarEspaco);
 if (inicial) logger.info({ espaco: inicial }, 'espaço inicial criado');
-
-if (config.demo) {
-  const [primeiro] = await idsEspacosAtivos();
-  if (primeiro) {
-    const populou = await comEspaco(primeiro, (edb) => setupDemo(edb));
-    logger.info(populou ? 'módulo de demonstração ativo (dados de exemplo criados)' : 'módulo de demonstração ativo');
-  }
-}
 
 const mailer = createMailer(config, logger);
 registrarPaineis(); // fontes, conjuntos e alertas do sistema (antes da primeira verificação)
@@ -104,6 +102,7 @@ const app = createApp({
   sessionHours: config.SESSION_HOURS,
   rememberDays: config.REMEMBER_DAYS,
   cookieSecure: config.cookieSecure,
+  admin2faObrigatorio: config.admin2faObrigatorio,
   trustProxy: config.TRUST_PROXY,
   uploadDir: config.uploadDir,
   uploadMaxMb: config.UPLOAD_MAX_MB,

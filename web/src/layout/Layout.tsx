@@ -7,6 +7,10 @@ import { menu, tabItems } from '../config/menu';
 import { useIsDesktop } from '../lib/media';
 import { useSettings } from '../context/SettingsContext';
 import { useNewVersion } from '../lib/version';
+import { useAuth } from '../context/AuthContext';
+import { api } from '../lib/api';
+import { fmtDate } from '../lib/format';
+import { recarregarNoEspaco } from '../lib/espacos';
 
 export default function Layout() {
   const isDesktop = useIsDesktop();
@@ -20,6 +24,7 @@ export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { pathname } = useLocation();
   const { settings } = useSettings();
+  const { user } = useAuth();
   const contato = [settings.telefone, settings.email, settings.endereco].filter(Boolean);
 
   useEffect(() => setMobileOpen(false), [pathname]);
@@ -48,6 +53,22 @@ export default function Layout() {
       />
       <div className="app-main">
         <Topbar onMenu={() => setMobileOpen(true)} />
+        {user?.espaco?.suporte && (
+          <div className="suporte-bar" role="status">
+            <i className="bi bi-headset" />
+            <span>
+              Modo suporte em <b>{user.espaco.nome}</b> (
+              {user.espaco.papel === 'editor' ? 'pode alterar' : 'só leitura'}) até{' '}
+              {fmtDate(user.espaco.suporte.ate, true)}. Tudo fica no log do espaço.
+            </span>
+            <button
+              className="btn btn-sm btn-light"
+              onClick={() => void api.post('/plataforma/suporte/sair', {}).finally(recarregarNoEspaco)}
+            >
+              Sair do suporte
+            </button>
+          </div>
+        )}
         {novaVersao && (
           <div className="new-version-bar" role="status">
             <i className="bi bi-stars" />

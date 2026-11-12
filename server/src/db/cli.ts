@@ -164,6 +164,12 @@ try {
         senha: await hashPassword(senha),
         trocar_senha: 1,
         ativo: 1,
+        // recuperar acesso também desliga a verificação em duas etapas (celular perdido): configura de novo ao entrar
+        dois_fatores: 0,
+        segredo_2fa: null,
+        segredo_2fa_pendente: null,
+        segredo_2fa_recuperacao: null,
+        segredo_2fa_passo: null,
         atualizado_em: nowLocal(),
       };
       const existente = await db('usuarios').where({ email }).first('id');

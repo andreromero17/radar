@@ -12,7 +12,13 @@ const FullPageSpinner = () => (
 );
 
 /** Exige login. Se a troca de senha for obrigatória, só libera a tela de troca. */
-export function RequireAuth({ passwordChangePage = false }: { passwordChangePage?: boolean }) {
+export function RequireAuth({
+  passwordChangePage = false,
+  configurar2faPage = false,
+}: {
+  passwordChangePage?: boolean;
+  configurar2faPage?: boolean;
+}) {
   const { user, loading } = useAuth();
   const location = useLocation();
   if (loading) return <FullPageSpinner />;
@@ -21,7 +27,9 @@ export function RequireAuth({ passwordChangePage = false }: { passwordChangePage
     return <Navigate to={next === '/' ? '/login' : `/login?next=${encodeURIComponent(next)}`} replace />;
   }
   if (user.trocar_senha && !passwordChangePage) return <Navigate to="/trocar-senha" replace />;
-  if (!passwordChangePage && user.espacos && user.espacos.length === 0) return <SemEspaco />;
+  if (!user.trocar_senha && user.exige_2fa && !configurar2faPage) return <Navigate to="/configurar-2fa" replace />;
+  if (configurar2faPage && !user.exige_2fa) return <Navigate to="/" replace />;
+  if (!passwordChangePage && !configurar2faPage && user.espacos && user.espacos.length === 0) return <SemEspaco />;
   return <Outlet />;
 }
 

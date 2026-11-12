@@ -18,6 +18,7 @@ import { useToast } from '../context/ToastContext';
 import PageHeader from '../components/PageHeader';
 import ConfirmModal from '../components/ConfirmModal';
 import EspacoModal from '../components/EspacoModal';
+import SuporteCard from '../components/SuporteCard';
 
 const COR_PAPEL: Record<Papel, string> = { dono: 'primary', editor: 'success', leitor: 'secondary' };
 
@@ -260,6 +261,8 @@ export default function Membros() {
         </Card>
       )}
 
+      {!user?.espaco?.suporte && <SuporteCard dono={gerencia} />}
+
       <Card className="card-app mb-3">
         <Card.Body className="small text-muted">
           <div className="fw-semibold text-body mb-2">Papéis</div>
@@ -271,7 +274,7 @@ export default function Membros() {
               <span>{PAPEL_DESCRICOES[p]}</span>
             </div>
           ))}
-          {dados.papel !== 'dono' && (
+          {dados.papel !== 'dono' && !user?.espaco?.suporte && (
             <Button variant="link" className="text-danger px-0 mt-2 text-decoration-none" onClick={sair}>
               <i className="bi bi-box-arrow-right me-1" />
               Sair deste espaço

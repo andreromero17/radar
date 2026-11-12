@@ -7,6 +7,7 @@
 import { getEntity, maskDocument, registerEntities } from '@frame/shared';
 import { demoEntities } from '@frame/shared/demo';
 import { createEntityTable } from '../db/diff';
+import { registerDemoPaineis } from './paineis';
 import { count, type Db } from '../db/knex';
 import { generateCode, nowLocal } from '../utils/time';
 
@@ -39,6 +40,7 @@ const cnpj = (n: number) =>
 
 export function registerDemo() {
   if (!getEntity('demo_clientes')) registerEntities(demoEntities);
+  registerDemoPaineis();
 }
 
 /** Registra, cria tabelas e popula (só se vazias). Retorna true se populou agora. */

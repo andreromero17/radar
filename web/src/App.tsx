@@ -8,6 +8,7 @@ import Logs from './pages/Logs';
 import Backup from './pages/Backup';
 import MeuPerfil from './pages/MeuPerfil';
 import NotFound from './pages/NotFound';
+import Relatorio, { Relatorios } from './pages/Relatorio';
 import Login from './pages/auth/Login';
 import EsqueciSenha from './pages/auth/EsqueciSenha';
 import RedefinirSenha from './pages/auth/RedefinirSenha';
@@ -48,6 +49,9 @@ export default function App() {
               </Guard>
             }
           />
+          {/* relatórios dinâmicos (conjuntos registrados no servidor; a permissão vem de cada conjunto) */}
+          <Route path="relatorios" element={<Relatorios />} />
+          <Route path="relatorios/:conjunto" element={<Relatorio />} />
           {/* páginas próprias da aplicação (web/src/app/screens.tsx) */}
           {customPages().map(({ path, component: Page, perm }) => (
             <Route

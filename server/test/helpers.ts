@@ -7,7 +7,7 @@ import { createApp } from '../src/app';
 import { createEntityTable } from '../src/db/diff';
 import { createDb } from '../src/db/knex';
 import { migrateLatest } from '../src/db/migrator';
-import { seed } from '../src/db/seed';
+import { seed, seedEspaco } from '../src/db/seed';
 import { abrirEspaco, adicionarMembro, configurarEspacos, criarEspaco } from '../src/espacos';
 import { memoryMailer } from '../src/services/mailer';
 import { fixtureEntities, seedFixtures, seedFixtureUsuarios, registerFixtureEntities } from './fixtures';
@@ -36,6 +36,7 @@ export async function makeTestApp() {
   const espacoId = await criarEspaco({ nome: 'Espaço de teste', donoId: admin.id });
   for (const u of usuarios.filter((x) => x.id !== admin.id)) await adicionarMembro(espacoId, u.id, 'editor');
   const db = await abrirEspaco(espacoId);
+  await seedEspaco(db); // dados de exemplo do sistema derivado (no frame, vazio)
   for (const [table, ent] of Object.entries(fixtureEntities)) await createEntityTable(db, table, ent);
   await seedFixtures(db);
 

@@ -60,15 +60,19 @@ _Aqui o frame passa a sustentar sistemas de verdade._
 - **Resultado:** dá para modelar o finanças sem tocar no motor; as regras (saldo, transferência, parcelamento)
   entram como hooks e rotas da aplicação na Fase 3
 
-## Fase 3 — Finanças pessoais (MVP) ← primeiro sistema
+## Fase 3 — Finanças pessoais (MVP) ← primeiro sistema · funcionalidades concluídas (12/11/2026), em uso
 
 _Começa assim que a Fase 2 tiver o essencial; as duas andam juntas._
 
-- Entidades: contas, categorias (receita/despesa, hierárquicas), lançamentos, cartões/faturas, orçamento mensal, metas
-- Regras: saldo por conta, transferência entre contas, parcelamento, recorrência
-- Dashboard: saldo consolidado, receitas × despesas, gastos por categoria, orçamento × realizado
-- Importação de extrato OFX/CSV com categorização assistida
-- **Pronto quando:** você usa no dia a dia por um mês sem planilha paralela
+- ✅ Entidades: contas, categorias (receita/despesa, hierárquicas), lançamentos, cartões/faturas, orçamento mensal
+- ✅ Regras: saldo por conta, transferência entre contas, parcelamento, recorrência
+- ✅ Dashboard: saldo consolidado, receitas × despesas, gastos por categoria, orçamento × realizado
+- ✅ Importação de extrato OFX/CSV/XLSX e de faturas (PDF/Excel) com categorização assistida; migração do Mobills
+- Além do previsto: relatório anual por grupos, detalhamento dos números, faturas quitadas/reabertura, saldo do dia
+- **Decidido (12/11/2026):** metas de economia saem da Fase 3 e entram no módulo de investimentos (Fase 7), onde o
+  progresso vem da posição real dos ativos, com rendimento, em vez do saldo de contas inteiras
+- **Pronto quando:** você usa no dia a dia por um mês sem planilha paralela (uso começou em 12/11/2026). Ao fechar:
+  v1.0 do finanças
 - Referência visual/funcional (Mobills, 08/11): menu Contas · Transações · Cartões de crédito · Planejamento ·
   Relatórios; botão "+ Novo" para lançar rápido; seletor de mês no topo; cards Saldo atual / Receitas / Despesas;
   gráficos de despesas e receitas por categoria
@@ -97,12 +101,23 @@ _Começa assim que a Fase 2 tiver o essencial; as duas andam juntas._
 - **PWA:** instalável no celular, com ícone e cache básico. Cobre boa parte do "mobile" sem app nativo.
 - React Native/Expo só se surgir necessidade real de recurso nativo, consumindo a mesma API
 
+## Fase 7 — Investimentos (módulo do finanças)
+
+_Depois do sistema no ar (Fases 5 e 6). Específico do finanças: vive nas pastas `app/`; o que for genérico sobe
+para o frame._
+
+- Carteira por ativo (renda fixa, Tesouro, ações, FIIs, fundos, previdência), por conta/corretora
+- Aportes e resgates ligados às transferências para as contas de investimento; posição e rentabilidade
+- **Metas** de economia: valor-alvo e data, alimentadas pelos ativos/aportes alocados a cada meta (uma corretora
+  pode atender várias metas); quanto guardar por mês considerando a rentabilidade esperada; alerta de ritmo
+- Painel de investimentos: evolução do patrimônio, distribuição por classe, comparação com CDI/IPCA
+
 ---
 
 ## Ordem e paralelismo
 
 ```
-Fase 0 ──► Fase 1 ──► Fase 2 ─┬─► Fase 4 ──► Fase 5 ──► Fase 6
+Fase 0 ──► Fase 1 ──► Fase 2 ─┬─► Fase 4 ──► Fase 5 ──► Fase 6 ──► Fase 7 (Investimentos)
                               └─► Fase 3 (Finanças) ──┘
 ```
 

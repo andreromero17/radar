@@ -32,7 +32,7 @@ describe('tema e aparência', () => {
     expect(lista.body.rows[0]).not.toHaveProperty('senha');
     const u = lista.body.rows.find((x: { email: string }) => x.email !== 'admin@sistema.com');
     await ctx.admin.put(`/api/usuarios/${u.id}`).send({ aparencia: 'claro' });
-    const row = await ctx.db('usuarios').where({ id: u.id }).first();
+    const row = await ctx.plataforma('usuarios').where({ id: u.id }).first();
     expect(row.aparencia).not.toBe('claro');
   });
 });
@@ -63,6 +63,6 @@ describe('fonte e tamanho do texto', () => {
     // pelo cadastro de usuários não muda
     const u = (await ctx.leitura.get('/api/auth/me')).body.id;
     await ctx.admin.put(`/api/usuarios/${u}`).send({ tamanho_texto: 'pequeno' });
-    expect((await ctx.db('usuarios').where({ id: u }).first()).tamanho_texto).toBe('grande');
+    expect((await ctx.plataforma('usuarios').where({ id: u }).first()).tamanho_texto).toBe('grande');
   });
 });

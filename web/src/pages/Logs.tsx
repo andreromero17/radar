@@ -5,6 +5,7 @@ import { areaLabel, areas } from '../lib/areas';
 import { api, errorMessage } from '../lib/api';
 import { fmtDate } from '../lib/format';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import PageHeader from '../components/PageHeader';
 import ValueBadge from '../components/ValueBadge';
 
@@ -80,23 +81,42 @@ export default function Logs() {
   const toast = useToast();
   const [page, setPage] = useState(1);
   const [entidade, setEntidade] = useState('');
+  // espaço: o que mudou nos dados; plataforma (administrador): acessos, usuários, perfis e identidade
+  const [origem, setOrigem] = useState<'espaco' | 'plataforma'>('espaco');
+  const { user } = useAuth();
   const [data, setData] = useState<ListResponse<LogRow> | null>(null);
   const [aberto, setAberto] = useState<number | null>(null);
 
   useEffect(() => {
     const qs = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) });
     if (entidade) qs.set('entidade', entidade);
+    if (origem === 'plataforma') qs.set('origem', 'plataforma');
     api
       .get<ListResponse<LogRow>>(`/logs?${qs}`)
       .then(setData)
       .catch((e) => toast.error(errorMessage(e)));
-  }, [page, entidade, toast]);
+  }, [page, entidade, origem, toast]);
 
   const pages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
 
   return (
     <>
       <PageHeader title="Logs" icon="journal-text" subtitle="Quem fez o quê, quando e de onde">
+        {user?.admin && (
+          <Form.Select
+            size="sm"
+            value={origem}
+            onChange={(e) => {
+              setOrigem(e.target.value as 'espaco' | 'plataforma');
+              setPage(1);
+            }}
+            style={{ minWidth: 180 }}
+            aria-label="Origem dos logs"
+          >
+            <option value="espaco">{user.espaco ? `Espaço: ${user.espaco.nome}` : 'Espaço'}</option>
+            <option value="plataforma">Plataforma (acessos e usuários)</option>
+          </Form.Select>
+        )}
         <Form.Select
           size="sm"
           value={entidade}

@@ -8,13 +8,15 @@ import { Router } from 'express';
 import { z } from 'zod';
 import type { Notificacao, NotificacoesResposta, PreferenciasNotificacoesResposta } from '@frame/shared';
 import { userOf } from '../auth/middleware';
+import { espacoAtivo } from '../espacos';
 import type { Db } from '../db/knex';
 import { gravarPrefNotificacoes, lerPrefNotificacoes, tiposAlerta, verificarAlertas } from '../services/notificacoes';
 import { badRequest, HttpError } from '../utils/http';
 import { nowLocal } from '../utils/time';
 
 const INTERVALO = 10 * 60_000;
-const verificadoEm = new Map<number, number>();
+/** Última verificação por espaço + usuário */
+const verificadoEm = new Map<string, number>();
 
 const prefSchema = z.object({
   desligados: z.array(z.string().max(80)).max(100),
@@ -27,8 +29,9 @@ export function notificacoesRouter(db: Db, opts: { emailDisponivel: boolean }) {
   router.get('/notificacoes', async (req, res) => {
     const u = userOf(req);
     const agora = Date.now();
-    if (req.query.verificar === '1' || agora - (verificadoEm.get(u.id) ?? 0) > INTERVALO) {
-      verificadoEm.set(u.id, agora);
+    const chave = `${espacoAtivo().espacoId}:${u.id}`;
+    if (req.query.verificar === '1' || agora - (verificadoEm.get(chave) ?? 0) > INTERVALO) {
+      verificadoEm.set(chave, agora);
       await verificarAlertas(db, { usuarioId: u.id });
     }
     const limite = Math.min(200, Math.max(1, Number(req.query.limite) || 30));
@@ -84,7 +87,7 @@ export function notificacoesRouter(db: Db, opts: { emailDisponivel: boolean }) {
     if (!p.success) throw badRequest('Preferências inválidas');
     const u = userOf(req);
     await gravarPrefNotificacoes(db, u.id, p.data);
-    verificadoEm.delete(u.id); // religou um tipo: verifica de novo na próxima abertura
+    verificadoEm.delete(`${espacoAtivo().espacoId}:${u.id}`); // religou um tipo: verifica de novo na próxima abertura
     res.json(p.data);
   });
 

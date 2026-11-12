@@ -41,10 +41,11 @@ describe('configurações do sistema derivado', () => {
     expect(await getAppSetting<boolean>(ctx.db, 'avisar')).toBe(true);
   });
 
-  it('qualquer logado lê; só quem edita configurações grava; restaurar padrão volta tudo', async () => {
+  it('qualquer logado lê; só quem edita configurações grava; ficam no espaço (restaurar a identidade não mexe)', async () => {
     expect((await ctx.leitura.get('/api/settings/app')).status).toBe(200);
     expect((await ctx.leitura.put('/api/settings/app').send({ dias: 7 })).status).toBe(403);
-    await ctx.admin.delete('/api/settings');
-    expect((await ctx.admin.get('/api/settings/app')).body.regime).toBe('fatura');
+    await ctx.admin.delete('/api/settings'); // identidade visual = plataforma
+    expect((await ctx.admin.get('/api/settings/app')).body.regime).toBe('compra');
+    expect(await ctx.plataforma('configuracoes').where('chave', 'like', 'app.%').first()).toBeUndefined();
   });
 });

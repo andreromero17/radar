@@ -194,3 +194,6 @@ export function validarDimensao(def: ConjuntoDef, dim: unknown): string {
   if (!d) throw new HttpError(422, 'Agrupamento inválido');
   return d.id;
 }
+
+/** Nomes das fontes de dados registradas (teste de isolamento percorre todas) */
+export const fontesRegistradas = () => [...fontes.keys()];

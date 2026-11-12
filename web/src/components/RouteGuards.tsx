@@ -21,7 +21,28 @@ export function RequireAuth({ passwordChangePage = false }: { passwordChangePage
     return <Navigate to={next === '/' ? '/login' : `/login?next=${encodeURIComponent(next)}`} replace />;
   }
   if (user.trocar_senha && !passwordChangePage) return <Navigate to="/trocar-senha" replace />;
+  if (!passwordChangePage && user.espacos && user.espacos.length === 0) return <SemEspaco />;
   return <Outlet />;
+}
+
+/** Logado, mas sem nenhum espaço ativo (removido ou inativado de todos) */
+function SemEspaco() {
+  const { user, logout } = useAuth();
+  return (
+    <div className="d-flex align-items-center justify-content-center min-vh-100 p-3">
+      <div className="card card-app p-4 text-center" style={{ maxWidth: '28rem' }}>
+        <i className="bi bi-house-lock fs-1 text-muted mb-2" />
+        <h1 className="h5">Nenhum espaço disponível</h1>
+        <p className="text-muted">
+          {user?.nome.split(' ')[0]}, sua conta está ativa, mas você não participa de nenhum espaço no momento. Se
+          alguém compartilhou um espaço com você, peça para conferir o seu acesso.
+        </p>
+        <button type="button" className="btn btn-light border" onClick={() => void logout()}>
+          Sair
+        </button>
+      </div>
+    </div>
+  );
 }
 
 /** Telas de quem NÃO está logado (login, esqueci a senha) */

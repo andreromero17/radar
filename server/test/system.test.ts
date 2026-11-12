@@ -28,11 +28,13 @@ describe('Dashboard, logs e backup', () => {
     expect(body.commit).toBeTruthy();
   });
 
-  it('logs paginados, mais recentes primeiro', async () => {
+  it('logs do espaço paginados, mais recentes primeiro (login fica no log da plataforma)', async () => {
+    await ctx.operador.post('/api/clientes').send({ nome: 'Cliente do log', email: 'log@x.com' });
     const { body } = await ctx.admin.get('/api/logs?pageSize=1');
     expect(body.total).toBeGreaterThanOrEqual(1);
-    expect(body.rows[0].acao).toBe('login');
-    expect(body.rows[0].usuario).toBe('Bruno Lima');
+    expect(body.rows[0]).toMatchObject({ entidade: 'clientes', acao: 'criação', usuario: 'Ana Souza' });
+    expect(body.rows.some((r: { acao: string }) => r.acao === 'login')).toBe(false);
+    expect(await ctx.plataforma('logs').where({ acao: 'login' }).first()).toBeTruthy();
   });
 
   it('limpeza remove só logs mais antigos que o limite', async () => {

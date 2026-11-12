@@ -2,14 +2,15 @@ import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { can, type Action, type AuthUser } from '@frame/shared';
 import type { Db } from '../db/knex';
 import { HttpError } from '../utils/http';
-import { resolveSession, type SessionConfig } from './sessions';
+import { definirEspacoDaSessao, resolveSession, type SessionConfig } from './sessions';
+import { abrirEspaco, entrarNoEspaco, espacosDoUsuario } from '../espacos';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       /** Preenchido quando há sessão válida */
-      auth?: { user: AuthUser; sessionId: string };
+      auth?: { user: AuthUser; sessionId: string; espacoId?: number | null };
     }
   }
 }
@@ -88,5 +89,29 @@ export function originGuard(allowedOrigins: string[]): RequestHandler {
       /* origem malformada */
     }
     throw new HttpError(403, 'Origem não permitida');
+  };
+}
+
+/**
+ * Escolhe o espaço da requisição (Fase 5A): o da sessão, se o usuário ainda for membro ativo; senão o primeiro
+ * em que ele é membro (e grava na sessão). Abre o banco do espaço e segue a requisição DENTRO dele — todo
+ * `dbEspaco` daí em diante aponta para esse banco. Sem nenhum espaço: 403 SEM_ESPACO. O espaço nunca vem do
+ * navegador: só da sessão, conferido na plataforma a cada requisição.
+ */
+export function resolverEspaco(plataforma: Db): RequestHandler {
+  return async (req, _res, next) => {
+    const auth = req.auth;
+    if (!auth) throw new HttpError(401, 'Sessão expirada. Faça login novamente.');
+    const lista = await espacosDoUsuario(auth.user.id);
+    const atual = lista.find((e) => e.id === auth.espacoId) ?? lista[0];
+    if (!atual) throw new HttpError(403, 'Você não participa de nenhum espaço ativo.', undefined, 'SEM_ESPACO');
+    if (atual.id !== auth.espacoId) {
+      await definirEspacoDaSessao(plataforma, auth.sessionId, atual.id);
+      auth.espacoId = atual.id;
+    }
+    auth.user.espaco = atual;
+    auth.user.espacos = lista;
+    const db = await abrirEspaco(atual.id);
+    entrarNoEspaco({ espacoId: atual.id, db, papel: atual.papel }, next);
   };
 }

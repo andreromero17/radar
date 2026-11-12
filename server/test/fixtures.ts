@@ -7,7 +7,8 @@ import { STATUS } from '../../shared/test/fixtures';
 export { fixtureEntities, registerFixtureEntities } from '../../shared/test/fixtures';
 
 /** Perfis, usuários e registros de exemplo (ids previsíveis para os testes) */
-export async function seedFixtures(db: Db) {
+/** Perfis e usuários de teste (Ana operadora, Bruno leitura, Carla inativa) — no banco da PLATAFORMA */
+export async function seedFixtureUsuarios(db: Db) {
   const agora = nowLocal();
   const operador = await db('perfis')
     .insert({
@@ -59,6 +60,11 @@ export async function seedFixtures(db: Db) {
       criado_em: agora,
     },
   ]);
+}
+
+/** Clientes e chamados de exemplo — no banco do ESPAÇO (responsável = usuário membro, pela cópia leve) */
+export async function seedFixtures(db: Db) {
+  const agora = nowLocal();
   await db('clientes').insert(
     [
       ['Cliente Teste Hugo', 'hugo@exemplo.com', '(51) 99999-0001', true],

@@ -8,6 +8,8 @@ import { SERVER_ROOT } from './config';
 import { authenticate, originGuard, requireAuth } from './auth/middleware';
 import type { Db } from './db/knex';
 import { appRouter } from './app/routes';
+import { arquivoEspaco, dbEspaco, espacoAtivo } from './espacos';
+import { resolverEspaco } from './auth/middleware';
 import { registrarPaineis } from './app/paineis';
 import { paineisRouter } from './routes/paineis';
 import { notificacoesRouter } from './routes/notificacoes';
@@ -22,9 +24,9 @@ import { HttpError } from './utils/http';
 import { VERSION } from './version';
 
 export interface AppOptions {
+  /** Banco da PLATAFORMA (usuários, sessões, identidade, espaços). Os bancos dos espaços vêm de configurarEspacos */
   db: Db;
   logger: Logger;
-  dbFile: string;
   mailer: Mailer;
   /** Endereço público do front (links de e-mail; origem confiável) */
   appUrl: string;
@@ -45,7 +47,7 @@ export interface AppOptions {
 
 /** Monta o app Express. Separado do listen() para os testes usarem direto. */
 export function createApp(opts: AppOptions) {
-  const { db, logger, dbFile, corsOrigins = [], webDist } = opts;
+  const { db, logger, corsOrigins = [], webDist } = opts;
   const session = { sessionHours: opts.sessionHours ?? 12, rememberDays: opts.rememberDays ?? 30 };
   registrarPaineis();
   const app = express();
@@ -120,13 +122,15 @@ export function createApp(opts: AppOptions) {
     }),
   );
 
-  // daqui para baixo: só com login (e senha em dia)
+  // daqui para baixo: só com login (e senha em dia), DENTRO do espaço da sessão — `dbEspaco` é o banco dele
   app.use('/api', requireAuth);
-  app.use('/api', systemRouter(db, { dbFile })); // antes do CRUD genérico
-  app.use('/api', paineisRouter(db)); // fontes de dados, relatórios dinâmicos e preferências
-  app.use('/api', notificacoesRouter(db, { emailDisponivel: !!opts.emailDisponivel }));
-  app.use('/api', appRouter(db)); // rotas próprias da aplicação
-  app.use('/api', crudRouter(db, { uploadMaxMb }));
+  app.use('/api', resolverEspaco(db));
+  const arquivo = () => arquivoEspaco(espacoAtivo().espacoId);
+  app.use('/api', systemRouter(db, dbEspaco, { arquivo })); // antes do CRUD genérico
+  app.use('/api', paineisRouter(dbEspaco)); // fontes de dados, relatórios dinâmicos e preferências
+  app.use('/api', notificacoesRouter(dbEspaco, { emailDisponivel: !!opts.emailDisponivel }));
+  app.use('/api', appRouter(dbEspaco)); // rotas próprias da aplicação (sempre no espaço da sessão)
+  app.use('/api', crudRouter({ plataforma: db, espaco: dbEspaco }, { uploadMaxMb }));
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Rota não encontrada' });
   });

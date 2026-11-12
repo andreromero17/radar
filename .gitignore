@@ -3,6 +3,7 @@ dist/
 server/data/*.db
 server/data/*.db-*
 server/data/anexos/
+server/data/espacos/
 .DS_Store
 coverage/
 server/.env

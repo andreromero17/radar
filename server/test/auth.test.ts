@@ -92,7 +92,7 @@ describe('login e sessão', () => {
   it('cookie forjado ou sessão vencida não autenticam', async () => {
     expect((await request(ctx.app).get('/api/auth/me').set('Cookie', 'sid=inventado')).status).toBe(401);
     const agent = await ctx.login('ana@sistema.com', 'senha123');
-    await ctx.db('sessoes').where({ usuario_id: 2 }).update({ expira_em: '2000-01-01 00:00:00' });
+    await ctx.plataforma('sessoes').where({ usuario_id: 2 }).update({ expira_em: '2000-01-01 00:00:00' });
     expect((await agent.get('/api/auth/me')).status).toBe(401);
   });
 
@@ -104,9 +104,9 @@ describe('login e sessão', () => {
   });
 
   it('registra login e falha de login no log, com IP', async () => {
-    const falhas = await ctx.db('logs').where({ acao: 'login falhou' });
+    const falhas = await ctx.plataforma('logs').where({ acao: 'login falhou' });
     expect(falhas.length).toBeGreaterThan(0);
-    const login = await ctx.db('logs').where({ acao: 'login' }).orderBy('id', 'desc').first();
+    const login = await ctx.plataforma('logs').where({ acao: 'login' }).orderBy('id', 'desc').first();
     expect(login.usuario_id).toBeTruthy();
     expect(login.ip).toBeTruthy();
   });
@@ -206,7 +206,7 @@ describe('esqueci minha senha', () => {
 
     // volta a senha original para os demais testes
     await ctx
-      .db('usuarios')
+      .plataforma('usuarios')
       .where({ email: 'admin@sistema.com' })
       .update({ senha: await hashPassword('admin123') });
   });
@@ -215,7 +215,7 @@ describe('esqueci minha senha', () => {
     ctx.mailer.sent.length = 0;
     await request(ctx.app).post('/api/auth/esqueci').send({ email: 'ana@sistema.com' });
     const token = tokenDo(ctx.mailer.sent[0].text);
-    await ctx.db('tokens_senha').update({ expira_em: '2000-01-01 00:00:00' });
+    await ctx.plataforma('tokens_senha').update({ expira_em: '2000-01-01 00:00:00' });
     expect((await request(ctx.app).post('/api/auth/redefinir').send({ token, senha: 'novaSenha1' })).status).toBe(400);
   });
 });
@@ -250,7 +250,11 @@ describe('meu perfil', () => {
     const ana = await ctx.login('ana@sistema.com', 'senha123');
     const res = await ana.put('/api/auth/perfil').send({ nome: '  Ana S. Souza ' });
     expect(res.body.nome).toBe('Ana S. Souza');
-    const log = await ctx.db('logs').where({ entidade: 'usuarios', registro_id: 2 }).orderBy('id', 'desc').first();
+    const log = await ctx
+      .plataforma('logs')
+      .where({ entidade: 'usuarios', registro_id: 2 })
+      .orderBy('id', 'desc')
+      .first();
     expect(JSON.parse(log.alteracoes).nome.para).toBe('Ana S. Souza');
     expect((await ana.put('/api/auth/perfil').send({ nome: '' })).status).toBe(422);
     await ana.put('/api/auth/perfil').send({ nome: 'Ana Souza' }).expect(200);

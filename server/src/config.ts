@@ -15,7 +15,10 @@ dotenv.config({ path: path.join(SERVER_ROOT, '.env'), quiet: true });
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3001),
+  /** Banco da plataforma (usuários, sessões, identidade, espaços) */
   DB_PATH: z.string().min(1).default('./data/app.db'),
+  /** Pasta dos bancos dos espaços (um arquivo por espaço) */
+  ESPACOS_DIR: z.string().min(1).default('./data/espacos'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 
@@ -52,6 +55,7 @@ const schema = z.object({
 export type Config = Omit<z.infer<typeof schema>, 'COOKIE_SECURE' | 'SMTP_SECURE' | 'DEMO'> & {
   demo: boolean;
   dbFile: string;
+  espacosDir: string;
   uploadDir: string;
   corsOrigins: string[];
   cookieSecure: boolean;
@@ -72,6 +76,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     smtpSecure: SMTP_SECURE === 'true',
     demo: DEMO === 'true',
     uploadDir: path.resolve(SERVER_ROOT, c.UPLOAD_DIR),
+    espacosDir: path.resolve(SERVER_ROOT, c.ESPACOS_DIR),
     dbFile: c.DB_PATH === ':memory:' ? ':memory:' : path.resolve(SERVER_ROOT, c.DB_PATH),
     corsOrigins: c.CORS_ORIGIN.split(',')
       .map((s) => s.trim())

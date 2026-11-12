@@ -2,6 +2,7 @@ import type { Db } from '../db/knex';
 import { deleteUserSessions } from '../auth/sessions';
 import { badRequest, conflict, forbidden } from '../utils/http';
 import type { EntityHooks } from './types';
+import { adicionarMembro, atualizarCopias, espacoAtivoOuNulo } from '../espacos';
 
 const isAdminPerfil = async (db: Db, perfilId: unknown) =>
   !!(
@@ -60,6 +61,16 @@ export const usuariosHooks: EntityHooks = {
     if (mode === 'update' && (data.ativo === false || 'senha' in data)) {
       await deleteUserSessions(db, row.id, row.id === actor.id ? sessionId : undefined);
     }
+    // Usuário criado dentro de um espaço vira membro dele (até a 5B: papel pelo perfil)
+    const espaco = espacoAtivoOuNulo();
+    if (mode === 'create' && espaco)
+      await adicionarMembro(
+        espaco.espacoId,
+        Number(row.id),
+        (await isAdminPerfil(db, row.perfil_id)) ? 'dono' : 'editor',
+      );
+    // nome/e-mail/ativo mudaram: atualiza a cópia leve nos espaços abertos
+    if (mode === 'update') await atualizarCopias(Number(row.id));
   },
 
   async beforeDelete(current, { db, actor }) {

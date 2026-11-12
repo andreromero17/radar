@@ -48,6 +48,18 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
   renomear/remover é escrito à mão (o diff avisa colunas órfãs). Migrações ficam registradas em código
   (`migrations/index.ts`), não lidas da pasta. No SQLite as FKs são desligadas durante a migração
   (`withForeignKeysOff`) porque o Knex recria tabelas e o `ON DELETE SET NULL` apagaria vínculos.
+- **Plataforma × espaços (Fase 5A):** dois tipos de banco. **Plataforma** (`DB_PATH`, `data/app.db`): usuários,
+  perfis, sessões, tokens, identidade visual (`configuracoes`), `espacos`, `membros`. **Espaço** (`ESPACOS_DIR`,
+  `data/espacos/<id>.db`, um por espaço): tudo o resto — entidades do sistema, anexos, logs dos dados, preferências,
+  notificações, configurações do sistema derivado — e uma cópia LEVE dos usuários membros (sem senha). O espaço vem
+  **só da sessão** (`sessoes.espaco_id`, conferido em `membros` a cada requisição pelo `resolverEspaco`); o código
+  recebe `dbEspaco` (proxy que aponta para o banco do espaço da requisição via AsyncLocalStorage e dá erro fora de
+  um espaço). Nunca abrir banco de espaço "na mão": `abrirEspaco(id)`/`comEspaco(id, fn)` (`server/src/espacos/`).
+  Migrações: `migracoesDe('plataforma')` = núcleo + `db/plataforma/`; `migracoesDe('espaco')` = núcleo + app.
+  CRUD de `usuarios`/`perfis` vai para a plataforma (`ENTIDADES_DA_PLATAFORMA`), com usuários restritos aos membros
+  do espaço. Logs: `/api/logs` = do espaço; `?origem=plataforma` = acessos/usuários/identidade (admin). Instalação
+  antiga (um banco) é convertida sozinha no boot/`db:migrate` (`espacos/conversao.ts`, com backup). Teste de
+  isolamento em `server/test/espacos.test.ts`: toda rota/fonte/relatório nova entra na varredura automaticamente.
 - **Acesso a dados só via Knex** (nada de SQL específico de SQLite). Datas gravadas pela aplicação
   como texto local `YYYY-MM-DD HH:MM:SS` (`server/src/utils/time.ts`). Booleanos passam por `toDbValue`.
 - **Server:** `app.ts` monta o Express (`createApp`, usado também nos testes); `index.ts` só faz boot.
@@ -121,7 +133,8 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
 
 ## Testes
 
-- Vitest em cada workspace. API testada com Supertest sobre SQLite em memória (`server/test/helpers.ts`).
+- Vitest em cada workspace. API testada com Supertest sobre SQLite em memória (`server/test/helpers.ts`):
+  `ctx.db` = banco do espaço de teste (dados), `ctx.plataforma` = usuários, sessões, perfis, identidade.
 - Todo comportamento novo de API/validação vem com teste. Bug corrigido ganha teste de regressão.
 
 ## Convenções

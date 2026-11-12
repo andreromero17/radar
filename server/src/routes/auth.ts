@@ -6,12 +6,14 @@ import { hashPassword, verifyPassword } from '../auth/password';
 import { minutes, RateLimiter } from '../auth/rateLimit';
 import {
   createSession,
+  definirEspacoDaSessao,
   deleteSession,
   deleteUserSessions,
   loadAuthUser,
   resolveSession,
   type SessionConfig,
 } from '../auth/sessions';
+import { atualizarCopias, espacosDoUsuario } from '../espacos';
 import { hashToken, newToken } from '../auth/tokens';
 import type { Db } from '../db/knex';
 import { addLog, type Actor } from '../services/logs';
@@ -132,8 +134,27 @@ export function authRouter(db: Db, opts: AuthOptions) {
   });
 
   // Não usa requireAuth: precisa funcionar mesmo quando o usuário deve trocar a senha
-  router.get('/me', (req, res) => {
-    res.json(userOf(req));
+  router.get('/me', async (req, res) => {
+    const u = userOf(req);
+    const espacos = await espacosDoUsuario(u.id);
+    const espaco = espacos.find((e) => e.id === req.auth?.espacoId) ?? espacos[0];
+    res.json({ ...u, espacos, espaco });
+  });
+
+  // Troca o espaço em uso nesta sessão (só para um espaço em que o usuário é membro ativo)
+  router.post('/espaco', async (req, res) => {
+    const u = userOf(req);
+    const id = Number((req.body ?? {}).id);
+    const espacos = await espacosDoUsuario(u.id);
+    const alvo = espacos.find((e) => e.id === id);
+    if (!alvo) throw new HttpError(404, 'Espaço não encontrado');
+    await definirEspacoDaSessao(db, req.auth!.sessionId, alvo.id);
+    await addLog(
+      db,
+      { entidade: 'auth', registro_id: u.id, acao: 'trocou de espaço', detalhe: alvo.nome },
+      actor(req, u),
+    );
+    res.json({ ...u, espacos, espaco: alvo });
   });
 
   router.put('/senha', async (req, res) => {
@@ -255,6 +276,7 @@ export function authRouter(db: Db, opts: AuthOptions) {
       await db('usuarios').where({ id: me.id }).update({ tamanho_texto });
     if (nome !== me.nome) {
       await db('usuarios').where({ id: me.id }).update({ nome, atualizado_em: nowLocal() });
+      await atualizarCopias(me.id);
       await addLog(
         db,
         {

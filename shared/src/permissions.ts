@@ -70,6 +70,18 @@ export interface AuthUser {
   aparencia: Aparencia;
   /** Tamanho do texto escolhido pelo usuário */
   tamanho_texto: TamanhoTexto;
+  /** Espaço em uso nesta sessão (Fase 5A) */
+  espaco?: EspacoDoUsuario;
+  /** Espaços em que o usuário é membro */
+  espacos?: EspacoDoUsuario[];
+}
+
+/** Um espaço (as finanças de um assinante: pessoal, holding, empresa...) e o papel do usuário nele */
+export interface EspacoDoUsuario {
+  id: number;
+  nome: string;
+  tipo: string;
+  papel: 'dono' | 'editor' | 'leitor';
 }
 
 export const APARENCIAS = ['sistema', 'claro', 'escuro'] as const;

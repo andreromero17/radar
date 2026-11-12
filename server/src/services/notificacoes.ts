@@ -15,6 +15,7 @@ import {
 } from '@frame/shared';
 import type { Db } from '../db/knex';
 import { loadAuthUser } from '../auth/sessions';
+import { espacoAtivoOuNulo, espacoDoBanco, membrosAtivos, plataformaDb } from '../espacos';
 import { nowLocal } from '../utils/time';
 import type { Mailer } from './mailer';
 
@@ -82,18 +83,22 @@ export interface ResultadoVerificacao {
 }
 
 /**
- * Roda os alertas e grava o que for novo. Sem `usuarioId`: todos os usuários ativos (manutenção diária).
- * Os alertas rodam uma vez (os dados são do sistema); cada usuário recebe só os tipos que pode ver e não desligou.
+ * Roda os alertas no banco do ESPAÇO `db` e grava o que for novo. Sem `usuarioId`: todos os membros ativos do
+ * espaço (manutenção diária). Os alertas rodam uma vez (os dados são do espaço); cada membro recebe só os tipos
+ * que pode ver e não desligou. Usuários e permissões vêm da plataforma.
  */
 export async function verificarAlertas(
   db: Db,
-  opts: { usuarioId?: number; hoje?: string } = {},
+  opts: { usuarioId?: number; hoje?: string; espacoId?: number } = {},
 ): Promise<ResultadoVerificacao> {
   const hoje = opts.hoje ?? nowLocal().slice(0, 10);
-  const ids: number[] = opts.usuarioId
-    ? [opts.usuarioId]
-    : (await db('usuarios').whereIn('ativo', [1, true]).select('id')).map((r) => Number(r.id));
-  const usuarios = (await Promise.all(ids.map((id) => loadAuthUser(db, id)))).filter((u): u is AuthUser => !!u);
+  const espacoId = opts.espacoId ?? espacoAtivoOuNulo()?.espacoId ?? espacoDoBanco(db);
+  if (espacoId == null) throw new Error('verificarAlertas: espaço desconhecido');
+  const membros = await membrosAtivos(espacoId);
+  const ids = opts.usuarioId ? membros.filter((id) => id === opts.usuarioId) : membros;
+  const usuarios = (await Promise.all(ids.map((id) => loadAuthUser(plataformaDb(), id)))).filter(
+    (u): u is AuthUser => !!u,
+  );
   const novas = new Map<number, Notificacao[]>();
   let total = 0;
   if (!usuarios.length || !alertas.size) return { novas, total };

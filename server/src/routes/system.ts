@@ -20,10 +20,14 @@ import { addLog, type Actor } from '../services/logs';
 import { backupInfo, createBackup } from '../services/backup';
 import { getAppSettings, getSettings, resetSettings, saveAppSettings, saveSettings } from '../services/settings';
 import { pesoValido, removerFonte, salvarFonte } from '../services/fonte';
-import { badRequest } from '../utils/http';
+import { badRequest, forbidden } from '../utils/http';
 
-/** Rotas do sistema: metadados, configurações, dashboard, logs e backup (todas exigem login). */
-export function systemRouter(db: Db, opts: { dbFile: string }) {
+/**
+ * Rotas do sistema: metadados, configurações, dashboard, logs e backup (todas exigem login).
+ * `plataforma`: identidade visual (nome, cores, fontes, prazos). `db`: banco do ESPAÇO ativo (configurações do
+ * sistema derivado, painel, logs dos dados e backup — tudo do espaço da sessão).
+ */
+export function systemRouter(plataforma: Db, db: Db, opts: { arquivo: () => string | null }) {
   const router = Router();
   const actor = (req: Request): Actor => ({ id: userOf(req).id, nome: userOf(req).nome, ip: req.ip });
 
@@ -47,7 +51,7 @@ export function systemRouter(db: Db, opts: { dbFile: string }) {
   });
 
   router.get('/settings', async (_req, res) => {
-    res.json(await getSettings(db));
+    res.json(await getSettings(plataforma));
   });
 
   router.put('/settings', requirePermission('configuracoes', 'editar'), async (req, res) => {
@@ -55,11 +59,11 @@ export function systemRouter(db: Db, opts: { dbFile: string }) {
     if (!parsed.success) {
       return res.status(422).json({ error: 'Verifique os campos', errors: toFieldErrors(parsed.error) });
     }
-    res.json(await saveSettings(db, parsed.data, actor(req)));
+    res.json(await saveSettings(plataforma, parsed.data, actor(req)));
   });
 
   router.delete('/settings', requirePermission('configuracoes', 'editar'), async (req, res) => {
-    res.json(await resetSettings(db, actor(req)));
+    res.json(await resetSettings(plataforma, actor(req)));
   });
 
   // fonte própria: arquivo cru no corpo (?arquivo=nome.woff2); a leitura é pública (app.ts)
@@ -68,13 +72,13 @@ export function systemRouter(db: Db, opts: { dbFile: string }) {
     if (!pesoValido(req.params.peso)) throw badRequest('Peso inválido (regular ou negrito)');
     if (!Buffer.isBuffer(req.body) || !req.body.length) throw badRequest('Envie o arquivo da fonte');
     const nome = typeof req.query.arquivo === 'string' ? req.query.arquivo : '';
-    await salvarFonte(db, req.params.peso, req.body, nome, actor(req));
-    res.json(await getSettings(db));
+    await salvarFonte(plataforma, req.params.peso, req.body, nome, actor(req));
+    res.json(await getSettings(plataforma));
   });
   router.delete('/settings/fonte/:peso', requirePermission('configuracoes', 'editar'), async (req, res) => {
     if (!pesoValido(req.params.peso)) throw badRequest('Peso inválido (regular ou negrito)');
-    await removerFonte(db, req.params.peso, actor(req));
-    res.json(await getSettings(db));
+    await removerFonte(plataforma, req.params.peso, actor(req));
+    res.json(await getSettings(plataforma));
   });
 
   // ---------- Dashboard ----------
@@ -93,11 +97,16 @@ export function systemRouter(db: Db, opts: { dbFile: string }) {
   });
 
   // ---------- Logs ----------
+  // do espaço (o que mudou nos dados); ?origem=plataforma = acessos, usuários e identidade (só administrador;
+  // na Fase 5C, só o super usuário)
   router.get('/logs', requirePermission('logs', 'ver'), async (req, res) => {
+    const daPlataforma = req.query.origem === 'plataforma';
+    if (daPlataforma && !userOf(req).admin) throw forbidden('Logs da plataforma: só administradores.');
+    const base = daPlataforma ? plataforma : db;
     const page = Math.max(1, Number(req.query.page) || 1);
     const pageSize = Math.min(200, Math.max(1, Number(req.query.pageSize) || 15));
     const filtered = () => {
-      const q = db('logs');
+      const q = base('logs');
       if (typeof req.query.entidade === 'string' && req.query.entidade) q.where('entidade', req.query.entidade);
       if (typeof req.query.usuario_id === 'string' && req.query.usuario_id)
         q.where('usuario_id', Number(req.query.usuario_id));
@@ -120,7 +129,7 @@ export function systemRouter(db: Db, opts: { dbFile: string }) {
 
   // ---------- Backup ----------
   router.get('/backup/info', requirePermission('backup', 'ver'), async (_req, res) => {
-    res.json(await backupInfo(db, opts.dbFile));
+    res.json(await backupInfo(db, opts.arquivo() ?? ':memory:'));
   });
 
   router.get('/backup', requirePermission('backup', 'ver'), async (req, res) => {

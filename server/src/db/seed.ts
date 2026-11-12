@@ -7,8 +7,8 @@ import { count, toDbValue, type Db } from './knex';
 export const SEED_LOGINS = [{ email: 'admin@sistema.com', senha: 'admin123', perfil: 'Administrador' }] as const;
 
 /**
- * Popula o banco com dados de exemplo: administrador de teste (núcleo) e os
- * dados da aplicação (server/src/app/seed.ts). Não faz nada se já houver usuários.
+ * Popula a PLATAFORMA com o administrador de teste. Não faz nada se já houver usuários.
+ * Os dados de exemplo do sistema vão para o banco de um espaço: `seedEspaco`.
  */
 export async function seed(db: Db): Promise<boolean> {
   if ((await count(db('usuarios'))) > 0) return false;
@@ -23,7 +23,6 @@ export async function seed(db: Db): Promise<boolean> {
     trocar_senha: toDbValue(db, false),
     criado_em: agora,
   });
-  await seedApp(db);
   await db('logs').insert({
     entidade: 'sistema',
     acao: 'seed',
@@ -33,3 +32,6 @@ export async function seed(db: Db): Promise<boolean> {
   });
   return true;
 }
+
+/** Dados de exemplo da aplicação (server/src/app/seed.ts) no banco de um espaço */
+export const seedEspaco = (db: Db) => seedApp(db);

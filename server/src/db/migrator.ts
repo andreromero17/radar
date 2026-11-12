@@ -2,6 +2,7 @@ import type { Knex } from 'knex';
 import { isSqlite } from './knex';
 import { appMigrations } from '../app/migrations';
 import { migrations } from './migrations';
+import { plataformaMigrations } from './plataforma';
 
 export interface Migration {
   name: string;
@@ -12,19 +13,29 @@ export interface Migration {
 /**
  * As migrações ficam registradas em código em vez de serem lidas da pasta em
  * tempo de execução: funciona igual com tsx, no build de produção e nos testes.
- * Núcleo (db/migrations) e aplicação (app/migrations) ficam em listas separadas
- * — num sistema derivado do frame, cada lado mexe só na sua — e rodam juntas,
- * na ordem do nome (data e hora).
+ *
+ * Dois tipos de banco (Fase 5A):
+ *  - ESPAÇO (um por espaço: as finanças de um assinante): núcleo (db/migrations) + aplicação (app/migrations)
+ *  - PLATAFORMA (um só: usuários, sessões, identidade, espaços e membros): núcleo + db/plataforma
+ * Cada lista roda na ordem do nome (data e hora). Num sistema derivado, o sistema mexe só em app/migrations.
  */
-export const allMigrations = () => [...migrations, ...appMigrations].sort((a, b) => a.name.localeCompare(b.name));
+export type TipoBanco = 'espaco' | 'plataforma';
 
-const migrationSource: Knex.MigrationSource<Migration> = {
-  getMigrations: async () => allMigrations(),
-  getMigrationName: (m) => m.name,
-  getMigration: async (m) => m,
-};
+const ordenar = (l: Migration[]) => [...l].sort((a, b) => a.name.localeCompare(b.name));
+export const migracoesDe = (tipo: TipoBanco) =>
+  ordenar(tipo === 'plataforma' ? [...migrations, ...plataformaMigrations] : [...migrations, ...appMigrations]);
+/** Migrações do banco de um espaço (o que o `db:diff` compara com as entidades) */
+export const allMigrations = () => migracoesDe('espaco');
 
-export const migrationConfig: Knex.MigratorConfig = { migrationSource, tableName: 'knex_migrations' };
+export const migrationConfigDe = (tipo: TipoBanco): Knex.MigratorConfig => ({
+  migrationSource: {
+    getMigrations: async () => migracoesDe(tipo),
+    getMigrationName: (m) => m.name,
+    getMigration: async (m) => m,
+  } satisfies Knex.MigrationSource<Migration>,
+  tableName: 'knex_migrations',
+});
+export const migrationConfig = migrationConfigDe('espaco');
 
 /**
  * No SQLite, remover/alterar coluna faz o Knex recriar a tabela. Com as chaves
@@ -50,15 +61,15 @@ export async function withForeignKeysOff<T>(db: Knex, fn: () => Promise<T>): Pro
   return result;
 }
 
-export async function migrateLatest(db: Knex) {
+export async function migrateLatest(db: Knex, tipo: TipoBanco = 'espaco') {
   const [, applied] = (await withForeignKeysOff(db, () =>
-    db.migrate.latest(migrationConfig).catch(rethrowCorrupt),
+    db.migrate.latest(migrationConfigDe(tipo)).catch(rethrowCorrupt),
   )) as [number, string[]];
   return applied;
 }
 
-export async function rollback(db: Knex, all = false) {
-  const [, reverted] = (await withForeignKeysOff(db, () => db.migrate.rollback(migrationConfig, all))) as [
+export async function rollback(db: Knex, all = false, tipo: TipoBanco = 'espaco') {
+  const [, reverted] = (await withForeignKeysOff(db, () => db.migrate.rollback(migrationConfigDe(tipo), all))) as [
     number,
     string[],
   ];
@@ -82,8 +93,8 @@ const rethrowCorrupt = (err: unknown): never => {
   throw err;
 };
 
-export async function migrationStatus(db: Knex) {
-  const [done, pending] = (await db.migrate.list(migrationConfig).catch(rethrowCorrupt)) as [
+export async function migrationStatus(db: Knex, tipo: TipoBanco = 'espaco') {
+  const [done, pending] = (await db.migrate.list(migrationConfigDe(tipo)).catch(rethrowCorrupt)) as [
     { name: string }[],
     Migration[],
   ];

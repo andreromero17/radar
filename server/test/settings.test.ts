@@ -45,7 +45,7 @@ describe('log das configurações', () => {
       .put('/api/settings')
       .send({ ...atual, cor_primaria: '#10b981' })
       .expect(200);
-    const log = (await ctx.admin.get('/api/logs?entidade=sistema')).body.rows[0];
+    const log = (await ctx.admin.get('/api/logs?origem=plataforma&entidade=sistema')).body.rows[0];
     expect(log.alteracoes).toEqual({ cor_primaria: { de: atual.cor_primaria, para: '#10b981' } });
   });
 

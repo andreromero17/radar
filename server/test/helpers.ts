@@ -8,31 +8,44 @@ import { createEntityTable } from '../src/db/diff';
 import { createDb } from '../src/db/knex';
 import { migrateLatest } from '../src/db/migrator';
 import { seed } from '../src/db/seed';
+import { abrirEspaco, adicionarMembro, configurarEspacos, criarEspaco } from '../src/espacos';
 import { memoryMailer } from '../src/services/mailer';
-import { fixtureEntities, seedFixtures, registerFixtureEntities } from './fixtures';
+import { fixtureEntities, seedFixtures, seedFixtureUsuarios, registerFixtureEntities } from './fixtures';
 
 export const APP_URL = 'http://localhost:5173';
 export { registerFixtureEntities };
 
 /**
- * App completo sobre SQLite em memória: núcleo migrado + entidades de exemplo.
- * `admin`, `operador` e `leitura` são clientes HTTP já logados (cookie de sessão).
+ * App completo sobre SQLite em memória (Fase 5A): PLATAFORMA (usuários, sessões, espaços) + um ESPAÇO com o
+ * núcleo migrado e as entidades de exemplo. `db` = banco do espaço (onde ficam os dados); `plataforma` = usuários,
+ * perfis, sessões, configurações de identidade. `admin`, `operador` e `leitura` são clientes HTTP já logados,
+ * todos membros do espaço.
  */
 export async function makeTestApp() {
   registerFixtureEntities();
-  const db = createDb(':memory:');
-  await migrateLatest(db);
+  const plataforma = createDb(':memory:');
+  await migrateLatest(plataforma, 'plataforma');
+  await seed(plataforma);
+  await seedFixtureUsuarios(plataforma);
+  configurarEspacos({ plataforma, dir: null, autoMigrar: true });
+  const usuarios = (await plataforma('usuarios').orderBy('id').select('id', 'email')) as {
+    id: number;
+    email: string;
+  }[];
+  const admin = usuarios.find((u) => u.email === 'admin@sistema.com')!;
+  const espacoId = await criarEspaco({ nome: 'Espaço de teste', donoId: admin.id });
+  for (const u of usuarios.filter((x) => x.id !== admin.id)) await adicionarMembro(espacoId, u.id, 'editor');
+  const db = await abrirEspaco(espacoId);
   for (const [table, ent] of Object.entries(fixtureEntities)) await createEntityTable(db, table, ent);
-  await seed(db);
   await seedFixtures(db);
+
   const mailer = memoryMailer();
   const uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-anexos-'));
   const app = createApp({
     uploadDir,
     uploadMaxMb: 1,
-    db,
+    db: plataforma,
     logger: pino({ level: 'silent' }),
-    dbFile: ':memory:',
     webDist: '/nao-existe',
     mailer,
     appUrl: APP_URL,
@@ -47,6 +60,8 @@ export async function makeTestApp() {
 
   return {
     db,
+    plataforma,
+    espacoId,
     app,
     mailer,
     uploadDir,

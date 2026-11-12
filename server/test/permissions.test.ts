@@ -38,7 +38,7 @@ describe('permissões por perfil', () => {
   });
 
   it('mudança de permissão vale na hora, sem novo login', async () => {
-    const leitura = await ctx.db('perfis').where({ nome: 'Leitura' }).first();
+    const leitura = await ctx.plataforma('perfis').where({ nome: 'Leitura' }).first();
     await ctx.admin
       .put(`/api/perfis/${leitura.id}`)
       .send({ permissoes: { clientes: ['ver', 'criar'], chamados: ['ver'] } })
@@ -87,23 +87,23 @@ describe('usuários', () => {
   });
 
   it('sistema nunca fica sem administrador ativo', async () => {
-    const operador = await ctx.db('perfis').where({ nome: 'Operador' }).first();
+    const operador = await ctx.plataforma('perfis').where({ nome: 'Operador' }).first();
     const rebaixar = await ctx.admin.put('/api/usuarios/1').send({ perfil_id: operador.id });
     expect(rebaixar.status).toBe(409);
     const desativarProprio = await ctx.admin.put('/api/usuarios/1').send({ ativo: false });
     expect(desativarProprio.status).toBe(422);
     expect((await ctx.admin.delete('/api/usuarios/1')).status).toBe(409);
-    const admin = await ctx.db('perfis').where({ nome: 'Administrador' }).first();
+    const admin = await ctx.plataforma('perfis').where({ nome: 'Administrador' }).first();
     expect((await ctx.admin.put(`/api/perfis/${admin.id}`).send({ admin: false })).status).toBe(409);
   });
 
   it('quem não é admin não promove ninguém a admin (nem a si mesmo)', async () => {
-    const perfilOp = await ctx.db('perfis').where({ nome: 'Operador' }).first();
+    const perfilOp = await ctx.plataforma('perfis').where({ nome: 'Operador' }).first();
     await ctx.admin
       .put(`/api/perfis/${perfilOp.id}`)
       .send({ permissoes: { clientes: ['ver'], chamados: ['ver'], usuarios: ['ver', 'criar', 'editar'] } })
       .expect(200);
-    const admin = await ctx.db('perfis').where({ nome: 'Administrador' }).first();
+    const admin = await ctx.plataforma('perfis').where({ nome: 'Administrador' }).first();
 
     const promover = await ctx.operador.put('/api/usuarios/2').send({ perfil_id: admin.id });
     expect(promover.status).toBe(403);
@@ -167,7 +167,7 @@ describe('logs com diff', () => {
 
   it('senha aparece só como "alterada", nunca o valor', async () => {
     await ctx.admin.put('/api/usuarios/4').send({ senha: 'qualquer123' }).expect(200);
-    const { body } = await ctx.admin.get('/api/logs?entidade=usuarios&registro_id=4');
+    const { body } = await ctx.admin.get('/api/logs?origem=plataforma&entidade=usuarios&registro_id=4');
     expect(body.rows[0].alteracoes.senha).toEqual({ de: '••••••', para: '(alterada)' });
     expect(JSON.stringify(body)).not.toContain('qualquer123');
   });

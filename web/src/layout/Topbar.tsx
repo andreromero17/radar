@@ -48,6 +48,12 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
               <i className="bi bi-shield-lock me-1" />
               {user?.perfil}
             </span>
+            {user?.espaco && (
+              <div className="small text-muted mt-1 text-truncate" title="Espaço em uso">
+                <i className="bi bi-house-door me-1" />
+                {user.espaco.nome}
+              </div>
+            )}
           </div>
           <div className="px-3 pt-1 pb-2">
             <div className="small text-muted mb-1">Aparência</div>

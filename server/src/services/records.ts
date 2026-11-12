@@ -146,6 +146,8 @@ export interface ListOptions {
   /** Sem paginação (exportação) — respeita o limite */
   all?: boolean;
   limit?: number;
+  /** Só estes ids (escopo: ex. usuários = membros do espaço). null/undefined = sem restrição */
+  somenteIds?: number[] | null;
 }
 
 /** Campo e direção de ordenação pedidos na URL (ou o padrão da entidade) */
@@ -208,18 +210,20 @@ export async function listRecords(db: Db, table: string, ent: EntityDef, query: 
   // relação ordena pelo nome do registro relacionado, não pelo id
   const orderCol = sortDef?.type === 'relation' ? `${sortField}__label` : `${table}.${sortField}`;
 
-  const total = await count(applyFilters(db, db(table), table, ent, query));
+  const escopo = <T extends Knex.QueryBuilder>(qb: T): T =>
+    (opts.somenteIds ? qb.whereIn(`${table}.id`, opts.somenteIds) : qb) as T;
+  const total = await count(escopo(applyFilters(db, db(table), table, ent, query)));
 
   const totals: Record<string, number> = {};
   const summed = fields.filter((f) => f.total === 'sum');
   if (summed.length) {
-    const qb = applyFilters(db, db(table), table, ent, query);
+    const qb = escopo(applyFilters(db, db(table), table, ent, query));
     summed.forEach((f) => qb.sum({ [f.name]: `${table}.${f.name}` }));
     const row = (await qb.first()) as Record<string, number | string | null> | undefined;
     for (const f of summed) totals[f.name] = Math.round(Number(row?.[f.name] ?? 0) * 100) / 100;
   }
 
-  const qb = applyFilters(db, selectWithLabels(db, table, ent), table, ent, query)
+  const qb = escopo(applyFilters(db, selectWithLabels(db, table, ent), table, ent, query))
     .orderBy(orderCol, dir)
     .orderBy(`${table}.id`, dir);
   if (opts.all) qb.limit(opts.limit ?? 50_000);
@@ -477,7 +481,13 @@ export async function restoreRecord(c: OpCtx, table: string, ent: EntityDef, id:
  * Opções de select (id + nome), com filtros de igualdade (selects dependentes).
  * Sem os inativos (`activeField`), a não ser com ?todos=1 (filtros da listagem).
  */
-export async function relationOptions(db: Db, table: string, ent: EntityDef, query: Query) {
+export async function relationOptions(
+  db: Db,
+  table: string,
+  ent: EntityDef,
+  query: Query,
+  somenteIds?: number[] | null,
+) {
   const qb = db(table).select('id', `${ent.labelField} as label`);
   if (ent.lixeira) qb.whereNull(TRASH_COLUMN);
   const todos = query.todos === '1' || query.todos === 'true';
@@ -489,7 +499,12 @@ export async function relationOptions(db: Db, table: string, ent: EntityDef, que
   // inclui o valor atual do formulário mesmo que esteja filtrado/na lixeira
   const incluir = Number(query.incluir);
   if (incluir > 0) qb.orWhere('id', incluir);
-  const rows = await qb.orderBy(ent.labelField, 'asc').limit(5000);
+  // escopo por fora (subconsulta): o `orWhere` do valor atual não pode escapar dele
+  const rows = await (
+    somenteIds
+      ? db.from(qb.as('o')).whereIn('id', somenteIds).orderBy('label', 'asc')
+      : qb.orderBy(ent.labelField, 'asc')
+  ).limit(5000);
   return rows.map((r) => ({ value: r.id as number, label: String(r.label ?? r.id) }));
 }
 

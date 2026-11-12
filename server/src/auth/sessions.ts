@@ -73,7 +73,7 @@ export async function resolveSession(
   db: Db,
   cfg: SessionConfig,
   token: string,
-): Promise<{ sessionId: string; user: AuthUser } | null> {
+): Promise<{ sessionId: string; user: AuthUser; espacoId: number | null } | null> {
   const id = hashToken(token);
   const s = await db('sessoes').where({ id }).where('expira_em', '>', nowLocal()).first();
   if (!s) return null;
@@ -88,8 +88,12 @@ export async function resolveSession(
       .where({ id })
       .update({ ultimo_uso: nowLocal(), expira_em: inHours(cfg.sessionHours) });
   }
-  return { sessionId: id, user };
+  return { sessionId: id, user, espacoId: s.espaco_id == null ? null : Number(s.espaco_id) };
 }
+
+/** Troca o espaço em uso na sessão (a checagem de que o usuário é membro fica com quem chama) */
+export const definirEspacoDaSessao = (db: Db, sessionId: string, espacoId: number) =>
+  db('sessoes').where({ id: sessionId }).update({ espaco_id: espacoId });
 
 export const deleteSession = (db: Db, sessionId: string) => db('sessoes').where({ id: sessionId }).del();
 

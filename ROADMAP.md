@@ -88,18 +88,36 @@ _Começa assim que a Fase 2 tiver o essencial; as duas andam juntas._
   resumo diário por e-mail). No finanças: fatura vencendo/vencida, orçamento 80%/100%, pendente atrasado,
   recorrência terminando e saldo negativo previsto
 
-## Fase 5 — Multi-sistema
+## Fase 5 — SaaS: plataforma, espaços e assinantes
 
 - **Decidido (08/11/2026, v0.5.1):** cada sistema é um repositório derivado do frame, com `upstream` = frame-app.
   O sistema só mexe nas pastas `app/` e em `docs/app/`; melhorias no núcleo nascem no frame e descem com
   `git pull upstream main`. Primeiro: `financas`.
-- Monorepo (`packages/core` + `apps/*`) ou núcleo publicado como pacote npm só se o número de sistemas pedir
-- **CLI de scaffold:** `npm run novo-sistema nome` gera um app pronto para configurar
-- **Decisão a tomar aqui:** instâncias separadas por sistema/cliente (mais simples, recomendado) ou multi-tenant numa instalação só (só se virar SaaS)
+- **Decidido (12/11/2026): o finanças vira SaaS para múltiplos assinantes** (referência: Monarch Money)
+  - **Isolamento: um banco por espaço** (SQLite por arquivo hoje; um schema por espaço se for para Postgres). O
+    isolamento vem da estrutura, não de filtro em consulta; backup/exclusão por assinante (LGPD) triviais
+  - **Papéis:** super usuário (plataforma: identidade, assinantes, suporte); no espaço, **dono** (assinante),
+    **editor** e **leitor** (convidados, inativáveis pelo dono). O convidado vê o espaço inteiro
+  - **Vários espaços por assinante** (pessoal, holding, empresa), com seletor de espaço
+  - **Suporte só com consentimento do dono** (liberação temporária, somente leitura por padrão, faixa na tela) e
+    **cada acesso registrado no log do espaço**, visível ao dono; 2FA obrigatório para o super usuário
+- ✅ **5A — Plataforma e espaços** (12/11/2026, v0.16.0): banco da plataforma (usuários, sessões, identidade,
+  espaços, membros) + um banco por espaço, escolhido pela sessão a cada requisição; conversão automática da
+  instalação antiga (backup + espaço 1); teste de isolamento que percorre todas as rotas, fontes, relatórios e
+  alertas de um espaço procurando dados do outro
+- **5B — Membros:** papéis no espaço no lugar dos perfis, convites por e-mail (link único, 7 dias), inativar/remover,
+  seletor de espaço, criar outros espaços
+- **5C — Super usuário:** painel da plataforma (assinantes, espaços, uso), identidade global, acesso de suporte com
+  consentimento e auditoria, 2FA
+- **5D — Cadastro e LGPD:** cadastro com confirmação de e-mail, termos e privacidade, baixar meus dados, excluir conta
+- Depois: planos e cobrança (Asaas/Stripe, Pix e cartão)
+- Monorepo (`packages/core` + `apps/*`) ou núcleo publicado como pacote npm só se o número de sistemas pedir;
+  **CLI de scaffold** (`npm run novo-sistema nome`) quando houver um segundo sistema
 
 ## Fase 6 — Produção e mobile
 
-- Postgres em produção (SQLite continua no dev), viabilizado pelo Knex da Fase 0
+- Banco: **SQLite por espaço numa VPS + backup contínuo (Litestream → S3/R2)** é o caminho mais simples e barato
+  para a escala de finanças pessoais; Postgres (um schema por espaço) se um dia precisar de vários servidores
 - Docker multi-stage + compose, deploy (VPS, Railway ou Fly.io), HTTPS
 - Backup agendado para fora do servidor (S3/R2), monitoramento e log de erros (Sentry)
 - **PWA:** instalável no celular, com ícone e cache básico. Cobre boa parte do "mobile" sem app nativo.
@@ -129,4 +147,4 @@ Fase 0 ──► Fase 1 ──► Fase 2 ─┬─► Fase 4 ──► Fase 5 �
 
 1. Migrar para TypeScript agora (recomendado) ou seguir em JavaScript?
 2. Knex (query builder, combina com o modelo dirigido por config) ou um ORM tipado como Drizzle?
-3. Na Fase 5: instâncias separadas ou multi-tenant?
+3. ~~Na Fase 5: instâncias separadas ou multi-tenant?~~ Multi-tenant com um banco por espaço (12/11/2026)

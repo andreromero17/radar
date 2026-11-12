@@ -4,6 +4,26 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.16.0 — 12/11/2026
+
+**Fase 5A: plataforma e espaços (base do SaaS)** — nada muda na tela; muda onde cada dado mora
+
+- **Um banco por espaço** (`data/espacos/<id>.db`) e o banco da **plataforma** (`data/app.db`: usuários, perfis,
+  sessões, identidade, `espacos`, `membros`). O espaço vem da sessão, conferido nos membros a cada requisição; o
+  código do sistema usa `dbEspaco`, que sempre aponta para o banco do espaço da sessão
+- **Conversão automática** da instalação antiga no primeiro boot (ou `db:migrate`): backup
+  `backup-antes-dos-espacos-<data>.db`, dados no espaço 1 ("Pessoal"), plataforma sem dado do sistema, mesmos logins
+- O banco do espaço não guarda senha nem sessão (cópia leve dos usuários membros, para nomes e vínculos)
+- Usuários (lista, opções, detalhe, edição, lote) restritos aos membros do espaço; id de fora = 404
+- `GET /api/auth/me` traz o espaço em uso e a lista; `POST /api/auth/espaco` troca (a tela vem na 5B)
+- Logs: a tela mostra os do espaço; administrador vê também os da plataforma (acessos, usuários, identidade)
+- Configurações do sistema derivado passam a ser **por espaço**; a identidade visual é da plataforma
+- Manutenção diária roda em cada espaço (lixeira, logs, manutenção do app, alertas e e-mails)
+- CLI: `db:migrate`/`status`/`rollback`/`seed`/`reset`/`admin` entendem plataforma + espaços (`ESPACOS_DIR`)
+- **Teste de isolamento** (`espacos.test.ts`): com dois espaços, percorre todas as entidades (lista, opções,
+  exportação, lixeira), logs, painel, backup, configurações, todas as fontes de dados, relatórios e notificações do
+  espaço B procurando dados do A; tentativas por id, troca para espaço alheio, membro inativado perde acesso na hora
+
 ## 0.15.0 — 12/11/2026
 
 **Fase 4C: notificações reais**

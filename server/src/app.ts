@@ -15,6 +15,7 @@ import { paineisRouter } from './routes/paineis';
 import { notificacoesRouter } from './routes/notificacoes';
 import { authRouter } from './routes/auth';
 import { crudRouter } from './routes/crud';
+import { membrosRouter } from './routes/membros';
 import { systemRouter } from './routes/system';
 import type { Mailer } from './services/mailer';
 import { configureAnexos } from './services/anexos';
@@ -127,6 +128,7 @@ export function createApp(opts: AppOptions) {
   app.use('/api', resolverEspaco(db));
   const arquivo = () => arquivoEspaco(espacoAtivo().espacoId);
   app.use('/api', systemRouter(db, dbEspaco, { arquivo })); // antes do CRUD genérico
+  app.use('/api', membrosRouter(db, { mailer: opts.mailer, appUrl: opts.appUrl }));
   app.use('/api', paineisRouter(dbEspaco)); // fontes de dados, relatórios dinâmicos e preferências
   app.use('/api', notificacoesRouter(dbEspaco, { emailDisponivel: !!opts.emailDisponivel }));
   app.use('/api', appRouter(dbEspaco)); // rotas próprias da aplicação (sempre no espaço da sessão)

@@ -30,6 +30,7 @@ export async function loadAuthUser(db: Db, userId: number): Promise<AuthUser | n
       'u.tamanho_texto',
       'p.nome as perfil',
       'p.admin',
+      'p.completo',
       'p.permissoes',
     );
   if (!row) return null;
@@ -39,6 +40,7 @@ export async function loadAuthUser(db: Db, userId: number): Promise<AuthUser | n
     email: row.email,
     perfil: row.perfil,
     admin: !!row.admin,
+    completo: !!row.completo,
     permissoes: permissionsSchema.parse(row.permissoes) as Permissions,
     trocar_senha: !!row.trocar_senha,
     aparencia: APARENCIAS.includes(row.aparencia) ? row.aparencia : 'sistema',
@@ -92,7 +94,7 @@ export async function resolveSession(
 }
 
 /** Troca o espaço em uso na sessão (a checagem de que o usuário é membro fica com quem chama) */
-export const definirEspacoDaSessao = (db: Db, sessionId: string, espacoId: number) =>
+export const definirEspacoDaSessao = (db: Db, sessionId: string, espacoId: number | null) =>
   db('sessoes').where({ id: sessionId }).update({ espaco_id: espacoId });
 
 export const deleteSession = (db: Db, sessionId: string) => db('sessoes').where({ id: sessionId }).del();

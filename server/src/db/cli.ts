@@ -13,14 +13,13 @@
 // =============================================================================
 import fs from 'node:fs';
 import path from 'node:path';
-import { entities } from '@frame/shared';
 import { hashPassword, randomPassword } from '../auth/password';
 import { deleteUserSessions } from '../auth/sessions';
 import { addLog } from '../services/logs';
 import { nowLocal } from '../utils/time';
 import { config } from '../config';
 import { createDb } from './knex';
-import { computeDiff, isEmptyDiff, writeMigration } from './diff';
+import { computeDiff, entidadesDe, isEmptyDiff, writeMigration } from './diff';
 import { migrateLatest, migrationStatus, rollback } from './migrator';
 import { seed, seedEspaco, SEED_LOGINS } from './seed';
 import { setupDemo } from '../demo/setup';
@@ -96,7 +95,7 @@ try {
       const [primeiro] = await idsEspacosAtivos();
       if (!primeiro) throw new Error('Nenhum espaço para comparar. Rode `npm run db:seed` (ou db:admin) antes.');
       const espaco = await abrirEspaco(primeiro);
-      const diff = await computeDiff(espaco, entities);
+      const diff = await computeDiff(espaco, entidadesDe('espaco'));
       for (const o of diff.orphanColumns)
         console.warn(`⚠ ${o.table}.${o.column} existe no banco mas não na entidade (renomear/remover é manual)`);
       if (isEmptyDiff(diff)) {

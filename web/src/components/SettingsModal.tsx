@@ -18,6 +18,7 @@ import {
 } from '@frame/shared';
 import { api, ApiError, errorMessage } from '../lib/api';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import BrandMark from './BrandMark';
 import { AMOSTRA, carregarAmostraPropria, carregarAmostras, FONTE_DO_TEMA, FONTES_DEF } from '../lib/fontes';
@@ -82,6 +83,7 @@ function ColorField({ label, value, onChange, error }: ColorFieldProps) {
 
 export default function SettingsModal({ show, onHide }: { show: boolean; onHide: () => void }) {
   const { settings, save, reset, preview } = useSettings();
+  const admin = !!useAuth().user?.admin;
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<Settings>(settings);
@@ -162,11 +164,12 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     // Mesma validação da API, antes de enviar
-    const check = settingsSchema.safeParse(form);
+    // identidade é da plataforma (só administrador); o dono do espaço altera só as configurações do sistema
+    const check = admin ? settingsSchema.safeParse(form) : null;
     const checkApp = appSettingsSchema().safeParse(appForm);
-    if (!check.success || !checkApp.success) {
+    if ((check && !check.success) || !checkApp.success) {
       setErrors({
-        ...(!check.success && toFieldErrors(check.error)),
+        ...(check && !check.success && toFieldErrors(check.error)),
         ...(!checkApp.success && toFieldErrors(checkApp.error)),
       });
       toast.error('Verifique os campos destacados');
@@ -175,7 +178,7 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
     setSaving(true);
     try {
       if (appSettings.length) definirAppSettings(await api.put<AppSettings>('/settings/app', checkApp.data));
-      await save(check.data);
+      if (check?.success) await save(check.data);
       toast.success('Configurações salvas');
       onHide();
     } catch (err) {
@@ -231,287 +234,296 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
           </Modal.Header>
 
           <Modal.Body className="p-4">
-            {/* ---------- Identidade ---------- */}
-            <h6 className="settings-section">Identidade</h6>
-            <Row className="g-3">
-              <Col md={7}>{text('nome_sistema', 'Nome do sistema', { maxLength: 40 })}</Col>
-              <Col md={5}>
-                <div
-                  className="brand-preview"
-                  style={{ background: `linear-gradient(135deg, ${form.cor_primaria}, ${form.cor_secundaria})` }}
-                >
-                  <BrandMark settings={form} />
-                  <span className="text-truncate">{form.nome_sistema || 'Meu Sistema'}</span>
-                </div>
-              </Col>
-
-              <Col md={7}>
-                <Form.Label className="small fw-semibold mb-1">Ícone</Form.Label>
-                <div className="icon-grid">
-                  {ICONES.map((i) => (
-                    <button
-                      type="button"
-                      key={i}
-                      title={i}
-                      className={`icon-option ${form.icone === i ? 'active' : ''}`}
-                      onClick={() => set('icone', i)}
+            {admin && (
+              <>
+                {/* ---------- Identidade ---------- */}
+                <h6 className="settings-section">Identidade</h6>
+                <Row className="g-3">
+                  <Col md={7}>{text('nome_sistema', 'Nome do sistema', { maxLength: 40 })}</Col>
+                  <Col md={5}>
+                    <div
+                      className="brand-preview"
+                      style={{ background: `linear-gradient(135deg, ${form.cor_primaria}, ${form.cor_secundaria})` }}
                     >
-                      <i className={`bi bi-${i}`} />
-                    </button>
-                  ))}
-                </div>
-                <Form.Control
-                  size="sm"
-                  className="mt-2 font-monospace"
-                  value={form.icone ?? ''}
-                  onChange={(e) => set('icone', e.target.value.trim().replace(/^bi-/, ''))}
-                  isInvalid={!!errors.icone}
-                  placeholder="ou digite o nome de qualquer ícone"
-                />
-                <Form.Control.Feedback type="invalid">{errors.icone}</Form.Control.Feedback>
-                <Form.Text>
-                  Catálogo completo em{' '}
-                  <a href="https://icons.getbootstrap.com" target="_blank" rel="noreferrer">
-                    icons.getbootstrap.com
-                  </a>
-                </Form.Text>
-              </Col>
+                      <BrandMark settings={form} />
+                      <span className="text-truncate">{form.nome_sistema || 'Meu Sistema'}</span>
+                    </div>
+                  </Col>
 
-              <Col md={5}>
-                <Form.Label className="small fw-semibold mb-1">Logo (opcional)</Form.Label>
-                <div className="logo-drop">
-                  {form.logo ? (
-                    <img src={form.logo} alt="Logo" />
-                  ) : (
-                    <span className="text-muted small text-center">
-                      PNG, JPG, SVG ou WebP
-                      <br />
-                      até 300 KB
-                    </span>
-                  )}
-                </div>
-                <div className="d-flex gap-2 mt-2">
-                  <Button size="sm" variant="outline-primary" onClick={() => fileRef.current?.click()}>
-                    <i className="bi bi-upload me-1" />
-                    {form.logo ? 'Trocar' : 'Enviar'}
-                  </Button>
-                  {form.logo && (
-                    <Button size="sm" variant="light" className="text-danger" onClick={() => set('logo', '')}>
-                      <i className="bi bi-trash me-1" />
-                      Remover
-                    </Button>
-                  )}
-                </div>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                  hidden
-                  onChange={pickLogo}
-                />
-                {errors.logo && <div className="invalid-feedback d-block">{errors.logo}</div>}
-                <Form.Text>Se enviado, substitui o ícone.</Form.Text>
-              </Col>
-            </Row>
-
-            {/* ---------- Tema ---------- */}
-            <h6 className="settings-section">
-              Tema{' '}
-              <span className="text-muted fw-normal small">— vale para todos; claro/escuro cada usuário escolhe</span>
-            </h6>
-            <div className="row g-3 mb-1">
-              {TEMAS.map((t) => (
-                <div className="col-6" key={t}>
-                  <button
-                    type="button"
-                    className={`tema-option w-100 ${form.tema === t ? 'active' : ''}`}
-                    onClick={() => set('tema', t)}
-                    aria-pressed={form.tema === t}
-                  >
-                    <span className={`tema-preview ${t}`}>
-                      <span className="tp-side" />
-                      <span className="tp-main">
-                        <span className="tp-card" />
-                        <span className="tp-card" />
-                        <span className="tp-card" />
-                        <span className="tp-card" />
-                      </span>
-                    </span>
-                    <span>
-                      {t === 'vibrante' ? 'Vibrante' : 'Minimalista'}
-                      <span className="d-block small text-muted fw-normal">
-                        {t === 'vibrante'
-                          ? 'Cores fortes, menu colorido, cards em bloco'
-                          : 'Neutro e elegante, bordas finas, cor só nos destaques'}
-                      </span>
-                    </span>
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* ---------- Fonte ---------- */}
-            <h6 className="settings-section">
-              Fonte{' '}
-              <span className="text-muted fw-normal small">— o tamanho do texto cada usuário escolhe no seu menu</span>
-            </h6>
-            <div className="fonte-grid mb-1" role="radiogroup" aria-label="Fonte do sistema">
-              {FONTES.map((f) => {
-                const id = f === 'tema' ? FONTE_DO_TEMA[form.tema === 'minimalista' ? 'minimalista' : 'vibrante'] : f;
-                const def = FONTES_DEF[id];
-                const semArquivo = f === 'propria' && !temArquivo('regular');
-                return (
-                  <button
-                    type="button"
-                    key={f}
-                    role="radio"
-                    aria-checked={(form.fonte ?? 'tema') === f}
-                    className={`fonte-option ${(form.fonte ?? 'tema') === f ? 'active' : ''}`}
-                    disabled={semArquivo}
-                    title={semArquivo ? 'Envie o arquivo da fonte abaixo' : undefined}
-                    onClick={() => set('fonte', f)}
-                  >
-                    <span className="fonte-amostra" style={{ fontFamily: semArquivo ? undefined : def.family }}>
-                      {semArquivo ? <i className="bi bi-upload" /> : AMOSTRA.slice(0, 5)}
-                    </span>
-                    <span className="fonte-nome">
-                      {f === 'tema'
-                        ? `Do tema (${def.nome})`
-                        : f === 'propria'
-                          ? form.fonte_propria_nome || 'Própria'
-                          : def.nome}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <details className="fonte-propria mb-1" open={form.fonte === 'propria' || undefined}>
-              <summary className="small">Usar uma fonte própria (arquivo .woff2, .woff, .otf ou .ttf)</summary>
-              <div className="row g-2 mt-1 align-items-end">
-                <div className="col-md-4">
-                  <Form.Label className="small mb-1">Nome da fonte</Form.Label>
-                  <Form.Control
-                    size="sm"
-                    value={form.fonte_propria_nome ?? ''}
-                    placeholder="Ex.: ABC Oracle"
-                    maxLength={60}
-                    onChange={(e) => set('fonte_propria_nome', e.target.value)}
-                  />
-                </div>
-                {PESOS_FONTE.map((p) => (
-                  <div className="col-md-4" key={p}>
-                    <Form.Label className="small mb-1">
-                      {p === 'regular' ? 'Arquivo regular' : 'Arquivo negrito (opcional)'}
-                    </Form.Label>
-                    <div className="d-flex gap-2 align-items-center">
-                      <Form.Control
-                        size="sm"
-                        type="file"
-                        accept=".woff2,.woff,.otf,.ttf"
-                        disabled={!!enviandoFonte}
-                        aria-label={`Arquivo ${p}`}
-                        onChange={(e) => {
-                          const file = (e.target as HTMLInputElement).files?.[0];
-                          (e.target as HTMLInputElement).value = '';
-                          if (file) void enviarFonte(p, file);
-                        }}
-                      />
-                      {temArquivo(p) && (
-                        <Button
-                          size="sm"
-                          variant="light"
-                          className="text-danger flex-shrink-0"
-                          title="Remover arquivo"
-                          aria-label={`Remover arquivo ${p}`}
-                          onClick={() => void enviarFonte(p, null)}
+                  <Col md={7}>
+                    <Form.Label className="small fw-semibold mb-1">Ícone</Form.Label>
+                    <div className="icon-grid">
+                      {ICONES.map((i) => (
+                        <button
+                          type="button"
+                          key={i}
+                          title={i}
+                          className={`icon-option ${form.icone === i ? 'active' : ''}`}
+                          onClick={() => set('icone', i)}
                         >
-                          <i className="bi bi-trash" />
+                          <i className={`bi bi-${i}`} />
+                        </button>
+                      ))}
+                    </div>
+                    <Form.Control
+                      size="sm"
+                      className="mt-2 font-monospace"
+                      value={form.icone ?? ''}
+                      onChange={(e) => set('icone', e.target.value.trim().replace(/^bi-/, ''))}
+                      isInvalid={!!errors.icone}
+                      placeholder="ou digite o nome de qualquer ícone"
+                    />
+                    <Form.Control.Feedback type="invalid">{errors.icone}</Form.Control.Feedback>
+                    <Form.Text>
+                      Catálogo completo em{' '}
+                      <a href="https://icons.getbootstrap.com" target="_blank" rel="noreferrer">
+                        icons.getbootstrap.com
+                      </a>
+                    </Form.Text>
+                  </Col>
+
+                  <Col md={5}>
+                    <Form.Label className="small fw-semibold mb-1">Logo (opcional)</Form.Label>
+                    <div className="logo-drop">
+                      {form.logo ? (
+                        <img src={form.logo} alt="Logo" />
+                      ) : (
+                        <span className="text-muted small text-center">
+                          PNG, JPG, SVG ou WebP
+                          <br />
+                          até 300 KB
+                        </span>
+                      )}
+                    </div>
+                    <div className="d-flex gap-2 mt-2">
+                      <Button size="sm" variant="outline-primary" onClick={() => fileRef.current?.click()}>
+                        <i className="bi bi-upload me-1" />
+                        {form.logo ? 'Trocar' : 'Enviar'}
+                      </Button>
+                      {form.logo && (
+                        <Button size="sm" variant="light" className="text-danger" onClick={() => set('logo', '')}>
+                          <i className="bi bi-trash me-1" />
+                          Remover
                         </Button>
                       )}
                     </div>
-                    <div className="small text-muted mt-1">
-                      {enviandoFonte === p ? 'Enviando...' : temArquivo(p) ? 'Enviado ✓' : 'Nenhum arquivo'}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="small text-muted mt-2">
-                Fontes comerciais exigem licença para uso em web. O arquivo fica no sistema e é carregado também na tela
-                de login. Sem o arquivo negrito, o navegador simula o negrito.
-              </div>
-            </details>
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                      hidden
+                      onChange={pickLogo}
+                    />
+                    {errors.logo && <div className="invalid-feedback d-block">{errors.logo}</div>}
+                    <Form.Text>Se enviado, substitui o ícone.</Form.Text>
+                  </Col>
+                </Row>
 
-            {/* ---------- Cores ---------- */}
-            <h6 className="settings-section">Cores</h6>
-            <div className="d-flex flex-wrap gap-2 mb-3">
-              {PALETAS.map(([nome, a, b]) => (
-                <button
-                  type="button"
-                  key={nome}
-                  className={`palette-option ${form.cor_primaria === a && form.cor_secundaria === b ? 'active' : ''}`}
-                  onClick={() => setForm((f) => ({ ...f, cor_primaria: a, cor_secundaria: b }))}
-                >
-                  <span style={{ background: `linear-gradient(135deg, ${a}, ${b})` }} />
-                  {nome}
-                </button>
-              ))}
-            </div>
-            <Row className="g-3">
-              <Col sm={6}>
-                <ColorField
-                  label="Cor primária (botões, destaques, início do gradiente)"
-                  value={form.cor_primaria}
-                  onChange={(v) => set('cor_primaria', v)}
-                  error={errors.cor_primaria}
-                />
-              </Col>
-              <Col sm={6}>
-                <ColorField
-                  label="Cor secundária (fim do gradiente do menu)"
-                  value={form.cor_secundaria}
-                  onChange={(v) => set('cor_secundaria', v)}
-                  error={errors.cor_secundaria}
-                />
-              </Col>
-            </Row>
-
-            {/* ---------- Organização ---------- */}
-            <h6 className="settings-section">
-              Organização{' '}
-              <span className="text-muted fw-normal small">— aparece no rodapé e servirá para relatórios</span>
-            </h6>
-            <Row className="g-3">
-              <Col md={6}>{text('organizacao', 'Nome da empresa / responsável')}</Col>
-              <Col md={6}>{text('telefone', 'Telefone')}</Col>
-              <Col md={6}>{text('email', 'E-mail', { type: 'email' })}</Col>
-              <Col md={6}>{text('endereco', 'Endereço')}</Col>
-            </Row>
-
-            {/* ---------- Menu e ajuda ---------- */}
-            <h6 className="settings-section">Menu e ajuda</h6>
-            {form.tema !== 'minimalista' && (
-              <Form.Label className="small fw-semibold mb-2">Estilo do menu lateral</Form.Label>
-            )}
-            <div className={`d-flex gap-3 mb-3 flex-wrap ${form.tema === 'minimalista' ? 'd-none' : ''}`}>
-              {MENU_STYLES.map((estilo) => (
-                <button
-                  type="button"
-                  key={estilo}
-                  className={`menu-style-option ${form.estilo_menu === estilo ? 'active' : ''}`}
-                  onClick={() => set('estilo_menu', estilo)}
-                  aria-pressed={form.estilo_menu === estilo}
-                >
-                  <span className={`menu-style-preview ${estilo}`}>
-                    <span />
-                    <span />
-                    <span />
+                {/* ---------- Tema ---------- */}
+                <h6 className="settings-section">
+                  Tema{' '}
+                  <span className="text-muted fw-normal small">
+                    — vale para todos; claro/escuro cada usuário escolhe
                   </span>
-                  {estilo === 'colorido' ? 'Colorido' : 'Claro'}
-                </button>
-              ))}
-            </div>
-            {text('url_ajuda', 'Link da Central de Ajuda (opcional)', { type: 'url' })}
-            <Form.Text>Se preenchido, aparece um item “Central de Ajuda” no menu, abrindo em nova aba.</Form.Text>
+                </h6>
+                <div className="row g-3 mb-1">
+                  {TEMAS.map((t) => (
+                    <div className="col-6" key={t}>
+                      <button
+                        type="button"
+                        className={`tema-option w-100 ${form.tema === t ? 'active' : ''}`}
+                        onClick={() => set('tema', t)}
+                        aria-pressed={form.tema === t}
+                      >
+                        <span className={`tema-preview ${t}`}>
+                          <span className="tp-side" />
+                          <span className="tp-main">
+                            <span className="tp-card" />
+                            <span className="tp-card" />
+                            <span className="tp-card" />
+                            <span className="tp-card" />
+                          </span>
+                        </span>
+                        <span>
+                          {t === 'vibrante' ? 'Vibrante' : 'Minimalista'}
+                          <span className="d-block small text-muted fw-normal">
+                            {t === 'vibrante'
+                              ? 'Cores fortes, menu colorido, cards em bloco'
+                              : 'Neutro e elegante, bordas finas, cor só nos destaques'}
+                          </span>
+                        </span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* ---------- Fonte ---------- */}
+                <h6 className="settings-section">
+                  Fonte{' '}
+                  <span className="text-muted fw-normal small">
+                    — o tamanho do texto cada usuário escolhe no seu menu
+                  </span>
+                </h6>
+                <div className="fonte-grid mb-1" role="radiogroup" aria-label="Fonte do sistema">
+                  {FONTES.map((f) => {
+                    const id =
+                      f === 'tema' ? FONTE_DO_TEMA[form.tema === 'minimalista' ? 'minimalista' : 'vibrante'] : f;
+                    const def = FONTES_DEF[id];
+                    const semArquivo = f === 'propria' && !temArquivo('regular');
+                    return (
+                      <button
+                        type="button"
+                        key={f}
+                        role="radio"
+                        aria-checked={(form.fonte ?? 'tema') === f}
+                        className={`fonte-option ${(form.fonte ?? 'tema') === f ? 'active' : ''}`}
+                        disabled={semArquivo}
+                        title={semArquivo ? 'Envie o arquivo da fonte abaixo' : undefined}
+                        onClick={() => set('fonte', f)}
+                      >
+                        <span className="fonte-amostra" style={{ fontFamily: semArquivo ? undefined : def.family }}>
+                          {semArquivo ? <i className="bi bi-upload" /> : AMOSTRA.slice(0, 5)}
+                        </span>
+                        <span className="fonte-nome">
+                          {f === 'tema'
+                            ? `Do tema (${def.nome})`
+                            : f === 'propria'
+                              ? form.fonte_propria_nome || 'Própria'
+                              : def.nome}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <details className="fonte-propria mb-1" open={form.fonte === 'propria' || undefined}>
+                  <summary className="small">Usar uma fonte própria (arquivo .woff2, .woff, .otf ou .ttf)</summary>
+                  <div className="row g-2 mt-1 align-items-end">
+                    <div className="col-md-4">
+                      <Form.Label className="small mb-1">Nome da fonte</Form.Label>
+                      <Form.Control
+                        size="sm"
+                        value={form.fonte_propria_nome ?? ''}
+                        placeholder="Ex.: ABC Oracle"
+                        maxLength={60}
+                        onChange={(e) => set('fonte_propria_nome', e.target.value)}
+                      />
+                    </div>
+                    {PESOS_FONTE.map((p) => (
+                      <div className="col-md-4" key={p}>
+                        <Form.Label className="small mb-1">
+                          {p === 'regular' ? 'Arquivo regular' : 'Arquivo negrito (opcional)'}
+                        </Form.Label>
+                        <div className="d-flex gap-2 align-items-center">
+                          <Form.Control
+                            size="sm"
+                            type="file"
+                            accept=".woff2,.woff,.otf,.ttf"
+                            disabled={!!enviandoFonte}
+                            aria-label={`Arquivo ${p}`}
+                            onChange={(e) => {
+                              const file = (e.target as HTMLInputElement).files?.[0];
+                              (e.target as HTMLInputElement).value = '';
+                              if (file) void enviarFonte(p, file);
+                            }}
+                          />
+                          {temArquivo(p) && (
+                            <Button
+                              size="sm"
+                              variant="light"
+                              className="text-danger flex-shrink-0"
+                              title="Remover arquivo"
+                              aria-label={`Remover arquivo ${p}`}
+                              onClick={() => void enviarFonte(p, null)}
+                            >
+                              <i className="bi bi-trash" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="small text-muted mt-1">
+                          {enviandoFonte === p ? 'Enviando...' : temArquivo(p) ? 'Enviado ✓' : 'Nenhum arquivo'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="small text-muted mt-2">
+                    Fontes comerciais exigem licença para uso em web. O arquivo fica no sistema e é carregado também na
+                    tela de login. Sem o arquivo negrito, o navegador simula o negrito.
+                  </div>
+                </details>
+
+                {/* ---------- Cores ---------- */}
+                <h6 className="settings-section">Cores</h6>
+                <div className="d-flex flex-wrap gap-2 mb-3">
+                  {PALETAS.map(([nome, a, b]) => (
+                    <button
+                      type="button"
+                      key={nome}
+                      className={`palette-option ${form.cor_primaria === a && form.cor_secundaria === b ? 'active' : ''}`}
+                      onClick={() => setForm((f) => ({ ...f, cor_primaria: a, cor_secundaria: b }))}
+                    >
+                      <span style={{ background: `linear-gradient(135deg, ${a}, ${b})` }} />
+                      {nome}
+                    </button>
+                  ))}
+                </div>
+                <Row className="g-3">
+                  <Col sm={6}>
+                    <ColorField
+                      label="Cor primária (botões, destaques, início do gradiente)"
+                      value={form.cor_primaria}
+                      onChange={(v) => set('cor_primaria', v)}
+                      error={errors.cor_primaria}
+                    />
+                  </Col>
+                  <Col sm={6}>
+                    <ColorField
+                      label="Cor secundária (fim do gradiente do menu)"
+                      value={form.cor_secundaria}
+                      onChange={(v) => set('cor_secundaria', v)}
+                      error={errors.cor_secundaria}
+                    />
+                  </Col>
+                </Row>
+
+                {/* ---------- Organização ---------- */}
+                <h6 className="settings-section">
+                  Organização{' '}
+                  <span className="text-muted fw-normal small">— aparece no rodapé e servirá para relatórios</span>
+                </h6>
+                <Row className="g-3">
+                  <Col md={6}>{text('organizacao', 'Nome da empresa / responsável')}</Col>
+                  <Col md={6}>{text('telefone', 'Telefone')}</Col>
+                  <Col md={6}>{text('email', 'E-mail', { type: 'email' })}</Col>
+                  <Col md={6}>{text('endereco', 'Endereço')}</Col>
+                </Row>
+
+                {/* ---------- Menu e ajuda ---------- */}
+                <h6 className="settings-section">Menu e ajuda</h6>
+                {form.tema !== 'minimalista' && (
+                  <Form.Label className="small fw-semibold mb-2">Estilo do menu lateral</Form.Label>
+                )}
+                <div className={`d-flex gap-3 mb-3 flex-wrap ${form.tema === 'minimalista' ? 'd-none' : ''}`}>
+                  {MENU_STYLES.map((estilo) => (
+                    <button
+                      type="button"
+                      key={estilo}
+                      className={`menu-style-option ${form.estilo_menu === estilo ? 'active' : ''}`}
+                      onClick={() => set('estilo_menu', estilo)}
+                      aria-pressed={form.estilo_menu === estilo}
+                    >
+                      <span className={`menu-style-preview ${estilo}`}>
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                      {estilo === 'colorido' ? 'Colorido' : 'Claro'}
+                    </button>
+                  ))}
+                </div>
+                {text('url_ajuda', 'Link da Central de Ajuda (opcional)', { type: 'url' })}
+                <Form.Text>Se preenchido, aparece um item “Central de Ajuda” no menu, abrindo em nova aba.</Form.Text>
+              </>
+            )}
 
             {appSettings.length > 0 && (
               <>
@@ -528,56 +540,64 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
               </>
             )}
 
-            {/* ---------- Manutenção ---------- */}
-            <h6 className="settings-section">Manutenção</h6>
-            <Row className="g-3 align-items-center">
-              <Col sm={5} md={4}>
-                <FloatingLabel label="Manter logs por (dias)">
-                  <Form.Control
-                    type="number"
-                    min={0}
-                    max={3650}
-                    value={form.dias_logs}
-                    onChange={(e) => set('dias_logs', e.target.value === '' ? 0 : Number(e.target.value))}
-                    isInvalid={!!errors.dias_logs}
-                    placeholder="dias"
-                  />
-                  <Form.Control.Feedback type="invalid">{errors.dias_logs}</Form.Control.Feedback>
-                </FloatingLabel>
-              </Col>
-              <Col sm={7} md={8} className="small text-muted">
-                Logs mais antigos são excluídos automaticamente todos os dias. Use <b>0</b> para nunca excluir.
-              </Col>
-              <Col sm={5} md={4}>
-                <FloatingLabel label="Esvaziar lixeira após (dias)">
-                  <Form.Control
-                    type="number"
-                    min={0}
-                    max={3650}
-                    value={form.dias_lixeira}
-                    onChange={(e) => set('dias_lixeira', e.target.value === '' ? 0 : Number(e.target.value))}
-                    isInvalid={!!errors.dias_lixeira}
-                    placeholder="dias"
-                  />
-                  <Form.Control.Feedback type="invalid">{errors.dias_lixeira}</Form.Control.Feedback>
-                </FloatingLabel>
-              </Col>
-              <Col sm={7} md={8} className="small text-muted">
-                Registros excluídos ficam na lixeira por esse prazo e depois são apagados de vez. Use <b>0</b> para
-                manter para sempre.
-              </Col>
-            </Row>
+            {admin && (
+              <>
+                {/* ---------- Manutenção ---------- */}
+                <h6 className="settings-section">Manutenção</h6>
+                <Row className="g-3 align-items-center">
+                  <Col sm={5} md={4}>
+                    <FloatingLabel label="Manter logs por (dias)">
+                      <Form.Control
+                        type="number"
+                        min={0}
+                        max={3650}
+                        value={form.dias_logs}
+                        onChange={(e) => set('dias_logs', e.target.value === '' ? 0 : Number(e.target.value))}
+                        isInvalid={!!errors.dias_logs}
+                        placeholder="dias"
+                      />
+                      <Form.Control.Feedback type="invalid">{errors.dias_logs}</Form.Control.Feedback>
+                    </FloatingLabel>
+                  </Col>
+                  <Col sm={7} md={8} className="small text-muted">
+                    Logs mais antigos são excluídos automaticamente todos os dias. Use <b>0</b> para nunca excluir.
+                  </Col>
+                  <Col sm={5} md={4}>
+                    <FloatingLabel label="Esvaziar lixeira após (dias)">
+                      <Form.Control
+                        type="number"
+                        min={0}
+                        max={3650}
+                        value={form.dias_lixeira}
+                        onChange={(e) => set('dias_lixeira', e.target.value === '' ? 0 : Number(e.target.value))}
+                        isInvalid={!!errors.dias_lixeira}
+                        placeholder="dias"
+                      />
+                      <Form.Control.Feedback type="invalid">{errors.dias_lixeira}</Form.Control.Feedback>
+                    </FloatingLabel>
+                  </Col>
+                  <Col sm={7} md={8} className="small text-muted">
+                    Registros excluídos ficam na lixeira por esse prazo e depois são apagados de vez. Use <b>0</b> para
+                    manter para sempre.
+                  </Col>
+                </Row>
+              </>
+            )}
           </Modal.Body>
 
           <Modal.Footer className="justify-content-between">
-            <Button
-              variant="link"
-              className="text-muted px-0 text-decoration-none"
-              onClick={() => setConfirmReset(true)}
-            >
-              <i className="bi bi-arrow-counterclockwise me-1" />
-              Restaurar padrão
-            </Button>
+            {admin ? (
+              <Button
+                variant="link"
+                className="text-muted px-0 text-decoration-none"
+                onClick={() => setConfirmReset(true)}
+              >
+                <i className="bi bi-arrow-counterclockwise me-1" />
+                Restaurar padrão
+              </Button>
+            ) : (
+              <span />
+            )}
             <div className="d-flex gap-2">
               <Button variant="light" onClick={close}>
                 Cancelar

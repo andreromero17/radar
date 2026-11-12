@@ -4,6 +4,24 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.17.0 — 12/11/2026
+
+**Fase 5B: membros, convites e vários espaços**
+
+- **Papel no espaço**: dono (tudo no espaço: membros, configurações do sistema, backup), editor (altera os dados,
+  conforme o perfil) e leitor (só vê). Usuários, perfis e identidade visual seguem da plataforma (administrador)
+- Perfil **"Membro"** (novo campo `perfis.completo`): acesso a todos os dados dos espaços em que participa, sem
+  nenhum poder na plataforma — é o de quem entra por convite. Perfis granulares continuam valendo para editores
+- **Convites por e-mail**: link único, válido por 7 dias, uma vez só e só para o e-mail convidado; quem não tem conta
+  cria a dela ao aceitar (`/convite/:token`); reenviar gera link novo; cancelar; convite novo substitui o anterior
+- **Tela Membros** (Administração → Membros): papéis, inativar/reativar (perde o acesso na hora), remover, convites
+  pendentes, editar nome/tipo do espaço; quem não é dono pode sair do espaço. Todo espaço mantém um dono ativo
+- **Seletor de espaço** no menu do usuário e **novo espaço** (pessoal, holding, empresa) para quem já é dono
+- Identidade visual só para administradores; o dono do espaço vê em Configurações só as do sistema
+- Login, troca de senha e perfil devolvem o usuário com os espaços (o front já sabe o papel desde o login)
+- `db:diff` compara o espaço só com as entidades do espaço (`entidadesDe`)
+- Logs de acesso e de contas vindos da conversão saem do banco do espaço (ficam só na plataforma)
+
 ## 0.16.0 — 12/11/2026
 
 **Fase 5A: plataforma e espaços (base do SaaS)** — nada muda na tela; muda onde cada dado mora

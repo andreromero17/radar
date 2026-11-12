@@ -15,7 +15,7 @@ import {
 } from '@frame/shared';
 import type { Db } from '../db/knex';
 import { loadAuthUser } from '../auth/sessions';
-import { espacoAtivoOuNulo, espacoDoBanco, membrosAtivos, plataformaDb } from '../espacos';
+import { espacoAtivoOuNulo, espacoDoBanco, espacosDoUsuario, membrosAtivos, plataformaDb } from '../espacos';
 import { nowLocal } from '../utils/time';
 import type { Mailer } from './mailer';
 
@@ -96,9 +96,16 @@ export async function verificarAlertas(
   if (espacoId == null) throw new Error('verificarAlertas: espaço desconhecido');
   const membros = await membrosAtivos(espacoId);
   const ids = opts.usuarioId ? membros.filter((id) => id === opts.usuarioId) : membros;
-  const usuarios = (await Promise.all(ids.map((id) => loadAuthUser(plataformaDb(), id)))).filter(
-    (u): u is AuthUser => !!u,
-  );
+  // cada um com o papel NESTE espaço (o leitor também recebe; o que ele pode ver decide)
+  const usuarios = (
+    await Promise.all(
+      ids.map(async (id) => {
+        const u = await loadAuthUser(plataformaDb(), id);
+        if (u) u.espaco = (await espacosDoUsuario(id)).find((e) => e.id === espacoId);
+        return u;
+      }),
+    )
+  ).filter((u): u is AuthUser => !!u?.espaco);
   const novas = new Map<number, Notificacao[]>();
   let total = 0;
   if (!usuarios.length || !alertas.size) return { novas, total };

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { entities, type EntityDef } from '@frame/shared';
 import { createDb, type Db } from '../src/db/knex';
-import { computeDiff, isEmptyDiff, renderMigration } from '../src/db/diff';
+import { computeDiff, entidadesDe, isEmptyDiff, renderMigration } from '../src/db/diff';
 import { migrateLatest, migrationStatus, OutdatedHistoryError, withForeignKeysOff } from '../src/db/migrator';
 import { seed } from '../src/db/seed';
 
@@ -13,14 +13,20 @@ describe('Migrações', () => {
     db = createDb(':memory:');
     await migrateLatest(db);
     expect((await migrationStatus(db)).pending).toEqual([]);
-    expect(isEmptyDiff(await computeDiff(db, entities))).toBe(true);
+    expect(isEmptyDiff(await computeDiff(db, entidadesDe('espaco')))).toBe(true);
+  });
+
+  it('plataforma migrada fica em sincronia com usuários e perfis', async () => {
+    db = createDb(':memory:');
+    await migrateLatest(db, 'plataforma');
+    expect(isEmptyDiff(await computeDiff(db, entidadesDe('plataforma')))).toBe(true);
   });
 
   it('diff detecta tabela nova, coluna nova e coluna órfã', async () => {
     db = createDb(':memory:');
     await migrateLatest(db);
     const changed: Record<string, EntityDef> = {
-      ...entities,
+      ...entidadesDe('espaco'),
       usuarios: {
         ...entities.usuarios,
         fields: [

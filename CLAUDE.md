@@ -93,8 +93,17 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
   403 `code: TROCAR_SENHA` quem precisa trocar a senha.
 - **Permissões:** `shared/src/permissions.ts` — recursos = entidades + `SYSTEM_RESOURCES`; `can(user, recurso, ação)`
   usado no servidor (`assertCan`/`requirePermission`) e no front (`useAuth().can`). O CRUD genérico já checa
-  ver/criar/editar/excluir; rota nova de sistema precisa de `requirePermission`. `ADMIN_ONLY` reserva ações a
-  administradores (gerenciar perfis). Itens de menu usam `perm: [recurso, ação]`.
+  ver/criar/editar/excluir; rota nova de sistema precisa de `requirePermission` (rota que GRAVA nunca com `'ver'`:
+  o leitor passaria). `ADMIN_ONLY` reserva ações a administradores (gerenciar perfis). Itens de menu usam
+  `perm: [recurso, ação]`. **Papel no espaço (Fase 5B)** × perfil: dono pode tudo no espaço (inclusive `membros`,
+  `backup`, `configuracoes`); editor segue o perfil (`admin` ou `completo` = todos os dados); leitor só `ver`.
+  `usuarios`/`perfis` e a identidade visual (`requireAdmin`) são da plataforma: só o perfil decide.
+- **Membros e convites (Fase 5B):** `services/membros.ts` + `routes/membros.ts` (`/api/membros`, `/api/espaco`,
+  `/api/espacos`, sempre no espaço da sessão) e públicos `/api/auth/convites/:token[/aceitar]`. Convite: hash do token
+  em `convites` (plataforma), 7 dias, uma vez, só o e-mail convidado; conta nova recebe o perfil `completo` ("Membro").
+  Todo espaço com ao menos um dono ativo. Mudanças no log do espaço (`entidade: 'membros'`). Web: `pages/Membros.tsx`,
+  `pages/auth/AceitarConvite.tsx` (`/convite/:token`), seletor/novo espaço no `Topbar` (`lib/espacos.ts`: trocar
+  recarrega o app).
 - **Hooks** (núcleo em `server/src/hooks/`, aplicação registrada em `server/src/app/hooks.ts`): `beforeSave`/`afterSave`/`beforeDelete` por entidade; lançar `HttpError`
   (`badRequest`, `forbidden`, `conflict` de `utils/http.ts`). Regras de usuários e perfis estão lá (e-mail único,
   sempre um admin ativo, só admin gerencia admin, derrubar sessões).

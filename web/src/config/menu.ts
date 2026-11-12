@@ -25,6 +25,7 @@ export const menu: MenuItem[] = [
     label: 'Administração',
     icon: 'sliders',
     children: [
+      { label: 'Membros', icon: 'people', to: '/membros', perm: ['membros', 'ver'] },
       { label: 'Usuários', icon: 'person-gear', to: '/usuarios', perm: ['usuarios', 'ver'] },
       { label: 'Perfis de acesso', icon: 'shield-lock', to: '/perfis', perm: ['perfis', 'ver'] },
       { label: 'Logs', icon: 'journal-text', to: '/logs', perm: ['logs', 'ver'] },

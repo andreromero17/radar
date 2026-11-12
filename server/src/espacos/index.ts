@@ -40,6 +40,9 @@ interface Opcoes {
 }
 
 let cfg: Opcoes | null = null;
+const aoAbrir: ((db: Db, id: number) => Promise<unknown>)[] = [];
+/** Roda ao abrir cada banco de espaço (ex.: módulo de demonstração cria as tabelas dele) */
+export const aoAbrirEspaco = (fn: (db: Db, id: number) => Promise<unknown>) => void aoAbrir.push(fn);
 const abertos = new Map<number, { db: Db; usado: number }>();
 const abrindo = new Map<number, Promise<Db>>();
 
@@ -82,6 +85,7 @@ export async function abrirEspaco(id: number): Promise<Db> {
         if (pending.length) throw new HttpError(503, 'Este espaço está sendo atualizado. Tente de novo em instantes.');
       }
       await sincronizarUsuarios(id, db);
+      for (const fn of aoAbrir) await fn(db, id);
     } catch (err) {
       await db.destroy();
       throw err;

@@ -52,6 +52,8 @@ const values = (v: unknown): string[] => (Array.isArray(v) ? v : [v]).map(str).f
 export function present(ent: EntityDef, row: Row | undefined): Row | undefined {
   if (!row) return row;
   const out: Row = { ...row };
+  // colunas `segredo_*` (2FA etc.) nunca saem da API, sejam ou não campos da entidade
+  for (const k of Object.keys(out)) if (k.startsWith('segredo_')) delete out[k];
   for (const f of ent.fields) {
     if (f.type === 'password') delete out[f.name];
     if (JSON_TYPES.has(f.type) && typeof out[f.name] === 'string') {

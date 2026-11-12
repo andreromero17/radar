@@ -21,7 +21,18 @@ import {
   type SessionConfig,
 } from '../auth/sessions';
 import { atualizarCopias, espacosDoUsuario } from '../espacos';
+import { espacoDeSuporte, nomeDeSuporte, sairDoSuporte } from '../espacos/suporte';
 import { aceitarConvite, novaContaSchema, verConvite } from '../services/membros';
+import {
+  ativarDoisFatores,
+  codigosRestantes,
+  conferirSegundoFator,
+  desativarDoisFatores,
+  doisFatoresObrigatorio,
+  iniciarDoisFatores,
+  regerarCodigos,
+} from '../services/doisFatores';
+import { getSettings } from '../services/settings';
 import { hashToken, newToken } from '../auth/tokens';
 import type { Db } from '../db/knex';
 import { addLog, type Actor } from '../services/logs';
@@ -37,14 +48,22 @@ export interface AuthOptions extends SessionConfig {
 }
 
 const RESET_HOURS = 1;
+/** Tempo para digitar o código da verificação em duas etapas depois da senha */
+const DESAFIO_MINUTOS = 5;
+const MAX_TENTATIVAS_2FA = 5;
+const GENERIC_LOGIN_ERROR = 'E-mail ou senha inválidos.';
 
-/** Usuário com os espaços dele e o em uso (o da sessão ou, sem ele, o primeiro): o que o front recebe */
-async function comEspacos(u: AuthUser | null, espacoIdDaSessao: number | null | undefined) {
+/**
+ * Usuário com os espaços dele e o em uso (o da sessão ou, sem ele, o primeiro): o que o front recebe.
+ * Em sessão de suporte, o espaço em uso é o da liberação (marcado com `suporte`).
+ */
+async function comEspacos(u: AuthUser | null, sessao?: { espacoId?: number | null; suporteId?: number | null }) {
   if (!u) return u;
   const espacos = await espacosDoUsuario(u.id);
-  return { ...u, espacos, espaco: espacos.find((e) => e.id === espacoIdDaSessao) ?? espacos[0] };
+  const sup = sessao?.suporteId ? await espacoDeSuporte(sessao.suporteId, u) : null;
+  if (sup) return { ...u, nome: nomeDeSuporte(u.nome), espacos, espaco: sup };
+  return { ...u, espacos, espaco: espacos.find((e) => e.id === sessao?.espacoId) ?? espacos[0] };
 }
-const GENERIC_LOGIN_ERROR = 'E-mail ou senha inválidos.';
 
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().min(1, 'Informe o e-mail'),
@@ -111,7 +130,7 @@ export function authRouter(db: Db, opts: AuthOptions) {
     const blockedEmail = falhasPorEmail.blockedFor(email);
     if (blockedEmail) throw tooMany(blockedEmail);
 
-    const user = await db('usuarios').where({ email }).first('id', 'nome', 'senha', 'ativo');
+    const user = await db('usuarios').where({ email }).first('id', 'nome', 'senha', 'ativo', 'dois_fatores');
     const ok = await verifyPassword(senha, user?.senha); // sempre gasta o mesmo tempo
     if (!user || !ok) {
       falhasPorEmail.hit(email);
@@ -122,16 +141,147 @@ export function authRouter(db: Db, opts: AuthOptions) {
     if (!user.ativo) throw new HttpError(403, 'Usuário inativo. Fale com o administrador do sistema.');
 
     falhasPorEmail.reset(email);
+    // verificação em duas etapas: a senha só abre um desafio curto; a sessão vem com o código
+    if (user.dois_fatores) {
+      const desafio = newToken();
+      await db('desafios_2fa').insert({
+        id: hashToken(desafio),
+        usuario_id: user.id,
+        lembrar: lembrar ? 1 : 0,
+        tentativas: 0,
+        criado_em: nowLocal(),
+        expira_em: nowLocal(new Date(Date.now() + DESAFIO_MINUTOS * 60_000)),
+      });
+      return res.json({ segundo_fator: true, desafio });
+    }
+    await entrar(req, res, user, lembrar, 'login');
+  });
+
+  /** Cria a sessão (cookie) e responde com o usuário */
+  async function entrar(
+    req: Request,
+    res: Response,
+    user: { id: number; nome: string; email?: string },
+    lembrar: boolean,
+    acao: string,
+  ) {
     const { token } = await createSession(db, opts, user.id, {
       lembrar,
       ip: req.ip,
       userAgent: req.get('user-agent'),
     });
     await db('usuarios').where({ id: user.id }).update({ ultimo_acesso: nowLocal() });
-    await addLog(db, { entidade: 'auth', registro_id: user.id, acao: 'login', detalhe: email }, actor(req, user));
-
+    const u = await loadAuthUser(db, user.id);
+    await addLog(db, { entidade: 'auth', registro_id: user.id, acao, detalhe: u?.email ?? '' }, actor(req, user));
     res.cookie(COOKIE_NAME, token, cookieOptions(lembrar));
-    res.json(await comEspacos(await loadAuthUser(db, user.id), null));
+    res.json(await comEspacos(u));
+  }
+
+  // ---------- Verificação em duas etapas (Fase 5C) ----------
+  router.post('/2fa/entrar', async (req, res) => {
+    const ip = req.ip ?? 'desconhecido';
+    const bloqueado = falhasPorIp.blockedFor(ip);
+    if (bloqueado) throw tooMany(bloqueado);
+    const { desafio, codigo } = parse(
+      z.object({ desafio: z.string().min(1), codigo: z.string().trim().min(1, 'Informe o código') }),
+      req.body,
+    );
+    const d = await db('desafios_2fa')
+      .where({ id: hashToken(desafio) })
+      .where('expira_em', '>', nowLocal())
+      .first();
+    if (!d)
+      throw new HttpError(401, 'O tempo para digitar o código acabou. Entre de novo.', undefined, 'DESAFIO_EXPIRADO');
+    const user = await db('usuarios')
+      .where({ id: d.usuario_id })
+      .whereIn('ativo', [1, true])
+      .first('id', 'nome', 'email');
+    const tipo = user ? await conferirSegundoFator(db, d.usuario_id, codigo) : null;
+    if (!user || !tipo) {
+      falhasPorIp.hit(ip);
+      const tentativas = Number(d.tentativas) + 1;
+      if (tentativas >= MAX_TENTATIVAS_2FA) await db('desafios_2fa').where({ id: d.id }).del();
+      else await db('desafios_2fa').where({ id: d.id }).update({ tentativas });
+      await addLog(
+        db,
+        { entidade: 'auth', registro_id: d.usuario_id, acao: 'código 2FA incorreto', detalhe: user?.email ?? '' },
+        actor(req, user),
+      );
+      if (tentativas >= MAX_TENTATIVAS_2FA)
+        throw new HttpError(401, 'Muitas tentativas. Entre de novo.', undefined, 'DESAFIO_EXPIRADO');
+      throw badRequest('Código incorreto', { codigo: 'Código incorreto' });
+    }
+    await db('desafios_2fa').where({ id: d.id }).del();
+    await entrar(
+      req,
+      res,
+      user,
+      !!d.lembrar,
+      tipo === 'recuperacao' ? 'login (código de recuperação)' : 'login (2 etapas)',
+    );
+  });
+
+  /** Confere a senha do próprio usuário (para mexer na verificação em duas etapas) */
+  const confirmarSenha = async (usuarioId: number, senha: unknown) => {
+    const row = await db('usuarios').where({ id: usuarioId }).first('senha');
+    if (!(await verifyPassword(String(senha ?? ''), row?.senha)))
+      throw badRequest('Verifique os campos', { senha: 'Senha incorreta' });
+  };
+
+  router.get('/2fa', async (req, res) => {
+    const me = userOf(req);
+    res.json({
+      ativo: !!me.dois_fatores,
+      obrigatorio: doisFatoresObrigatorio(me.admin),
+      codigos_restantes: me.dois_fatores ? await codigosRestantes(db, me.id) : 0,
+    });
+  });
+
+  router.post('/2fa/iniciar', async (req, res) => {
+    const me = userOf(req);
+    await confirmarSenha(me.id, (req.body ?? {}).senha);
+    const { nome_sistema } = await getSettings(db);
+    res.json(await iniciarDoisFatores(db, me.id, nome_sistema));
+  });
+
+  router.post('/2fa/ativar', async (req, res) => {
+    const me = userOf(req);
+    const { codigo } = parse(z.object({ codigo: z.string().trim().min(1, 'Informe o código') }), req.body);
+    const codigos = await ativarDoisFatores(db, me.id, codigo);
+    await addLog(db, { entidade: 'auth', registro_id: me.id, acao: '2FA ativada', detalhe: me.email }, actor(req, me));
+    res.json({ codigos, usuario: await comEspacos(await loadAuthUser(db, me.id), req.auth) });
+  });
+
+  router.post('/2fa/codigos', async (req, res) => {
+    const me = userOf(req);
+    await confirmarSenha(me.id, (req.body ?? {}).senha);
+    const codigos = await regerarCodigos(db, me.id);
+    await addLog(
+      db,
+      { entidade: 'auth', registro_id: me.id, acao: '2FA: novos códigos de recuperação', detalhe: me.email },
+      actor(req, me),
+    );
+    res.json({ codigos });
+  });
+
+  router.post('/2fa/desativar', async (req, res) => {
+    const me = userOf(req);
+    if (doisFatoresObrigatorio(me.admin))
+      throw new HttpError(403, 'Para administradores a verificação em duas etapas é obrigatória.');
+    const { senha, codigo } = parse(
+      z.object({ senha: z.string().min(1, 'Informe a senha'), codigo: z.string().trim().min(1, 'Informe o código') }),
+      req.body,
+    );
+    await confirmarSenha(me.id, senha);
+    if (!(await conferirSegundoFator(db, me.id, codigo)))
+      throw badRequest('Código incorreto', { codigo: 'Código incorreto' });
+    await desativarDoisFatores(db, me.id);
+    await addLog(
+      db,
+      { entidade: 'auth', registro_id: me.id, acao: '2FA desativada', detalhe: me.email },
+      actor(req, me),
+    );
+    res.json(await comEspacos(await loadAuthUser(db, me.id), req.auth));
   });
 
   router.post('/logout', async (req, res) => {
@@ -200,7 +350,7 @@ export function authRouter(db: Db, opts: AuthOptions) {
   });
 
   router.get('/me', async (req, res) => {
-    res.json(await comEspacos(userOf(req), req.auth?.espacoId));
+    res.json(await comEspacos(userOf(req), req.auth));
   });
 
   // Troca o espaço em uso nesta sessão (só para um espaço em que o usuário é membro ativo)
@@ -210,6 +360,7 @@ export function authRouter(db: Db, opts: AuthOptions) {
     const espacos = await espacosDoUsuario(u.id);
     const alvo = espacos.find((e) => e.id === id);
     if (!alvo) throw new HttpError(404, 'Espaço não encontrado');
+    await sairDoSuporte(u, req.auth!.sessionId, req.ip); // trocar de espaço encerra o suporte
     await definirEspacoDaSessao(db, req.auth!.sessionId, alvo.id);
     await addLog(
       db,
@@ -238,7 +389,7 @@ export function authRouter(db: Db, opts: AuthOptions) {
       { entidade: 'auth', registro_id: me.id, acao: 'senha alterada', detalhe: me.email },
       actor(req, me),
     );
-    res.json(await comEspacos(await loadAuthUser(db, me.id), req.auth?.espacoId));
+    res.json(await comEspacos(await loadAuthUser(db, me.id), req.auth));
   });
 
   router.post('/esqueci', async (req, res) => {
@@ -351,7 +502,7 @@ export function authRouter(db: Db, opts: AuthOptions) {
         actor(req, { id: me.id, nome }),
       );
     }
-    res.json(await comEspacos(await loadAuthUser(db, me.id), req.auth?.espacoId));
+    res.json(await comEspacos(await loadAuthUser(db, me.id), req.auth));
   });
 
   router.get('/sessoes', async (req, res) => {

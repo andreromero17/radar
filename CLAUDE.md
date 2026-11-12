@@ -104,6 +104,14 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
   Todo espaço com ao menos um dono ativo. Mudanças no log do espaço (`entidade: 'membros'`). Web: `pages/Membros.tsx`,
   `pages/auth/AceitarConvite.tsx` (`/convite/:token`), seletor/novo espaço no `Topbar` (`lib/espacos.ts`: trocar
   recarrega o app).
+- **Plataforma, suporte e 2FA (Fase 5C):** `routes/plataforma.ts` (`/api/plataforma*`, `requireAdmin`, montado ANTES do
+  `resolverEspaco`; só metadados). Suporte: `espacos/suporte.ts` — liberação do dono em `acessos_suporte` (prazo,
+  leitor/editor), sessão com `sessoes.suporte_id`; o `resolverEspaco` valida a liberação a cada requisição e põe
+  `(suporte)` no nome (logs). Trocar de espaço (`definirEspacoDaSessao`) encerra o suporte. Admin que não é membro
+  loga no espaço com `id: null` (não há cópia dele lá). 2FA: `auth/totp.ts` (RFC 6238) + `services/doisFatores.ts`;
+  login com 2FA devolve `{ segundo_fator, desafio }` e a sessão vem em `POST /api/auth/2fa/entrar`;
+  `ADMIN_2FA_OBRIGATORIO` (padrão: produção) → 403 `CONFIGURAR_2FA` até configurar. Colunas `segredo_*` nunca saem
+  da API (`present` remove). `aoAbrirEspaco(fn)`: gancho ao abrir cada banco de espaço (a demonstração usa).
 - **Hooks** (núcleo em `server/src/hooks/`, aplicação registrada em `server/src/app/hooks.ts`): `beforeSave`/`afterSave`/`beforeDelete` por entidade; lançar `HttpError`
   (`badRequest`, `forbidden`, `conflict` de `utils/http.ts`). Regras de usuários e perfis estão lá (e-mail único,
   sempre um admin ativo, só admin gerencia admin, derrubar sessões).

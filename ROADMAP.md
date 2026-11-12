@@ -110,8 +110,13 @@ _Começa assim que a Fase 2 tiver o essencial; as duas andam juntas._
   perfil "Membro" (acesso completo aos dados, nenhum poder na plataforma) para quem entra por convite; convites por
   e-mail (link único, 7 dias, só para o e-mail convidado, cria a conta se preciso); inativar/reativar/remover, sair;
   ao menos um dono ativo; seletor de espaço no menu do usuário; criar espaços (quem já é dono ou administrador)
-- **5C — Super usuário:** painel da plataforma (assinantes, espaços, uso), identidade global, acesso de suporte com
-  consentimento e auditoria, 2FA
+- ✅ **5C — Super usuário e suporte** (12/11/2026, v0.18.0): painel da plataforma (contas, espaços, membros,
+  tamanho, último acesso — só metadados, nunca os dados); desativar/reativar espaço e conta, encerrar sessões,
+  desligar o 2FA de quem perdeu o celular; **acesso de suporte com consentimento**: o dono libera por 24 h, 3 ou 7 dias,
+  como leitor (padrão) ou editor, e revoga quando quiser (quem está dentro sai na hora); entrada, saída e alterações
+  no log do espaço com "(suporte)"; faixa na tela; suporte não vira membro; **verificação em duas etapas** (TOTP, sem
+  dependência externa, QR + 8 códigos de recuperação), obrigatória para administradores em produção
+  (`ADMIN_2FA_OBRIGATORIO`). Identidade visual já era global (só administrador)
 - **5D — Cadastro e LGPD:** cadastro com confirmação de e-mail, termos e privacidade, baixar meus dados, excluir conta
 - Depois: planos e cobrança (Asaas/Stripe, Pix e cartão)
 - Monorepo (`packages/core` + `apps/*`) ou núcleo publicado como pacote npm só se o número de sistemas pedir;
@@ -119,6 +124,7 @@ _Começa assim que a Fase 2 tiver o essencial; as duas andam juntas._
 
 ## Fase 6 — Produção e mobile
 
+- Segurança: cifrar os segredos de 2FA com chave do `.env`; e-mail ao dono quando o suporte entra
 - Banco: **SQLite por espaço numa VPS + backup contínuo (Litestream → S3/R2)** é o caminho mais simples e barato
   para a escala de finanças pessoais; Postgres (um schema por espaço) se um dia precisar de vários servidores
 - Docker multi-stage + compose, deploy (VPS, Railway ou Fly.io), HTTPS

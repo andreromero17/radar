@@ -42,3 +42,11 @@ describe('can() com papel no espaço', () => {
     expect(can(user(null, { admin: true }), 'perfis', 'editar')).toBe(true);
   });
 });
+
+describe('can() na plataforma', () => {
+  it('painel da plataforma só para administrador, com ou sem espaço', () => {
+    expect(can(user('dono'), 'plataforma', 'ver')).toBe(false);
+    expect(can(user(null, { admin: true }), 'plataforma', 'ver')).toBe(true);
+    expect(can(user('leitor', { admin: true }), 'plataforma', 'ver')).toBe(true);
+  });
+});

@@ -3,6 +3,7 @@ import { permissionsSchema, APARENCIAS, TAMANHOS_TEXTO } from '@frame/shared';
 import type { Db } from '../db/knex';
 import { nowLocal } from '../utils/time';
 import { hashToken, newToken } from './tokens';
+import { doisFatoresObrigatorio } from '../services/doisFatores';
 
 export interface SessionConfig {
   /** Sessão comum expira após X horas sem uso */
@@ -28,6 +29,7 @@ export async function loadAuthUser(db: Db, userId: number): Promise<AuthUser | n
       'u.trocar_senha',
       'u.aparencia',
       'u.tamanho_texto',
+      'u.dois_fatores',
       'p.nome as perfil',
       'p.admin',
       'p.completo',
@@ -41,6 +43,8 @@ export async function loadAuthUser(db: Db, userId: number): Promise<AuthUser | n
     perfil: row.perfil,
     admin: !!row.admin,
     completo: !!row.completo,
+    dois_fatores: !!row.dois_fatores,
+    exige_2fa: doisFatoresObrigatorio(!!row.admin) && !row.dois_fatores,
     permissoes: permissionsSchema.parse(row.permissoes) as Permissions,
     trocar_senha: !!row.trocar_senha,
     aparencia: APARENCIAS.includes(row.aparencia) ? row.aparencia : 'sistema',
@@ -75,7 +79,7 @@ export async function resolveSession(
   db: Db,
   cfg: SessionConfig,
   token: string,
-): Promise<{ sessionId: string; user: AuthUser; espacoId: number | null } | null> {
+): Promise<{ sessionId: string; user: AuthUser; espacoId: number | null; suporteId: number | null } | null> {
   const id = hashToken(token);
   const s = await db('sessoes').where({ id }).where('expira_em', '>', nowLocal()).first();
   if (!s) return null;
@@ -90,12 +94,17 @@ export async function resolveSession(
       .where({ id })
       .update({ ultimo_uso: nowLocal(), expira_em: inHours(cfg.sessionHours) });
   }
-  return { sessionId: id, user, espacoId: s.espaco_id == null ? null : Number(s.espaco_id) };
+  return {
+    sessionId: id,
+    user,
+    espacoId: s.espaco_id == null ? null : Number(s.espaco_id),
+    suporteId: s.suporte_id == null ? null : Number(s.suporte_id),
+  };
 }
 
-/** Troca o espaço em uso na sessão (a checagem de que o usuário é membro fica com quem chama) */
+/** Troca o espaço em uso na sessão (a checagem de que o usuário é membro fica com quem chama); encerra o suporte */
 export const definirEspacoDaSessao = (db: Db, sessionId: string, espacoId: number | null) =>
-  db('sessoes').where({ id: sessionId }).update({ espaco_id: espacoId });
+  db('sessoes').where({ id: sessionId }).update({ espaco_id: espacoId, suporte_id: null });
 
 export const deleteSession = (db: Db, sessionId: string) => db('sessoes').where({ id: sessionId }).del();
 
@@ -111,5 +120,8 @@ export async function purgeExpiredAuth(db: Db): Promise<number> {
   const agora = nowLocal();
   const s = await db('sessoes').where('expira_em', '<=', agora).del();
   const t = await db('tokens_senha').where('expira_em', '<=', agora).orWhereNotNull('usado_em').del();
-  return s + t;
+  const d = (await db.schema.hasTable('desafios_2fa'))
+    ? await db('desafios_2fa').where('expira_em', '<=', agora).del()
+    : 0;
+  return s + t + d;
 }

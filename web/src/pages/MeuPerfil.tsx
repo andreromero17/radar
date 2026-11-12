@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import PageHeader from '../components/PageHeader';
 import ConfirmModal from '../components/ConfirmModal';
+import DoisFatoresCard from '../components/DoisFatoresCard';
 
 export default function MeuPerfil() {
   const { user, setUser } = useAuth();
@@ -174,6 +175,9 @@ export default function MeuPerfil() {
               )}
             </Card.Body>
           </Card>
+        </Col>
+        <Col lg={7}>
+          <DoisFatoresCard />
         </Col>
       </Row>
 

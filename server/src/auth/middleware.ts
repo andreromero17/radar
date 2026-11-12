@@ -4,13 +4,14 @@ import type { Db } from '../db/knex';
 import { HttpError } from '../utils/http';
 import { definirEspacoDaSessao, resolveSession, type SessionConfig } from './sessions';
 import { abrirEspaco, entrarNoEspaco, espacosDoUsuario } from '../espacos';
+import { espacoDeSuporte, nomeDeSuporte } from '../espacos/suporte';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       /** Preenchido quando há sessão válida */
-      auth?: { user: AuthUser; sessionId: string; espacoId?: number | null };
+      auth?: { user: AuthUser; sessionId: string; espacoId?: number | null; suporteId?: number | null };
     }
   }
 }
@@ -50,6 +51,8 @@ export const requireAuth: RequestHandler = (req: Request, _res: Response, next: 
   if (!req.auth) throw new HttpError(401, 'Sessão expirada. Faça login novamente.');
   if (req.auth.user.trocar_senha)
     throw new HttpError(403, 'Defina uma nova senha para continuar.', undefined, 'TROCAR_SENHA');
+  if (req.auth.user.exige_2fa)
+    throw new HttpError(403, 'Configure a verificação em duas etapas para continuar.', undefined, 'CONFIGURAR_2FA');
   next();
 };
 
@@ -109,6 +112,20 @@ export function resolverEspaco(plataforma: Db): RequestHandler {
     const auth = req.auth;
     if (!auth) throw new HttpError(401, 'Sessão expirada. Faça login novamente.');
     const lista = await espacosDoUsuario(auth.user.id);
+    // sessão de suporte (Fase 5C): vale enquanto a liberação do dono valer; senão volta ao normal
+    if (auth.suporteId) {
+      const sup = await espacoDeSuporte(auth.suporteId, auth.user);
+      if (sup) {
+        auth.user.espaco = sup;
+        auth.user.espacos = lista;
+        auth.user.nome = nomeDeSuporte(auth.user.nome); // tudo o que ele fizer sai no log como "(suporte)"
+        const db = await abrirEspaco(sup.id);
+        return entrarNoEspaco({ espacoId: sup.id, db, papel: sup.papel }, next);
+      }
+      await plataforma('sessoes').where({ id: auth.sessionId }).update({ suporte_id: null, espaco_id: null });
+      auth.suporteId = null;
+      auth.espacoId = null;
+    }
     const atual = lista.find((e) => e.id === auth.espacoId) ?? lista[0];
     if (!atual) throw new HttpError(403, 'Você não participa de nenhum espaço ativo.', undefined, 'SEM_ESPACO');
     if (atual.id !== auth.espacoId) {

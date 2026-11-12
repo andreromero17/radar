@@ -143,7 +143,19 @@ describe('membros', () => {
   });
 
   it('removido some da lista e a cópia no espaço fica inativa (os registros antigos mantêm o nome)', async () => {
+    await ctx.db('notificacoes').insert({
+      usuario_id: zeId,
+      tipo: 't',
+      chave: 'k',
+      nivel: 'info',
+      titulo: 'Aviso do Zé',
+      criada_em: nowLocal(),
+    });
+    await ctx.db('preferencias').insert({ usuario_id: zeId, chave: 'painel', valor: '{}', atualizado_em: nowLocal() });
     await ctx.admin.delete(`/api/membros/${zeId}`).expect(204);
+    // avisos e preferências dele neste espaço saem junto
+    expect(await ctx.db('notificacoes').where({ usuario_id: zeId }).first()).toBeUndefined();
+    expect(await ctx.db('preferencias').where({ usuario_id: zeId }).first()).toBeUndefined();
     expect((await ze.get('/api/clientes')).status).toBe(403);
     const lista = (await ctx.admin.get('/api/membros')).body.membros;
     expect(lista.some((m: { usuario_id: number }) => m.usuario_id === zeId)).toBe(false);

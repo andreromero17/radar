@@ -66,6 +66,10 @@ export interface AuthUser {
   /** Perfil com acesso a todos os dados dos espaços (sem poder na plataforma): o papel decide */
   completo?: boolean;
   permissoes: Permissions;
+  /** Verificação em duas etapas ligada (Fase 5C) */
+  dois_fatores?: boolean;
+  /** Precisa configurar a verificação em duas etapas antes de usar o sistema (administrador, em produção) */
+  exige_2fa?: boolean;
   /** Precisa trocar a senha antes de usar o sistema */
   trocar_senha: boolean;
   /** Modo claro/escuro escolhido pelo usuário ('sistema' = segue o aparelho) */
@@ -99,6 +103,8 @@ export interface EspacoDoUsuario {
   nome: string;
   tipo: string;
   papel: Papel;
+  /** Sessão de SUPORTE (Fase 5C): o administrador está aqui pela liberação do dono, até esta data */
+  suporte?: { ate: string };
 }
 
 /** Recursos da PLATAFORMA (valem fora dos espaços): só o perfil decide */
@@ -129,6 +135,7 @@ export function can(
   // sub-tabela segue o "pai": ver → ver; criar/editar/excluir linhas → editar o pai
   const pai = getEntity(resource)?.detailOf;
   if (pai) return can(user, pai, action === 'ver' ? 'ver' : 'editar');
+  if (resource === 'plataforma') return !!user.admin; // painel da plataforma: só metadados, só administrador
   const papel = user.espaco?.papel;
   if (resource === 'membros') return papel != null && (action === 'ver' || papel === 'dono');
   const doPerfil = () => {

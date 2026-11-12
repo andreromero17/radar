@@ -4,6 +4,24 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.18.0 — 12/11/2026
+
+**Fase 5C: super usuário, suporte com consentimento e verificação em duas etapas**
+
+- **Verificação em duas etapas** (Meu perfil): aplicativo autenticador (QR ou chave), 8 códigos de recuperação de
+  uso único, login em duas etapas (desafio de 5 min, 5 tentativas, o mesmo código não vale duas vezes). Obrigatória
+  para administradores com `ADMIN_2FA_OBRIGATORIO` (padrão: ligado em produção): até configurar, só a tela de
+  configuração abre. `db:admin` (recuperar acesso) também desliga o 2FA
+- **Painel da plataforma** (Administração → Plataforma, só administradores): contas, espaços, membros, sessões,
+  tamanho dos bancos e último acesso — **só metadados**. Desativar/reativar espaço (todos saem na hora) e conta,
+  encerrar sessões, desligar o 2FA de quem perdeu o celular
+- **Acesso de suporte com consentimento** (Membros → Acesso do suporte): o dono libera por 24 h, 3 ou 7 dias, para
+  só ver ou para alterar, e encerra quando quiser. O administrador entra pelo painel, com faixa "Modo suporte" na
+  tela; não vira membro; entrada, saída e tudo o que alterar ficam no log do espaço com "(suporte)"
+- Remover um membro apaga as notificações e preferências dele naquele espaço
+- Demonstração: tabelas de exemplo em todo espaço que abrir (`aoAbrirEspaco`), não só no primeiro
+- Colunas `segredo_*` nunca saem da API (o CRUD remove)
+
 ## 0.17.0 — 12/11/2026
 
 **Fase 5B: membros, convites e vários espaços**

@@ -46,7 +46,7 @@ export async function makeTestApp() {
     uploadDir,
     uploadMaxMb: 1,
     db: plataforma,
-    logger: pino({ level: 'silent' }),
+    logger: pino({ level: process.env.LOG_TESTE ?? 'silent' }),
     webDist: '/nao-existe',
     mailer,
     appUrl: APP_URL,

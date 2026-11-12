@@ -2108,3 +2108,65 @@ a.bg-grad-yellow:hover {
   background: rgba(var(--brand-1-rgb), 0.06);
   border: 1px solid rgba(var(--brand-1-rgb), 0.18);
 }
+
+/* ---------------------------------------------------------------- Suporte e duas etapas (Fase 5C) */
+.suporte-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 1.5rem;
+  background: var(--surface-2);
+  border-bottom: 3px solid var(--warning);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+.suporte-bar > .bi {
+  color: var(--warning);
+  font-size: 1.1rem;
+}
+.suporte-bar .btn {
+  margin-left: auto;
+}
+.codigo-2fa {
+  font-family: var(--bs-font-monospace);
+  font-size: 1.5rem;
+  letter-spacing: 0.35em;
+  text-align: center;
+}
+.qr-2fa {
+  width: 12rem;
+  margin: 0 auto;
+  padding: 0.5rem;
+  background: #fff;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+}
+.qr-2fa svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.codigos-recuperacao {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.codigos-recuperacao code {
+  padding: 0.4rem 0.6rem;
+  text-align: center;
+  font-size: 0.95rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  color: var(--text);
+}
+.historico-suporte li {
+  padding: 0.2rem 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+.tabela-plataforma td,
+.tabela-plataforma th {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}

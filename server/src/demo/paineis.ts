@@ -3,6 +3,7 @@
 // ranking e tabela do mesmo cálculo) e um CONJUNTO para o relatório dinâmico (/relatorios/demo_movimentos).
 import type { Db } from '../db/knex';
 import { mesesEntre, registerConjunto, registerDados, type RegistroConjunto } from '../services/paineis';
+import { registerAlerta } from '../services/notificacoes';
 
 type Mov = {
   id: number;
@@ -116,6 +117,33 @@ export function registerDemoPaineis() {
           },
         },
       };
+    },
+  });
+
+  // alerta de exemplo: cada movimento pendente que passou da data vira UMA notificação (chave = id)
+  registerAlerta('demo.atrasados', {
+    rotulo: 'Movimentos atrasados (demo)',
+    descricao: 'Movimento de demonstração pendente com data no passado.',
+    perm: ['demo_movimentos', 'ver'],
+    nivel: 'aviso',
+    icone: 'exclamation-triangle',
+    async gerar(db, { hoje }) {
+      const rows = (await db('demo_movimentos')
+        .whereNull('excluido_em')
+        .where((w) => w.where('pago', false).orWhereNull('pago'))
+        .where('data', '<', hoje)
+        .select('id', 'descricao', 'data', 'valor')) as {
+        id: number;
+        descricao: string;
+        data: string;
+        valor: number;
+      }[];
+      return rows.map((r) => ({
+        chave: String(r.id),
+        titulo: `${r.descricao} está atrasado`,
+        mensagem: `Vencia em ${r.data.slice(8, 10)}/${r.data.slice(5, 7)}: R$ ${Math.abs(Number(r.valor)).toFixed(2).replace('.', ',')}`,
+        link: `/demo_movimentos/${r.id}`,
+      }));
     },
   });
 

@@ -110,6 +110,11 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
   `/api/relatorios[/:nome]`, `/api/preferencias/:chave`). Web: `<PainelWidgets>` (`components/painel/`, tipos em
   `lib/paineis.ts`) e a tela `/relatorios/:conjunto` (`pages/Relatorio.tsx`). Gráficos sem cor própria usam
   `--serie-1..8`. Exemplo completo no módulo de demonstração (`server/src/demo/paineis.ts`, `web/src/demo/painel.tsx`).
+- **Notificações (Fase 4C):** o sistema registra tipos de alerta com `registerAlerta(tipo, { perm, gerar })`
+  (`services/notificacoes.ts`, normalmente em `server/src/app/paineis.ts`); `gerar(db, { hoje })` devolve avisos com
+  `chave` única (inclua no texto da chave o que torna o aviso único: id, mês, data). Uma notificação por usuário e
+  chave (tabela `notificacoes`); verificação na manutenção diária (+ resumo por e-mail para quem pediu) e ao abrir o
+  sino (10 min). Web: `components/Sino.tsx`, `pages/Notificacoes.tsx`, ajudantes em `lib/notificacoes.ts`.
 - **Logs:** `addLog(db, entrada, actor)` com `diffRecord()` → coluna `alteracoes` `{ campo: { de, para } }`.
 - **Front:** `AuthContext` (`useAuth`), `RouteGuards` (`RequireAuth`, `PublicOnly`, `Guard`). A camada `lib/api.ts`
   dispara eventos em 401/TROCAR_SENHA. Relações no form usam `GET /api/:entidade/opcoes` (liberado a qualquer logado).

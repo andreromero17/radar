@@ -8,6 +8,8 @@ import { purgeExpiredAuth } from './auth/sessions';
 import { activeAdmins } from './hooks/usuarios';
 import { purgeLogs } from './services/logs';
 import { createMailer } from './services/mailer';
+import { registrarPaineis } from './app/paineis';
+import { enviarResumos, purgeNotificacoes, verificarAlertas } from './services/notificacoes';
 import { setupDemo } from './demo/setup';
 import { getSettings } from './services/settings';
 import { purgeTrash } from './services/records';
@@ -43,7 +45,11 @@ if (config.demo) {
   logger.info(populou ? 'módulo de demonstração ativo (dados de exemplo criados)' : 'módulo de demonstração ativo');
 }
 
-// Manutenção diária: logs antigos, sessões vencidas, links de senha usados, lixeira vencida
+const mailer = createMailer(config, logger);
+registrarPaineis(); // fontes, conjuntos e alertas do sistema (antes da primeira verificação)
+
+// Manutenção diária: logs antigos, sessões vencidas, links de senha usados, lixeira vencida; depois os alertas
+// (notificações novas + resumo por e-mail para quem pediu)
 const manutencao = async () => {
   const settings = await getSettings(db);
   const logs = await purgeLogs(db, settings.dias_logs);
@@ -52,6 +58,10 @@ const manutencao = async () => {
   if (logs || acessos || lixeira) logger.info({ logs, acessos, lixeira }, 'limpeza de registros antigos');
   const app = Object.fromEntries(Object.entries(await appMaintenance(db)).filter(([, n]) => n));
   if (Object.keys(app).length) logger.info(app, 'manutenção da aplicação');
+  const notificacoes = await purgeNotificacoes(db);
+  const { novas, total } = await verificarAlertas(db);
+  const emails = await enviarResumos(db, mailer, novas, config.APP_URL, settings.nome_sistema);
+  if (total || emails || notificacoes) logger.info({ novas: total, emails, apagadas: notificacoes }, 'notificações');
 };
 await manutencao();
 setInterval(() => manutencao().catch((err) => logger.error({ err }, 'falha na manutenção')), 86_400_000).unref();
@@ -67,7 +77,8 @@ const app = createApp({
   db,
   logger,
   dbFile: config.dbFile,
-  mailer: createMailer(config, logger),
+  mailer,
+  emailDisponivel: !!config.SMTP_HOST,
   appUrl: config.APP_URL,
   corsOrigins: config.corsOrigins,
   sessionHours: config.SESSION_HOURS,

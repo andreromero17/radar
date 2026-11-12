@@ -9,6 +9,7 @@ import Backup from './pages/Backup';
 import MeuPerfil from './pages/MeuPerfil';
 import NotFound from './pages/NotFound';
 import Relatorio, { Relatorios } from './pages/Relatorio';
+import Notificacoes from './pages/Notificacoes';
 import Login from './pages/auth/Login';
 import EsqueciSenha from './pages/auth/EsqueciSenha';
 import RedefinirSenha from './pages/auth/RedefinirSenha';
@@ -50,6 +51,7 @@ export default function App() {
             }
           />
           {/* relatórios dinâmicos (conjuntos registrados no servidor; a permissão vem de cada conjunto) */}
+          <Route path="notificacoes" element={<Notificacoes />} />
           <Route path="relatorios" element={<Relatorios />} />
           <Route path="relatorios/:conjunto" element={<Relatorio />} />
           {/* páginas próprias da aplicação (web/src/app/screens.tsx) */}

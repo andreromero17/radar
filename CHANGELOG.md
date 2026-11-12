@@ -4,6 +4,22 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.15.0 — 12/11/2026
+
+**Fase 4C: notificações reais**
+
+- **Tipos de alerta** registrados pelo sistema (`registerAlerta(tipo, { rotulo, descricao, perm, nivel, icone,
+gerar })` em `server/src/services/notificacoes.ts`): cada aviso tem uma **chave**; o frame grava uma notificação
+  por usuário e por chave (nova tabela `notificacoes`), então o mesmo aviso nunca se repete
+- Verificação na **manutenção diária** (todos os usuários) e ao abrir o sino (no máximo a cada 10 min por usuário);
+  um alerta com erro não derruba os outros
+- **Sino** no topo com contador de não lidas, as últimas 8, "marcar todas como lidas"; atualiza a cada 2 min e ao
+  voltar para a aba. Página **/notificacoes** (todas/não lidas) com **preferências**: liga/desliga cada tipo e
+  "Receber também por e-mail" (um resumo dos avisos novos por dia; avisa quando o SMTP não está configurado)
+- Rotas: `GET /api/notificacoes`, `POST /api/notificacoes/:id/lida`, `POST /api/notificacoes/lidas`,
+  `GET/PUT /api/notificacoes/preferencias`. Lidas há mais de 90 dias são apagadas na manutenção
+- Demonstração: alerta "Movimentos atrasados (demo)"
+
 ## 0.14.0 — 12/11/2026
 
 **Fase 4A + 4B: painéis por configuração e relatório dinâmico**

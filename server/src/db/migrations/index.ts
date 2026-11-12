@@ -7,6 +7,7 @@ import * as m20261109000000 from './20261109000000_anexos';
 import * as m20261110000000 from './20261110000000_aparencia';
 import * as m20261111000000 from './20261111000000_tamanho_texto';
 import * as m20261112000000 from './20261112000000_preferencias';
+import * as m20261113000000 from './20261113000000_notificacoes';
 
 export const migrations: Migration[] = [
   m20261108000000,
@@ -14,4 +15,5 @@ export const migrations: Migration[] = [
   m20261110000000,
   m20261111000000,
   m20261112000000,
+  m20261113000000,
 ];

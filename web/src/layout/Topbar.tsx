@@ -4,6 +4,7 @@ import { APARENCIAS, TAMANHOS_TEXTO, type Aparencia, type AuthUser, type Tamanho
 import { api } from '../lib/api';
 import { Link } from 'react-router-dom';
 import SettingsModal from '../components/SettingsModal';
+import Sino from '../components/Sino';
 import { useAuth } from '../context/AuthContext';
 import { initials } from '../lib/format';
 
@@ -33,6 +34,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
       {/* espaço para filtros globais da aplicação (ex.: seletor de período) */}
       <div className="topbar-center" id="topbar-slot" />
 
+      <Sino />
       <Dropdown align="end">
         <Dropdown.Toggle variant="light" className="d-flex align-items-center gap-2" aria-label="Menu do usuário">
           <span className="avatar">{initials(user?.nome)}</span>

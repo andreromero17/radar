@@ -138,8 +138,10 @@ export function Privacidade() {
       <h2>3. Com quem compartilhamos</h2>
       <p>
         Não vendemos nem compartilhamos os seus dados para publicidade. Eles ficam em servidores contratados para
-        hospedar o sistema e o envio de e-mails, que só os processam para isso. Dentro de um espaço, os membros que o
-        dono convidou veem os dados daquele espaço.
+        hospedar o sistema e o envio de e-mails, que só os processam para isso. Esses servidores podem ficar fora do
+        Brasil (por exemplo, nos Estados Unidos); nesse caso a transferência segue a LGPD, com fornecedores que adotam
+        salvaguardas de segurança adequadas. Dentro de um espaço, os membros que o dono convidou veem os dados daquele
+        espaço.
       </p>
       <h2>4. Segurança</h2>
       <ul>

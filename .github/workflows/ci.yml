@@ -43,3 +43,35 @@ jobs:
 
       - name: Migrações aplicam do zero
         run: npm run db:migrate && npm run db:status
+
+  postgres:
+    name: Testes no Postgres
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: teste
+          POSTGRES_DB: frame_teste
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TESTE_PG_URL: postgres://postgres:teste@localhost:5432/frame_teste
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Suíte do servidor no Postgres
+        run: npm run test --workspace server
+
+      - name: Migrações e seed do zero no Postgres
+        run: npm run db:migrate && npm run db:seed && npm run db:status
+        env:
+          DATABASE_URL: postgres://postgres:teste@localhost:5432/frame_teste

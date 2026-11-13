@@ -246,7 +246,8 @@ describe('importação', () => {
     expect(res.body.erros.map((e: { linha: number }) => e.linha)).toEqual([4, 5]);
     expect(res.body.erros[1].error).toMatch(/Categoria: Não combina/);
     const luz = await ctx.db('demo_movimentos').where({ descricao: 'Conta de luz' }).first();
-    expect(luz).toMatchObject({ data: '2026-11-05', tipo: 'Despesa', valor: -150.9, pago: 1 });
+    expect(luz).toMatchObject({ data: '2026-11-05', tipo: 'Despesa', valor: -150.9 });
+    expect(!!luz.pago).toBe(true);
     expect(luz.codigo).toMatch(/^MOV/);
     expect(Number((await ctx.db('demo_movimentos').count({ n: '*' }).first())!.n)).toBe(antes + 2);
     const log = await ctx.db('logs').where({ entidade: 'demo_movimentos', acao: 'importação' }).first();

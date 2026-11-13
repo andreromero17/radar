@@ -17,7 +17,7 @@ import {
 import { requireAdmin, requirePermission, userOf } from '../auth/middleware';
 import { count, type Db } from '../db/knex';
 import { addLog, type Actor } from '../services/logs';
-import { backupInfo, createBackup } from '../services/backup';
+import { backupInfo, gerarBackup } from '../services/backup';
 import { getAppSettings, getSettings, resetSettings, saveAppSettings, saveSettings } from '../services/settings';
 import { pesoValido, removerFonte, salvarFonte } from '../services/fonte';
 import { badRequest, forbidden } from '../utils/http';
@@ -135,8 +135,7 @@ export function systemRouter(plataforma: Db, db: Db, opts: { arquivo: () => stri
 
   router.get('/backup', requirePermission('backup', 'ver'), async (req, res) => {
     const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-    const file = path.join(os.tmpdir(), `backup-${stamp}.db`);
-    await createBackup(db, file);
+    const file = await gerarBackup(db, path.join(os.tmpdir(), `backup-${stamp}`));
     await addLog(db, { entidade: 'sistema', acao: 'backup', detalhe: path.basename(file) }, actor(req));
     res.download(file, () => fs.unlink(file, () => {}));
   });

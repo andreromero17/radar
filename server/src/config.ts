@@ -17,6 +17,15 @@ const schema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3001),
   /** Banco da plataforma (usuários, sessões, identidade, espaços) */
   DB_PATH: z.string().min(1).default('./data/app.db'),
+  /**
+   * Postgres (Fase 6A): postgres://usuario:senha@host:5432/banco. Preenchido, a plataforma fica no schema `public` e
+   * cada espaço no schema `espaco_<id>`; DB_PATH/ESPACOS_DIR deixam de ser usados. Vazio = SQLite (arquivos).
+   */
+  DATABASE_URL: z
+    .string()
+    .regex(/^postgres(ql)?:\/\//, 'Use postgres://usuario:senha@host:5432/banco')
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   /** Pasta dos bancos dos espaços (um arquivo por espaço) */
   ESPACOS_DIR: z.string().min(1).default('./data/espacos'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),

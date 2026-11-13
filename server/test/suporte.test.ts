@@ -1,3 +1,4 @@
+import { inserir } from '../src/db/knex';
 import request from 'supertest';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { hashPassword } from '../src/auth/password';
@@ -15,7 +16,7 @@ const SENHA = 'senhaBoa123';
 
 async function conta(nome: string, email: string, perfilNome = 'Membro') {
   const perfil = await ctx.plataforma('perfis').where({ nome: perfilNome }).first('id');
-  const [id] = await ctx.plataforma('usuarios').insert({
+  const id = await inserir(ctx.plataforma('usuarios'), {
     nome,
     email,
     perfil_id: perfil.id,

@@ -1,3 +1,4 @@
+import { inserir } from '../src/db/knex';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { TERMOS_VERSAO } from '@frame/shared';
@@ -127,7 +128,7 @@ describe('meus dados e exclusão da conta', () => {
 
   beforeAll(async () => {
     const perfil = await ctx.plataforma('perfis').where({ nome: 'Membro' }).first('id');
-    [euId] = await ctx.plataforma('usuarios').insert({
+    euId = await inserir(ctx.plataforma('usuarios'), {
       nome: 'Titular dos Dados',
       email: 'titular@x.com',
       perfil_id: perfil.id,
@@ -185,8 +186,23 @@ describe('meus dados e exclusão da conta', () => {
       401,
     );
 
-    await ctx.plataforma('espacos_excluidos').update({ excluido_em: '2000-01-01 00:00:00' });
-    expect(await apagarEspacosExcluidos()).toBeGreaterThan(0);
+    // no Postgres o schema do espaço foi renomeado (fora do alcance) e só some na limpeza
+    const guardado = (await ctx.plataforma('espacos_excluidos').where({ espaco_id: meuEspaco }).first('arquivo'))
+      .arquivo;
+    if (guardado?.startsWith('pg:')) {
+      const existe = async () =>
+        !!(await ctx
+          .plataforma('information_schema.schemata')
+          .where({ schema_name: guardado.slice(3) })
+          .first());
+      expect(await existe()).toBe(true);
+      await ctx.plataforma('espacos_excluidos').update({ excluido_em: '2000-01-01 00:00:00' });
+      await apagarEspacosExcluidos();
+      expect(await existe()).toBe(false);
+    } else {
+      await ctx.plataforma('espacos_excluidos').update({ excluido_em: '2000-01-01 00:00:00' });
+      expect(await apagarEspacosExcluidos()).toBeGreaterThan(0);
+    }
     expect((await ctx.plataforma('espacos_excluidos').where({ espaco_id: meuEspaco }).first()).apagado_em).toBeTruthy();
   });
 

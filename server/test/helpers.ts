@@ -5,7 +5,7 @@ import pino from 'pino';
 import request from 'supertest';
 import { createApp } from '../src/app';
 import { createEntityTable } from '../src/db/diff';
-import { createDb } from '../src/db/knex';
+import { createDb, createPgDb } from '../src/db/knex';
 import { migrateLatest } from '../src/db/migrator';
 import { seed, seedEspaco } from '../src/db/seed';
 import { abrirEspaco, adicionarMembro, configurarEspacos, criarEspaco } from '../src/espacos';
@@ -21,13 +21,35 @@ export { registerFixtureEntities };
  * perfis, sessões, configurações de identidade. `admin`, `operador` e `leitura` são clientes HTTP já logados,
  * todos membros do espaço.
  */
+/**
+ * Com `TESTE_PG_URL` (postgres://...), a MESMA suíte roda no Postgres: cada app de teste ganha schemas próprios
+ * (`t_<aleatório>_plataforma`, `t_<aleatório>_espaco_<id>`), apagados no início da próxima rodada (pg-setup.ts).
+ */
+export const TESTE_PG_URL = process.env.TESTE_PG_URL || '';
+
+/** Opções de espaços do app de teste atual (para quem troca a configuração e precisa restaurar) */
+export let opcoesEspacosTeste: Parameters<typeof configurarEspacos>[0];
+
+async function novaPlataforma() {
+  if (!TESTE_PG_URL) return { plataforma: createDb(':memory:'), pg: undefined };
+  const prefixo = `t_${Math.random().toString(36).slice(2, 8)}_`;
+  const admin = createPgDb(TESTE_PG_URL, 'public', { max: 1 });
+  await admin.raw('create schema ??', [`${prefixo}plataforma`]);
+  await admin.destroy();
+  return {
+    plataforma: createPgDb(TESTE_PG_URL, `${prefixo}plataforma`, { max: 4 }),
+    pg: { url: TESTE_PG_URL, prefixo },
+  };
+}
+
 export async function makeTestApp() {
   registerFixtureEntities();
-  const plataforma = createDb(':memory:');
+  const { plataforma, pg } = await novaPlataforma();
   await migrateLatest(plataforma, 'plataforma');
   await seed(plataforma);
   await seedFixtureUsuarios(plataforma);
-  configurarEspacos({ plataforma, dir: null, autoMigrar: true });
+  opcoesEspacosTeste = { plataforma, dir: null, autoMigrar: true, pg };
+  configurarEspacos(opcoesEspacosTeste);
   const usuarios = (await plataforma('usuarios').orderBy('id').select('id', 'email')) as {
     id: number;
     email: string;

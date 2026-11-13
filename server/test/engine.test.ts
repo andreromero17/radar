@@ -1,10 +1,11 @@
+import { inserir } from '../src/db/knex';
 import ExcelJS from 'exceljs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { entities } from '@frame/shared';
 import { demoEntities } from '@frame/shared/demo';
 import { computeDiff, createEntityTable } from '../src/db/diff';
 import { setupDemo } from '../src/demo/setup';
-import { purgeTrash } from '../src/services/records';
+import { dataValida, purgeTrash } from '../src/services/records';
 import { makeTestApp, type TestCtx } from './helpers';
 
 // Motor genérico (Fase 2A) testado com o módulo de demonstração
@@ -33,7 +34,7 @@ describe('listagem: filtros, período, ordenação e totais', () => {
     const doMes = await ctx.admin.get(`/api/demo_movimentos?data__de=${mes}-01&data__ate=${mes}-31&pageSize=100`);
     expect(doMes.body.rows.every((r: { data: string }) => r.data.startsWith(mes))).toBe(true);
     expect(doMes.body.totais.valor).toBe(
-      await sumDb('demo_movimentos', 'valor', (q) => q.whereBetween('data', [`${mes}-01`, `${mes}-31`])),
+      await sumDb('demo_movimentos', 'valor', (q) => q.whereBetween('data', [`${mes}-01`, dataValida(`${mes}-31`)])),
     );
   });
 
@@ -162,7 +163,7 @@ describe('lixeira', () => {
 
   it('esvaziar a lixeira apaga de vez só o que está nela, com um log de resumo', async () => {
     for (const nome of ['Temporário Um', 'Temporário Dois']) {
-      const [id] = await ctx.db('demo_clientes').insert({ nome, tipo_pessoa: 'PF', criado_em: '2026-01-01 00:00:00' });
+      const id = await inserir(ctx.db('demo_clientes'), { nome, tipo_pessoa: 'PF', criado_em: '2026-01-01 00:00:00' });
       await ctx.admin.delete(`/api/demo_clientes/${id}`);
     }
     const antes = Number((await ctx.db('demo_clientes').count({ n: '*' }).first())?.n);

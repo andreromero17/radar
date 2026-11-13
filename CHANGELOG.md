@@ -4,6 +4,18 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.21.0 — 13/11/2026
+
+**Fase 6B: colocar no ar**
+
+- `deploy/`: imagem Docker de produção (multi-stage, só dependências de produção, fuso de Brasília), compose com
+  **Postgres 16**, **aplicação** (aplica as migrações ao subir), **Caddy** (HTTPS automático com Let's Encrypt) e
+  **backup** diário (`pg_dump` do banco inteiro + anexos, guardados 14 dias, cópia opcional para S3)
+- Guia passo a passo em `deploy/LEIAME.md`: chave de implantação do GitHub, configuração, trazer a instalação SQLite
+  (`para-postgres`), subir, atualizar (`deploy/atualizar.sh`), backup e restauração
+- Sem domínio: funciona com `<ip>.sslip.io` (HTTPS de verdade); e-mail por SMTP de qualquer provedor (ex.: Gmail)
+- Política de privacidade avisa que os servidores podem ficar fora do Brasil
+
 ## 0.20.0 — 12/11/2026
 
 **Fase 6A: Postgres**

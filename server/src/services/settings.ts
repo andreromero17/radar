@@ -15,7 +15,9 @@ import { addLog, purgeLogs, SYSTEM_ACTOR, type Actor } from './logs';
 export async function getSettings(db: Db): Promise<Settings> {
   const rows = (await db('configuracoes').select('chave', 'valor')) as { chave: string; valor: string }[];
   const merged: Record<string, unknown> = { ...DEFAULT_SETTINGS };
-  for (const { chave, valor } of rows) if (chave in merged) merged[chave] = valor;
+  for (const { chave, valor } of rows)
+    if (chave in merged)
+      merged[chave] = typeof DEFAULT_SETTINGS[chave as keyof Settings] === 'boolean' ? valor === 'true' : valor;
   // Valores gravados que deixaram de ser válidos voltam ao padrão
   const parsed = settingsSchema.safeParse(merged);
   if (parsed.success) return parsed.data;

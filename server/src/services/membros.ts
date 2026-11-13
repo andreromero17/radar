@@ -10,6 +10,7 @@
 import {
   PAPEIS,
   PAPEL_LABELS,
+  TERMOS_VERSAO,
   TIPOS_ESPACO,
   toFieldErrors,
   type ConviteInfo,
@@ -366,6 +367,8 @@ export async function aceitarConvite(
       senha: await hashPassword(quem.nova.senha),
       ativo: toDbValue(p(), true),
       trocar_senha: toDbValue(p(), false),
+      termos_aceitos_em: nowLocal(),
+      termos_versao: TERMOS_VERSAO,
       criado_em: nowLocal(),
     });
     usuarioId = Number(id);

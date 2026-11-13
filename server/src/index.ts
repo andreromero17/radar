@@ -5,6 +5,7 @@ import { VERSION } from './version';
 import { createDb } from './db/knex';
 import { migrateLatest, migrationStatus, OutdatedHistoryError } from './db/migrator';
 import { purgeExpiredAuth } from './auth/sessions';
+import { apagarEspacosExcluidos, limparCadastrosPendentes } from './services/conta';
 import { activeAdmins } from './hooks/usuarios';
 import { purgeLogs } from './services/logs';
 import { createMailer } from './services/mailer';
@@ -64,7 +65,10 @@ const manutencao = async () => {
   const settings = await getSettings(db);
   const logsPlat = await purgeLogs(db, settings.dias_logs);
   const acessos = await purgeExpiredAuth(db);
-  if (logsPlat || acessos) logger.info({ logs: logsPlat, acessos }, 'limpeza da plataforma');
+  const cadastros = await limparCadastrosPendentes();
+  const excluidos = await apagarEspacosExcluidos();
+  if (logsPlat || acessos || cadastros || excluidos)
+    logger.info({ logs: logsPlat, acessos, cadastros, excluidos }, 'limpeza da plataforma');
   for (const id of await idsEspacosAtivos()) {
     try {
       await comEspaco(id, async (edb) => {

@@ -4,6 +4,7 @@ server/data/*.db
 server/data/*.db-*
 server/data/anexos/
 server/data/espacos/
+server/data/espacos-excluidos/
 .DS_Store
 coverage/
 server/.env

@@ -38,6 +38,7 @@ describe('login e sessão', () => {
     expect((await request(ctx.app).get('/api/health')).status).toBe(200);
     const pub = await request(ctx.app).get('/api/settings/publicas');
     expect(Object.keys(pub.body).sort()).toEqual([
+      'cadastro_aberto',
       'cor_primaria',
       'cor_secundaria',
       'estilo_menu',

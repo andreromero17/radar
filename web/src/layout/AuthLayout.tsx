@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import BrandMark from '../components/BrandMark';
+import { Link } from 'react-router-dom';
 
 /** Moldura das telas de acesso (login, senha): fundo com as cores do sistema e cartão central */
 export default function AuthLayout({
@@ -24,11 +25,14 @@ export default function AuthLayout({
         {subtitle && <p className="auth-subtitle">{subtitle}</p>}
         {children}
       </div>
-      {settings.organizacao && (
-        <div className="auth-footer">
-          © {new Date().getFullYear()} {settings.organizacao}
-        </div>
-      )}
+      <div className="auth-footer">
+        {settings.organizacao && (
+          <>
+            © {new Date().getFullYear()} {settings.organizacao} ·{' '}
+          </>
+        )}
+        <Link to="/termos">Termos de uso</Link> · <Link to="/privacidade">Privacidade</Link>
+      </div>
     </div>
   );
 }

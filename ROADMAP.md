@@ -117,12 +117,21 @@ _Começa assim que a Fase 2 tiver o essencial; as duas andam juntas._
   no log do espaço com "(suporte)"; faixa na tela; suporte não vira membro; **verificação em duas etapas** (TOTP, sem
   dependência externa, QR + 8 códigos de recuperação), obrigatória para administradores em produção
   (`ADMIN_2FA_OBRIGATORIO`). Identidade visual já era global (só administrador)
-- **5D — Cadastro e LGPD:** cadastro com confirmação de e-mail, termos e privacidade, baixar meus dados, excluir conta
-- Depois: planos e cobrança (Asaas/Stripe, Pix e cartão)
+- ✅ **5D — Cadastro e LGPD** (12/11/2026, v0.19.0): cadastro **fechado por padrão** (beta): o administrador
+  convida pelo painel ("Convidar para testar", link de 14 dias) e a pessoa cria a conta já como dona do próprio
+  espaço; chave "cadastro aberto" nas Configurações (com confirmação de e-mail, 24 h); termos de uso e política de
+  privacidade (texto-base, aceite gravado com a versão); baixar meus dados (JSON); excluir conta (espaços de que é a
+  única dona saem junto e ficam guardados 30 dias antes de apagar de vez; nos alheios, o nome sai dos registros);
+  **Enviar feedback** dentro do app, lido no painel e avisado por e-mail
+- **Decidido (12/11/2026): planos e cobrança ficam para a fase comercial** (Fase 8). Antes, o sistema vai para um
+  grupo pequeno de pessoas próximas validarem funcionalidades e usabilidade (beta fechado, sem cobrança)
 - Monorepo (`packages/core` + `apps/*`) ou núcleo publicado como pacote npm só se o número de sistemas pedir;
   **CLI de scaffold** (`npm run novo-sistema nome`) quando houver um segundo sistema
 
 ## Fase 6 — Produção e mobile
+
+_Próxima: é o que põe o beta nas mãos das pessoas convidadas (endereço na internet, HTTPS, e-mail de verdade,
+backup fora do servidor)._
 
 - Segurança: cifrar os segredos de 2FA com chave do `.env`; e-mail ao dono quando o suporte entra
 - Banco: **SQLite por espaço numa VPS + backup contínuo (Litestream → S3/R2)** é o caminho mais simples e barato
@@ -142,6 +151,13 @@ para o frame._
 - **Metas** de economia: valor-alvo e data, alimentadas pelos ativos/aportes alocados a cada meta (uma corretora
   pode atender várias metas); quanto guardar por mês considerando a rentabilidade esperada; alerta de ritmo
 - Painel de investimentos: evolução do patrimônio, distribuição por classe, comparação com CDI/IPCA
+
+## Fase 8 — Comercial
+
+_Depois do beta fechado e dos ajustes que vierem do feedback._
+
+- Planos e limites por plano (espaços, membros, anexos), período de teste, cobrança recorrente (Asaas/Stripe, Pix e
+  cartão), nota fiscal, termos revisados por advogado, página de apresentação
 
 ---
 

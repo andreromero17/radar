@@ -2,12 +2,14 @@ import { useState, type FormEvent } from 'react';
 import { Alert, Button, Form, Spinner } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
 import { ApiError, errorMessage } from '../../lib/api';
 import AuthLayout from '../../layout/AuthLayout';
 import PasswordInput from '../../components/PasswordInput';
 
 export default function Login() {
   const { login, entrarComCodigo } = useAuth();
+  const { settings } = useSettings();
   const [desafio, setDesafio] = useState('');
   const [codigo, setCodigo] = useState('');
   const [recuperacao, setRecuperacao] = useState(false);
@@ -149,6 +151,11 @@ export default function Login() {
         <Button type="submit" className="w-100" disabled={enviando || !email || !senha}>
           {enviando ? <Spinner size="sm" /> : 'Entrar'}
         </Button>
+        {settings.cadastro_aberto && (
+          <div className="text-center small mt-3">
+            Não tem conta? <Link to="/cadastro">Criar conta</Link>
+          </div>
+        )}
       </Form>
     </AuthLayout>
   );

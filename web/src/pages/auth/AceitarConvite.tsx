@@ -31,6 +31,7 @@ export default function AceitarConvite() {
   const [nome, setNome] = useState('');
   const [erros, setErros] = useState<FieldErrors>({});
   const [aceitando, setAceitando] = useState(false);
+  const [aceite, setAceite] = useState(false);
 
   useEffect(() => {
     api
@@ -42,7 +43,7 @@ export default function AceitarConvite() {
   const aceitar = async (senha?: string) => {
     setAceitando(true);
     try {
-      await api.post(`/auth/convites/${encodeURIComponent(token)}/aceitar`, senha ? { nome, senha } : {});
+      await api.post(`/auth/convites/${encodeURIComponent(token)}/aceitar`, senha ? { nome, senha, aceite: true } : {});
       toast.success(`Bem-vindo(a) ao espaço "${convite?.espaco}"`);
       recarregarNoEspaco();
     } catch (e) {
@@ -156,11 +157,36 @@ export default function AceitarConvite() {
         />
         <Form.Control.Feedback type="invalid">{erros.nome}</Form.Control.Feedback>
       </Form.Group>
+      <Form.Check
+        id="aceite"
+        className="mb-3 small"
+        checked={aceite}
+        onChange={(e) => {
+          setAceite(e.target.checked);
+          setErros(({ aceite: _a, ...r }) => r);
+        }}
+        isInvalid={!!erros.aceite}
+        feedback={erros.aceite}
+        feedbackType="invalid"
+        label={
+          <>
+            Li e aceito os{' '}
+            <Link to="/termos" target="_blank">
+              termos de uso
+            </Link>{' '}
+            e a{' '}
+            <Link to="/privacidade" target="_blank">
+              política de privacidade
+            </Link>
+          </>
+        }
+      />
       <NovaSenhaForm
         submitLabel={aceitando ? 'Criando…' : 'Criar conta e entrar'}
         serverErrors={erros.senha ? { nova: erros.senha } : {}}
         onSubmit={async ({ nova }) => {
           if (nome.trim().length < 2) return setErros({ nome: 'Informe seu nome' });
+          if (!aceite) return setErros({ aceite: 'É preciso aceitar para continuar' });
           await aceitar(nova);
         }}
       />

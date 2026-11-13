@@ -1,9 +1,24 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Badge, ButtonGroup, Card, Col, Dropdown, Form, Row, Spinner, Table, ToggleButton } from 'react-bootstrap';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import {
+  Badge,
+  Button,
+  ButtonGroup,
+  Card,
+  Col,
+  Dropdown,
+  Form,
+  Modal,
+  Row,
+  Spinner,
+  Table,
+  ToggleButton,
+} from 'react-bootstrap';
 import {
   PAPEL_LABELS,
   TIPO_ESPACO_LABELS,
+  type ConvitePlataforma,
   type EspacoPlataforma,
+  type FeedbackInfo,
   type PlataformaResposta,
   type UsuarioPlataforma,
 } from '@frame/shared';
@@ -24,7 +39,10 @@ export default function Plataforma() {
   const { user } = useAuth();
   const toast = useToast();
   const [dados, setDados] = useState<PlataformaResposta | null>(null);
-  const [aba, setAba] = useState<'espacos' | 'usuarios'>('espacos');
+  const [aba, setAba] = useState<'espacos' | 'usuarios' | 'convites' | 'feedback'>('espacos');
+  const [convites, setConvites] = useState<ConvitePlataforma[]>([]);
+  const [feedbacks, setFeedbacks] = useState<FeedbackInfo[]>([]);
+  const [convidar, setConvidar] = useState(false);
   const [busca, setBusca] = useState('');
   const [confirma, setConfirma] = useState<{
     titulo: string;
@@ -38,6 +56,14 @@ export default function Plataforma() {
       .get<PlataformaResposta>('/plataforma')
       .then(setDados)
       .catch((e) => toast.error(errorMessage(e)));
+    api
+      .get<ConvitePlataforma[]>('/plataforma/convites')
+      .then(setConvites)
+      .catch(() => {});
+    api
+      .get<FeedbackInfo[]>('/plataforma/feedbacks')
+      .then(setFeedbacks)
+      .catch(() => {});
   }, [toast]);
   useEffect(carregar, [carregar]);
 
@@ -238,9 +264,19 @@ export default function Plataforma() {
   );
 
   const t = dados.totais;
+  const naoLidos = feedbacks.filter((f) => !f.lido_em).length;
+  const agoraTexto = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 19)
+    .replace('T', ' ');
   return (
     <>
-      <PageHeader title="Plataforma" icon="hdd-network" subtitle="Assinantes, espaços e uso — sem acesso aos dados" />
+      <PageHeader title="Plataforma" icon="hdd-network" subtitle="Assinantes, espaços e uso — sem acesso aos dados">
+        <button className="btn btn-primary" onClick={() => setConvidar(true)}>
+          <i className="bi bi-envelope-plus me-1" />
+          Convidar para testar
+        </button>
+      </PageHeader>
       <Row className="g-3 mb-3">
         <Col xs={6} lg={3}>
           <StatCard label="Contas ativas" value={t.usuarios} icon="people" />
@@ -265,7 +301,7 @@ export default function Plataforma() {
       <Card className="card-app">
         <Card.Body className="d-flex flex-wrap gap-2 align-items-center border-bottom">
           <ButtonGroup>
-            {(['espacos', 'usuarios'] as const).map((a) => (
+            {(['espacos', 'usuarios', 'convites', 'feedback'] as const).map((a) => (
               <ToggleButton
                 key={a}
                 id={`aba-${a}`}
@@ -276,7 +312,13 @@ export default function Plataforma() {
                 checked={aba === a}
                 onChange={() => setAba(a)}
               >
-                {a === 'espacos' ? `Espaços (${dados.espacos.length})` : `Contas (${dados.usuarios.length})`}
+                {a === 'espacos'
+                  ? `Espaços (${dados.espacos.length})`
+                  : a === 'usuarios'
+                    ? `Contas (${dados.usuarios.length})`
+                    : a === 'convites'
+                      ? 'Convites'
+                      : `Feedback${naoLidos ? ` (${naoLidos})` : ''}`}
               </ToggleButton>
             ))}
           </ButtonGroup>
@@ -289,7 +331,99 @@ export default function Plataforma() {
           />
         </Card.Body>
         <div className="table-responsive">
-          {aba === 'espacos' ? (
+          {aba === 'convites' ? (
+            <Table hover className="mb-0 align-middle tabela-plataforma">
+              <thead>
+                <tr>
+                  <th>E-mail</th>
+                  <th>Convidado por</th>
+                  <th>Enviado</th>
+                  <th>Situação</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {convites.map((c) => {
+                  const pendente = !c.usado_em && !c.cancelado_em && c.expira_em > agoraTexto;
+                  return (
+                    <tr key={c.id} className={pendente ? '' : 'text-muted'}>
+                      <td className="fw-semibold">{c.email}</td>
+                      <td>{c.convidado_por ?? '—'}</td>
+                      <td className="small">{fmtDate(c.criado_em, true)}</td>
+                      <td>
+                        {c.usado_em ? (
+                          <Badge bg="success">Conta criada{c.usado_por ? ` (${c.usado_por})` : ''}</Badge>
+                        ) : c.cancelado_em ? (
+                          <Badge bg="secondary">Cancelado</Badge>
+                        ) : pendente ? (
+                          <Badge bg="info" text="dark">
+                            Aguardando até {fmtDate(c.expira_em)}
+                          </Badge>
+                        ) : (
+                          <Badge bg="secondary">Expirado</Badge>
+                        )}
+                      </td>
+                      <td className="text-end">
+                        {pendente && (
+                          <button
+                            className="btn btn-sm btn-light"
+                            onClick={() =>
+                              void acao(() => api.del(`/plataforma/convites/${c.id}`), 'Convite cancelado')
+                            }
+                          >
+                            Cancelar
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {!convites.length && (
+                  <tr>
+                    <td colSpan={5} className="text-center text-muted py-4">
+                      Nenhum convite ainda. Use “Convidar para testar”.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
+          ) : aba === 'feedback' ? (
+            <div className="lista-feedback">
+              {feedbacks.map((f) => (
+                <div key={f.id} className={`feedback-item ${f.lido_em ? 'lido' : ''}`}>
+                  <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                    <Badge bg={f.tipo === 'problema' ? 'danger' : f.tipo === 'elogio' ? 'success' : 'primary'}>
+                      {f.tipo === 'problema' ? 'Problema' : f.tipo === 'elogio' ? 'Elogio' : 'Sugestão'}
+                    </Badge>
+                    <span className="fw-semibold">{f.nome ?? '(conta excluída)'}</span>
+                    <span className="small text-muted">
+                      {fmtDate(f.criado_em, true)}
+                      {f.pagina && ` · ${f.pagina}`}
+                      {f.versao && ` · v${f.versao}`}
+                    </span>
+                    <button
+                      className="btn btn-sm btn-light ms-auto"
+                      onClick={() =>
+                        void acao(
+                          () => api.put(`/plataforma/feedbacks/${f.id}`, { lido: !f.lido_em }),
+                          f.lido_em ? 'Marcado como não lido' : 'Marcado como lido',
+                        )
+                      }
+                    >
+                      {f.lido_em ? 'Marcar não lido' : 'Marcar lido'}
+                    </button>
+                  </div>
+                  <div className="feedback-texto">{f.mensagem}</div>
+                  {f.email && (
+                    <a className="small" href={`mailto:${f.email}`}>
+                      Responder por e-mail
+                    </a>
+                  )}
+                </div>
+              ))}
+              {!feedbacks.length && <div className="text-center text-muted py-4">Nenhum feedback ainda.</div>}
+            </div>
+          ) : aba === 'espacos' ? (
             <Table hover className="mb-0 align-middle tabela-plataforma">
               <thead>
                 <tr>
@@ -323,6 +457,14 @@ export default function Plataforma() {
         </div>
       </Card>
 
+      <ConvidarModal
+        show={convidar}
+        onHide={() => setConvidar(false)}
+        onEnviado={() => {
+          setAba('convites');
+          carregar();
+        }}
+      />
       <ConfirmModal
         show={!!confirma}
         title={confirma?.titulo}
@@ -336,5 +478,63 @@ export default function Plataforma() {
         onCancel={() => setConfirma(null)}
       />
     </>
+  );
+}
+
+/** Convite para testar: a pessoa recebe um link, cria a conta e ganha o próprio espaço */
+function ConvidarModal({ show, onHide, onEnviado }: { show: boolean; onHide: () => void; onEnviado: () => void }) {
+  const toast = useToast();
+  const [email, setEmail] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  useEffect(() => {
+    if (show) setEmail('');
+  }, [show]);
+  const enviar = async (e: FormEvent) => {
+    e.preventDefault();
+    setEnviando(true);
+    try {
+      await api.post('/plataforma/convites', { email });
+      toast.success(`Convite enviado para ${email.trim().toLowerCase()}`);
+      onHide();
+      onEnviado();
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setEnviando(false);
+    }
+  };
+  return (
+    <Modal show={show} onHide={onHide} centered>
+      <Form onSubmit={enviar} noValidate>
+        <Modal.Header closeButton>
+          <Modal.Title className="fs-5 fw-bold">
+            <i className="bi bi-envelope-plus me-2" />
+            Convidar para testar
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Label className="small fw-semibold">E-mail</Form.Label>
+          <Form.Control
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoFocus
+            placeholder="pessoa@exemplo.com"
+          />
+          <Form.Text>
+            A pessoa recebe um link (válido por 14 dias), cria a conta com esse e-mail e ganha o próprio espaço, como
+            dona. Para colocar alguém dentro de um espaço seu, use Membros.
+          </Form.Text>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="light" onClick={onHide}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={enviando || !/^\S+@\S+\.\S+$/.test(email.trim())}>
+            {enviando ? <Spinner size="sm" /> : 'Enviar convite'}
+          </Button>
+        </Modal.Footer>
+      </Form>
+    </Modal>
   );
 }

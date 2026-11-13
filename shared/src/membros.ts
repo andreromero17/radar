@@ -105,3 +105,30 @@ export interface PlataformaResposta {
   espacos: EspacoPlataforma[];
   usuarios: UsuarioPlataforma[];
 }
+
+// ---------------------------------------------------------------- Fase 5D: convites para testar e feedback
+
+export interface ConvitePlataforma {
+  id: number;
+  email: string;
+  criado_em: string;
+  expira_em: string;
+  usado_em: string | null;
+  cancelado_em: string | null;
+  convidado_por: string | null;
+  usado_por: string | null;
+}
+
+export interface FeedbackInfo {
+  id: number;
+  usuario_id: number | null;
+  nome: string | null;
+  email: string | null;
+  tipo: 'sugestao' | 'problema' | 'elogio';
+  mensagem: string;
+  pagina: string | null;
+  navegador: string | null;
+  versao: string | null;
+  criado_em: string;
+  lido_em: string | null;
+}

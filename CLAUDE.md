@@ -30,6 +30,8 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
 - Testes no Postgres: `TESTE_PG_URL=postgres://... npm run test --workspace server` (o CI roda os dois)
 - Login de dev (seed): admin@sistema.com / admin123
 - `npm run build` + `npm start` — produção (Express serve a API e o front buildado)
+- Deploy (Fase 6B): `deploy/` (Dockerfile, docker-compose com Postgres + app + Caddy + backup, `.env.exemplo`,
+  `atualizar.sh`); passo a passo em `deploy/LEIAME.md`. No container: `node dist/cli.js <comando>` (migrate, admin…)
 
 ## Arquitetura (importante)
 

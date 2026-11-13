@@ -137,11 +137,14 @@ backup fora do servidor)._
   schema `espaco_<id>` (`search_path` só nele); SQLite continua para desenvolvimento; a suíte inteira roda nos dois
   bancos (CI com serviço Postgres); `npm run db:para-postgres` leva uma instalação SQLite com os mesmos ids
   (conferido com os dados reais do finanças: respostas da API idênticas)
-- **6B — Deploy:** Docker + Caddy (HTTPS automático), Postgres no servidor ou gerenciado, backup diário (`pg_dump`
-  para R2/B2), e-mail transacional (Resend/Brevo/SES), domínio; provedor com cobrança mensal para o beta
+- ✅ **6B — Deploy** (13/11/2026, v0.21.0): `deploy/` com Docker (imagem multi-stage), compose com Postgres 16,
+  aplicação (migra ao subir), Caddy (HTTPS automático) e backup diário (`pg_dump` + anexos, 14 dias, cópia opcional
+  para S3); guia em `deploy/LEIAME.md`. Servidor do beta: **AWS Lightsail, Ohio** (2 GB; São Paulo indisponível na
+  conta nova — migrar depois), endereço `<ip>.sslip.io` até haver domínio, e-mail pelo Gmail (senha de app) até
+  haver domínio para o SES
+- Depois do domínio: SES para e-mail; cópia de backup fora do servidor (bucket); migrar para São Paulo
 - Segurança: cifrar os segredos de 2FA com chave do `.env`; e-mail ao dono quando o suporte entra
-- Docker multi-stage + compose, deploy (VPS, Railway ou Fly.io), HTTPS
-- Backup agendado para fora do servidor (S3/R2), monitoramento e log de erros (Sentry)
+- Monitoramento e log de erros (Sentry)
 - **PWA:** instalável no celular, com ícone e cache básico. Cobre boa parte do "mobile" sem app nativo.
 - React Native/Expo só se surgir necessidade real de recurso nativo, consumindo a mesma API
 

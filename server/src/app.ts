@@ -130,7 +130,7 @@ export function createApp(opts: AppOptions) {
 
   // daqui para baixo: só com login (e senha em dia), DENTRO do espaço da sessão — `dbEspaco` é o banco dele
   app.use('/api', requireAuth);
-  app.use('/api', plataformaRouter(db)); // antes do espaço: o administrador pode não estar em nenhum
+  app.use('/api', plataformaRouter(db, { envio: { mailer: opts.mailer, appUrl: opts.appUrl } })); // antes do espaço: o administrador pode não estar em nenhum
   app.use('/api', resolverEspaco(db));
   const arquivo = () => arquivoEspaco(espacoAtivo().espacoId);
   app.use('/api', systemRouter(db, dbEspaco, { arquivo })); // antes do CRUD genérico

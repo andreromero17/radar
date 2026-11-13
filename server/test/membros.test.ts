@@ -202,8 +202,12 @@ describe('convites', () => {
       tem_conta: false,
       logado_como: null,
     });
-    expect((await anon.post(`/api/auth/convites/${token}/aceitar`).send({ nome: 'N', senha: '1' })).status).toBe(422);
-    const ok = await anon.post(`/api/auth/convites/${token}/aceitar`).send({ nome: 'Nova Pessoa', senha: SENHA });
+    expect(
+      (await anon.post(`/api/auth/convites/${token}/aceitar`).send({ nome: 'N', senha: '1', aceite: true })).status,
+    ).toBe(422);
+    const ok = await anon
+      .post(`/api/auth/convites/${token}/aceitar`)
+      .send({ nome: 'Nova Pessoa', senha: SENHA, aceite: true });
     expect(ok.status).toBe(200);
     const me = (await anon.get('/api/auth/me')).body;
     expect(me).toMatchObject({ email: 'nova@pessoa.com', perfil: 'Membro', admin: false });
@@ -213,7 +217,11 @@ describe('convites', () => {
     // uma vez só
     expect((await request(ctx.app).get(`/api/auth/convites/${token}`)).status).toBe(400);
     expect(
-      (await request(ctx.app).post(`/api/auth/convites/${token}/aceitar`).send({ nome: 'Outro', senha: SENHA })).status,
+      (
+        await request(ctx.app)
+          .post(`/api/auth/convites/${token}/aceitar`)
+          .send({ nome: 'Outro', senha: SENHA, aceite: true })
+      ).status,
     ).toBe(400);
     // aparece no log do espaço
     const logs = (await ctx.admin.get('/api/logs?pageSize=50')).body.rows.map((l: { acao: string }) => l.acao);
@@ -227,7 +235,9 @@ describe('convites', () => {
     const token = ultimoToken();
     const anon = request.agent(ctx.app);
     expect((await anon.get(`/api/auth/convites/${token}`)).body.tem_conta).toBe(true);
-    const sem = await anon.post(`/api/auth/convites/${token}/aceitar`).send({ nome: 'Fulano', senha: SENHA });
+    const sem = await anon
+      .post(`/api/auth/convites/${token}/aceitar`)
+      .send({ nome: 'Fulano', senha: SENHA, aceite: true });
     expect(sem.status).toBe(401);
     expect(sem.body.code).toBe('CONVITE_LOGIN');
     // outra pessoa logada não aceita por ela

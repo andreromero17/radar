@@ -7,4 +7,5 @@ export * from './masks';
 export * from './paineis';
 export * from './notificacoes';
 export * from './membros';
+export * from './legal';
 export * from './app';

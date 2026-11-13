@@ -542,6 +542,20 @@ export default function SettingsModal({ show, onHide }: { show: boolean; onHide:
 
             {admin && (
               <>
+                {/* ---------- Acesso ---------- */}
+                <h6 className="settings-section">Acesso</h6>
+                <Form.Check
+                  type="switch"
+                  id="cadastro-aberto"
+                  checked={!!form.cadastro_aberto}
+                  onChange={(e) => set('cadastro_aberto', e.target.checked)}
+                  label="Cadastro aberto: qualquer pessoa cria conta (com confirmação de e-mail)"
+                />
+                <Form.Text>
+                  Desligado, só entra quem você convidar (Plataforma → Convidar para testar) ou quem for convidado para
+                  um espaço.
+                </Form.Text>
+
                 {/* ---------- Manutenção ---------- */}
                 <h6 className="settings-section">Manutenção</h6>
                 <Row className="g-3 align-items-center">

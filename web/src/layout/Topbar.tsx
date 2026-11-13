@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 import SettingsModal from '../components/SettingsModal';
 import Sino from '../components/Sino';
 import EspacoModal from '../components/EspacoModal';
+import FeedbackModal from '../components/FeedbackModal';
 import { ICONE_TIPO, recarregarNoEspaco, trocarEspaco } from '../lib/espacos';
 
 import { useAuth } from '../context/AuthContext';
@@ -23,6 +24,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
   const { user, can, logout, setUser } = useAuth();
   const [showSettings, setShowSettings] = useState(false);
   const [novoEspaco, setNovoEspaco] = useState(false);
+  const [feedback, setFeedback] = useState(false);
   // assinante (dono de algum espaço) ou administrador cria espaços
   const podeCriarEspaco = !!user?.admin || !!user?.espacos?.some((e) => e.papel === 'dono');
   const mudarAparencia = async (aparencia: Aparencia) => {
@@ -158,6 +160,10 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
               Configurações
             </Dropdown.Item>
           )}
+          <Dropdown.Item onClick={() => setFeedback(true)}>
+            <i className="bi bi-chat-heart me-2" />
+            Enviar feedback
+          </Dropdown.Item>
           <Dropdown.Divider />
           <Dropdown.Item onClick={() => void logout()}>
             <i className="bi bi-box-arrow-left me-2" />
@@ -167,6 +173,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
       </Dropdown>
 
       <SettingsModal show={showSettings} onHide={() => setShowSettings(false)} />
+      <FeedbackModal show={feedback} onHide={() => setFeedback(false)} />
       <EspacoModal show={novoEspaco} onHide={() => setNovoEspaco(false)} onSalvo={recarregarNoEspaco} />
     </header>
   );

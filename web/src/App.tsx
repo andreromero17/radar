@@ -15,6 +15,9 @@ import EsqueciSenha from './pages/auth/EsqueciSenha';
 import RedefinirSenha from './pages/auth/RedefinirSenha';
 import TrocarSenha from './pages/auth/TrocarSenha';
 import AceitarConvite from './pages/auth/AceitarConvite';
+import Cadastro from './pages/auth/Cadastro';
+import ConfirmarEmail from './pages/auth/ConfirmarEmail';
+import { Privacidade, Termos } from './pages/legal/Legal';
 import ConfigurarDoisFatores from './pages/auth/ConfigurarDoisFatores';
 import Plataforma from './pages/Plataforma';
 import Membros from './pages/Membros';
@@ -26,10 +29,14 @@ export default function App() {
       <Route element={<PublicOnly />}>
         <Route path="login" element={<Login />} />
         <Route path="esqueci-senha" element={<EsqueciSenha />} />
+        <Route path="cadastro" element={<Cadastro />} />
       </Route>
       {/* link do e-mail: funciona logado ou não */}
       <Route path="redefinir-senha" element={<RedefinirSenha />} />
       <Route path="convite/:token" element={<AceitarConvite />} />
+      <Route path="confirmar-email" element={<ConfirmarEmail />} />
+      <Route path="termos" element={<Termos />} />
+      <Route path="privacidade" element={<Privacidade />} />
 
       <Route element={<RequireAuth passwordChangePage />}>
         <Route path="trocar-senha" element={<TrocarSenha />} />

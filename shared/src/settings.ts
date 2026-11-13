@@ -86,6 +86,8 @@ export const settingsSchema = z.object({
   /** Mantidos pelo servidor ao enviar/remover arquivos: pesos presentes ("regular,negrito") e versão (cache) */
   fonte_propria_arquivos: z.string().max(40),
   fonte_propria_versao: z.string().max(20),
+  /** Qualquer pessoa pode criar conta (com confirmação de e-mail). Desligado: só por convite da plataforma */
+  cadastro_aberto: z.boolean({ error: 'Valor inválido' }),
 });
 
 /** Atualização parcial: só os campos enviados são validados/gravados */
@@ -116,6 +118,7 @@ export const DEFAULT_SETTINGS: Settings = {
   fonte_propria_nome: '',
   fonte_propria_arquivos: '',
   fonte_propria_versao: '',
+  cadastro_aberto: false,
 };
 
 /** Campos visíveis sem login (identidade visual da tela de entrada) */
@@ -131,6 +134,7 @@ export const PUBLIC_SETTINGS_KEYS = [
   'fonte_propria_nome',
   'fonte_propria_arquivos',
   'fonte_propria_versao',
+  'cadastro_aberto',
 ] as const;
 export type PublicSettings = Pick<Settings, (typeof PUBLIC_SETTINGS_KEYS)[number]>;
 

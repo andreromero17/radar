@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import MobileTabs from './MobileTabs';
@@ -90,6 +90,9 @@ export default function Layout() {
           {contato.map((c) => (
             <span key={c}>{c}</span>
           ))}
+          <span>
+            <Link to="/termos">Termos</Link> · <Link to="/privacidade">Privacidade</Link>
+          </span>
         </footer>
       </div>
       <MobileTabs onMenu={() => setMobileOpen(true)} />

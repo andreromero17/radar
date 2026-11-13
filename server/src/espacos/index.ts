@@ -14,7 +14,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Knex } from 'knex';
-import { createDb, toDbValue, type Db } from '../db/knex';
+import { createDb, isSqlite, toDbValue, type Db } from '../db/knex';
 import { migrateLatest, migrationStatus } from '../db/migrator';
 import { nowLocal } from '../utils/time';
 import { HttpError } from '../utils/http';
@@ -115,6 +115,15 @@ async function fecharExcedentes() {
 export async function fecharEspacos() {
   for (const { db } of abertos.values()) await db.destroy();
   abertos.clear();
+}
+
+/** Fecha o banco de UM espaço (antes de mover/apagar o arquivo) */
+export async function fecharEspaco(id: number) {
+  const a = abertos.get(id);
+  if (!a) return;
+  abertos.delete(id);
+  if (isSqlite(a.db)) await a.db.raw('PRAGMA wal_checkpoint(TRUNCATE)').catch(() => {});
+  await a.db.destroy();
 }
 
 // ---------------------------------------------------------------- contexto da requisição

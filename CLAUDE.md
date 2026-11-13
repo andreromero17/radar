@@ -112,6 +112,14 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
   login com 2FA devolve `{ segundo_fator, desafio }` e a sessão vem em `POST /api/auth/2fa/entrar`;
   `ADMIN_2FA_OBRIGATORIO` (padrão: produção) → 403 `CONFIGURAR_2FA` até configurar. Colunas `segredo_*` nunca saem
   da API (`present` remove). `aoAbrirEspaco(fn)`: gancho ao abrir cada banco de espaço (a demonstração usa).
+- **Cadastro, LGPD e feedback (Fase 5D):** `services/conta.ts`. Cadastro (`POST /api/auth/cadastro`): fechado por
+  padrão (`cadastro_aberto` nas configurações, público); com convite da plataforma (`convites_plataforma`, criados no
+  painel) entra direto como dono do próprio espaço; aberto → `usuarios.confirmar_email` + `tokens_email` (24 h), login
+  dá 403 `EMAIL_NAO_CONFIRMADO` até `POST /api/auth/cadastro/confirmar`. Aceite dos termos gravado
+  (`termos_aceitos_em`/`termos_versao`, `TERMOS_VERSAO` em `shared/src/legal.ts`; textos em `web/src/pages/legal/`).
+  `POST /api/auth/meus-dados` (JSON) e `POST /api/auth/excluir-conta` (espaços de que é a única dona →
+  `excluirEspaco`: banco em `espacos-excluidos/`, `espacos_excluidos`, apagado de vez em 30 dias pela manutenção).
+  `POST /api/feedback` (qualquer logado) → `feedbacks`, lido em Plataforma → Feedback.
 - **Hooks** (núcleo em `server/src/hooks/`, aplicação registrada em `server/src/app/hooks.ts`): `beforeSave`/`afterSave`/`beforeDelete` por entidade; lançar `HttpError`
   (`badRequest`, `forbidden`, `conflict` de `utils/http.ts`). Regras de usuários e perfis estão lá (e-mail único,
   sempre um admin ativo, só admin gerencia admin, derrubar sessões).

@@ -10,6 +10,15 @@ import { derrubarSuporte, entrarComoSuporte, liberacaoAtiva, sairDoSuporte } fro
 import { desativarDoisFatores } from '../services/doisFatores';
 import { addLog, type Actor } from '../services/logs';
 import { lerOuFalhar } from '../services/membros';
+import {
+  cancelarConvitePlataforma,
+  convidarParaTestar,
+  feedbackSchema,
+  listarConvitesPlataforma,
+  listarFeedbacks,
+  registrarFeedback,
+} from '../services/conta';
+import type { Mailer } from '../services/mailer';
 import { conflict, HttpError } from '../utils/http';
 import { nowLocal } from '../utils/time';
 
@@ -24,8 +33,10 @@ import { nowLocal } from '../utils/time';
  *   POST /api/plataforma/usuarios/:id/2fa        desliga a verificação em duas etapas (celular perdido)
  *   POST /api/plataforma/suporte/:espacoId       entra no espaço como suporte (precisa da liberação do dono)
  *   POST /api/plataforma/suporte/sair            volta ao normal
+ *   GET  /api/plataforma/feedbacks · PUT .../:id { lido }   feedback de quem usa (POST /api/feedback: qualquer logado)
+ *   GET|POST /api/plataforma/convites · DELETE .../:id      convites para testar (cadastro com espaço próprio)
  */
-export function plataformaRouter(db: Db) {
+export function plataformaRouter(db: Db, opts: { envio: { mailer: Mailer; appUrl: string } }) {
   const router = Router();
   const actor = (req: Request): Actor & { id: number } => ({ id: userOf(req).id, nome: userOf(req).nome, ip: req.ip });
   const idDe = (v: unknown) => {
@@ -47,7 +58,42 @@ export function plataformaRouter(db: Db) {
     res.json({ ok: true });
   });
 
+  // feedback: qualquer pessoa logada envia; o administrador lê no painel
+  router.post('/feedback', async (req, res) => {
+    const dados = lerOuFalhar(feedbackSchema, req.body);
+    const id = await registrarFeedback(userOf(req), dados, req.get('user-agent'), opts.envio);
+    res.status(201).json({ id });
+  });
+
   router.use('/plataforma', requireAdmin);
+
+  router.get('/plataforma/feedbacks', async (_req, res) => {
+    res.json(await listarFeedbacks());
+  });
+
+  router.put('/plataforma/feedbacks/:id', async (req, res) => {
+    const { lido } = lerOuFalhar(z.object({ lido: z.boolean() }), req.body);
+    await db('feedbacks')
+      .where({ id: idDe(req.params.id) })
+      .update({ lido_em: lido ? nowLocal() : null });
+    res.json({ ok: true });
+  });
+
+  // convites para testar (beta): a pessoa cria a conta e ganha o próprio espaço
+  router.get('/plataforma/convites', async (_req, res) => {
+    res.json(await listarConvitesPlataforma());
+  });
+
+  router.post('/plataforma/convites', async (req, res) => {
+    const { email } = lerOuFalhar(z.object({ email: z.string() }), req.body);
+    await convidarParaTestar(email, actor(req), opts.envio);
+    res.status(201).json({ ok: true });
+  });
+
+  router.delete('/plataforma/convites/:id', async (req, res) => {
+    await cancelarConvitePlataforma(idDe(req.params.id), actor(req));
+    res.status(204).end();
+  });
 
   router.get('/plataforma', async (_req, res) => {
     const agora = nowLocal();

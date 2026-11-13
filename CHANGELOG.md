@@ -4,6 +4,26 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.19.0 — 12/11/2026
+
+**Fase 5D: cadastro, LGPD e feedback — pronto para um beta fechado**
+
+- **Cadastro fechado por padrão**: o administrador convida em Plataforma → **Convidar para testar**; a pessoa recebe
+  o link (14 dias), cria a conta com aquele e-mail, aceita os termos e entra já como dona do próprio espaço
+- **Cadastro aberto** (Configurações → Acesso): qualquer pessoa cria conta; o login só libera depois de confirmar o
+  e-mail (link de 24 h, que já cria o espaço e entra). A resposta não revela se o e-mail já tinha conta; cadastros
+  nunca confirmados saem em 7 dias
+- **Termos de uso e política de privacidade** (`/termos`, `/privacidade`, links no rodapé), com o aceite gravado e
+  a versão; também no aceite de convite para espaço
+- **Baixar meus dados** (Meu perfil): JSON com a conta, sessões, acessos e os dados completos dos espaços de que é
+  dono (dos outros, só o que é seu)
+- **Excluir minha conta** (Meu perfil, senha + "EXCLUIR" + código 2FA se ligado): espaços de que é o único dono saem
+  junto (guardados 30 dias e depois apagados de vez, com os anexos); nos espaços de outras pessoas o nome sai dos
+  registros; logs da plataforma sem nome/e-mail; e-mail de confirmação. O único administrador não se exclui
+- **Enviar feedback** (menu do usuário): sugestão, problema ou elogio, com a página e a versão; chega por e-mail aos
+  administradores e fica em Plataforma → Feedback (marcar lido, responder por e-mail)
+- Configurações booleanas da identidade gravadas corretamente
+
 ## 0.18.0 — 12/11/2026
 
 **Fase 5C: super usuário, suporte com consentimento e verificação em duas etapas**

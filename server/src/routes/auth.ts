@@ -33,6 +33,15 @@ import {
   regerarCodigos,
 } from '../services/doisFatores';
 import { getSettings } from '../services/settings';
+import {
+  cadastrar,
+  cadastroSchema,
+  confirmarEmail,
+  espacosQueSaemJunto,
+  excluirConta,
+  exportarMeusDados,
+  verConvitePlataforma,
+} from '../services/conta';
 import { hashToken, newToken } from '../auth/tokens';
 import type { Db } from '../db/knex';
 import { addLog, type Actor } from '../services/logs';
@@ -130,7 +139,9 @@ export function authRouter(db: Db, opts: AuthOptions) {
     const blockedEmail = falhasPorEmail.blockedFor(email);
     if (blockedEmail) throw tooMany(blockedEmail);
 
-    const user = await db('usuarios').where({ email }).first('id', 'nome', 'senha', 'ativo', 'dois_fatores');
+    const user = await db('usuarios')
+      .where({ email })
+      .first('id', 'nome', 'senha', 'ativo', 'dois_fatores', 'confirmar_email');
     const ok = await verifyPassword(senha, user?.senha); // sempre gasta o mesmo tempo
     if (!user || !ok) {
       falhasPorEmail.hit(email);
@@ -139,6 +150,13 @@ export function authRouter(db: Db, opts: AuthOptions) {
       throw new HttpError(401, GENERIC_LOGIN_ERROR);
     }
     if (!user.ativo) throw new HttpError(403, 'Usuário inativo. Fale com o administrador do sistema.');
+    if (user.confirmar_email)
+      throw new HttpError(
+        403,
+        'Confirme seu e-mail pelo link que enviamos para ativar a conta.',
+        undefined,
+        'EMAIL_NAO_CONFIRMADO',
+      );
 
     falhasPorEmail.reset(email);
     // verificação em duas etapas: a senha só abre um desafio curto; a sessão vem com o código
@@ -176,6 +194,69 @@ export function authRouter(db: Db, opts: AuthOptions) {
     res.cookie(COOKIE_NAME, token, cookieOptions(lembrar));
     res.json(await comEspacos(u));
   }
+
+  // ---------- Cadastro (Fase 5D) ----------
+  const cadastrosPorIp = new RateLimiter(10, 60 * 60_000);
+  const envio = { mailer: opts.mailer, appUrl: opts.appUrl };
+
+  router.get('/cadastro/convite/:token', async (req, res) => {
+    const token = conviteToken(req);
+    res.json(await contarFalha(req, () => verConvitePlataforma(token)));
+  });
+
+  router.post('/cadastro', async (req, res) => {
+    const ip = req.ip ?? 'desconhecido';
+    const bloqueado = cadastrosPorIp.blockedFor(ip);
+    if (bloqueado) throw tooMany(bloqueado);
+    cadastrosPorIp.hit(ip);
+    const dados = parse(cadastroSchema, req.body);
+    const r = await cadastrar(dados, envio, req.ip);
+    if (!r.entrou) return res.json({ entrou: false, email: dados.email });
+    await entrar(req, res, { id: r.usuarioId, nome: dados.nome }, false, 'login (cadastro)');
+  });
+
+  router.post('/cadastro/confirmar', async (req, res) => {
+    const { token } = parse(z.object({ token: z.string().min(1) }), req.body);
+    const r = await confirmarEmail(token, req.ip);
+    const u = await db('usuarios').where({ id: r.usuarioId }).first('id', 'nome');
+    await entrar(req, res, u, false, 'login (e-mail confirmado)');
+  });
+
+  // ---------- Meus dados e exclusão da conta (LGPD) ----------
+  router.post('/meus-dados', async (req, res) => {
+    const me = userOf(req);
+    await confirmarSenha(me.id, (req.body ?? {}).senha);
+    const dados = await exportarMeusDados(me.id);
+    await addLog(
+      db,
+      { entidade: 'auth', registro_id: me.id, acao: 'baixou os próprios dados', detalhe: me.email },
+      actor(req, me),
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="meus-dados-${nowLocal().slice(0, 10)}.json"`);
+    res.json(dados);
+  });
+
+  router.get('/excluir-conta', async (req, res) => {
+    res.json({ espacos: await espacosQueSaemJunto(userOf(req).id) });
+  });
+
+  router.post('/excluir-conta', async (req, res) => {
+    const me = userOf(req);
+    const body = parse(
+      z.object({
+        senha: z.string().min(1, 'Informe a senha'),
+        confirmacao: z.literal('EXCLUIR', { message: 'Digite EXCLUIR para confirmar' }),
+        codigo: z.string().optional(),
+      }),
+      req.body,
+    );
+    await confirmarSenha(me.id, body.senha);
+    if (me.dois_fatores && !(body.codigo && (await conferirSegundoFator(db, me.id, body.codigo))))
+      throw badRequest('Código incorreto', { codigo: 'Informe o código da verificação em duas etapas' });
+    const r = await excluirConta(me.id, envio, req.ip);
+    res.clearCookie(COOKIE_NAME, { ...cookieOptions(false), maxAge: undefined });
+    res.json({ ok: true, ...r });
+  });
 
   // ---------- Verificação em duas etapas (Fase 5C) ----------
   router.post('/2fa/entrar', async (req, res) => {
@@ -336,7 +417,14 @@ export function authRouter(db: Db, opts: AuthOptions) {
       await definirEspacoDaSessao(db, logado.sessionId, r.espacoId);
       return res.json({ ok: true, espaco_id: r.espacoId });
     }
-    const dados = parse(z.object({ nome: novaContaSchema.shape.nome, senha: passwordSchema }), req.body);
+    const dados = parse(
+      z.object({
+        nome: novaContaSchema.shape.nome,
+        senha: passwordSchema,
+        aceite: z.literal(true, { message: 'É preciso aceitar os termos de uso e a política de privacidade' }),
+      }),
+      req.body,
+    );
     const r = await contarFalha(req, () => aceitarConvite(token, { nova: dados }, req.ip));
     const sessao = await createSession(db, opts, r.usuarioId, {
       lembrar: false,

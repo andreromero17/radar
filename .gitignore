@@ -11,3 +11,7 @@ coverage/
 server/.env
 .env
 *.log
+
+# deploy (segredos e backups locais)
+deploy/.env
+deploy/backups/

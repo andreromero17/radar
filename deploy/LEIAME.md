@@ -88,6 +88,17 @@ Abra `https://<DOMINIO>`. Administradores configuram a verificação em duas eta
 | Backups guardados                      | `ls ~/app/deploy/backups` (banco + anexos, 14 dias)     |
 | Recuperar acesso de administrador      | `dc exec app node dist/cli.js admin email@x.com "Nome"` |
 | Reiniciar                              | `dc restart app`                                        |
+| Depois de mudar o `deploy/.env`        | `dc up -d app` (o `restart` não relê o arquivo)         |
+
+## E-mail não sai
+
+A tela avisa "não foi possível enviar o e-mail" e o log mostra o motivo: `dc logs app 2>&1 | grep "falha ao enviar"`.
+`535`/`EAUTH` = usuário ou senha recusados. No Gmail, a senha é a **senha de app** (16 letras, sem espaços; exige a
+verificação em duas etapas ligada na conta). Para conferir o que a aplicação está usando sem mostrar a senha:
+
+```bash
+dc exec app sh -c 'echo "$SMTP_USER"; echo ${#SMTP_PASS}'    # Gmail: 16
+```
 
 ## Restaurar um backup
 

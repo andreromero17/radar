@@ -34,7 +34,7 @@ import {
 import { badRequest, conflict, HttpError } from '../utils/http';
 import { nowLocal } from '../utils/time';
 import { addLog, type Actor } from './logs';
-import type { Mailer } from './mailer';
+import { EmailNaoEnviado, type Mailer } from './mailer';
 
 export const CONVITE_DIAS = 7;
 /** Espaços que uma pessoa pode criar (proteção contra abuso até haver planos) */
@@ -238,8 +238,18 @@ export async function convidar(
     criado_em: nowLocal(),
     expira_em: expiraEm(),
   });
-  await enviarEmailConvite(envio, { email, papel: dados.papel, token, espaco: esp.nome, quem: actor.nome });
-  await logEspaco(espacoId, 'convite enviado', `${email} como ${PAPEL_LABELS[dados.papel].toLowerCase()}`, actor);
+  const detalhe = `${email} como ${PAPEL_LABELS[dados.papel].toLowerCase()}`;
+  try {
+    await enviarEmailConvite(envio, { email, papel: dados.papel, token, espaco: esp.nome, quem: actor.nome });
+  } catch (err) {
+    if (!(err instanceof EmailNaoEnviado)) throw err;
+    await logEspaco(espacoId, 'convite registrado (e-mail não enviado)', detalhe, actor);
+    throw new EmailNaoEnviado(
+      'O convite foi registrado, mas o e-mail não pôde ser enviado (verifique a configuração de e-mail do servidor). ' +
+        'Depois de corrigir, use "Reenviar" na lista de convites.',
+    );
+  }
+  await logEspaco(espacoId, 'convite enviado', detalhe, actor);
   return (await listarConvites(espacoId)).find((c) => c.id === Number(id))!;
 }
 

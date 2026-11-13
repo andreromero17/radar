@@ -4,6 +4,18 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.21.1 — 13/11/2026
+
+**Falha no envio de e-mail com mensagem clara**
+
+- Servidor de e-mail recusando (senha errada, fora do ar): em vez de "Erro interno", 502 `EMAIL_FALHOU` com
+  explicação; o motivo técnico (código e resposta do servidor) vai para o log como "falha ao enviar e-mail"
+- Convite para o espaço ou para a plataforma: fica registrado e a tela avisa que o e-mail não saiu (use Reenviar
+  depois de corrigir); o log do espaço registra "convite registrado (e-mail não enviado)"
+- Esqueci a senha: a resposta continua igual (não revela quem é cadastrado); o log registra que o e-mail não saiu
+- Guia de deploy: depois de mudar o `deploy/.env`, `dc up -d app` (o `restart` não relê o arquivo); conferência da
+  senha do SMTP
+
 ## 0.21.0 — 13/11/2026
 
 **Fase 6B: colocar no ar**

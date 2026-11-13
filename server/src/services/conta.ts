@@ -26,7 +26,7 @@ import { conflict, HttpError } from '../utils/http';
 import { nowLocal } from '../utils/time';
 import { anexoDir } from './anexos';
 import { addLog, type Actor } from './logs';
-import type { Mailer } from './mailer';
+import { EmailNaoEnviado, type Mailer } from './mailer';
 import { getSettings } from './settings';
 
 export const CONFIRMACAO_HORAS = 24;
@@ -93,14 +93,22 @@ export async function convidarParaTestar(destino: string, actor: Actor & { id: n
     expira_em: nowLocal(new Date(Date.now() + CONVITE_PLATAFORMA_DIAS * 86_400_000)),
   });
   const sistema = await nomeSistema();
-  await envio.mailer.send({
-    to: e,
-    subject: `Convite para testar o ${sistema}`,
-    text:
-      `Olá!\n\n${actor.nome} convidou você para testar o ${sistema}. ` +
-      `Crie sua conta pelo link abaixo (válido por ${CONVITE_PLATAFORMA_DIAS} dias):\n\n` +
-      `${link(envio, `/cadastro?convite=${token}`)}\n\nSe não esperava este convite, é só ignorar.`,
-  });
+  await envio.mailer
+    .send({
+      to: e,
+      subject: `Convite para testar o ${sistema}`,
+      text:
+        `Olá!\n\n${actor.nome} convidou você para testar o ${sistema}. ` +
+        `Crie sua conta pelo link abaixo (válido por ${CONVITE_PLATAFORMA_DIAS} dias):\n\n` +
+        `${link(envio, `/cadastro?convite=${token}`)}\n\nSe não esperava este convite, é só ignorar.`,
+    })
+    .catch((err) => {
+      if (!(err instanceof EmailNaoEnviado)) throw err;
+      throw new EmailNaoEnviado(
+        'O convite foi registrado, mas o e-mail não pôde ser enviado (verifique a configuração de e-mail do servidor). ' +
+          'Depois de corrigir, convide de novo: o novo convite substitui este.',
+      );
+    });
   await addLog(p(), { entidade: 'convites', acao: 'convite para testar', detalhe: e }, actor);
 }
 

@@ -123,6 +123,10 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
   login com 2FA devolve `{ segundo_fator, desafio }` e a sessão vem em `POST /api/auth/2fa/entrar`;
   `ADMIN_2FA_OBRIGATORIO` (padrão: produção) → 403 `CONFIGURAR_2FA` até configurar. Colunas `segredo_*` nunca saem
   da API (`present` remove). `aoAbrirEspaco(fn)`: gancho ao abrir cada banco de espaço (a demonstração usa).
+- **Espaço modelo (0.22.0):** `espacos.modelo` (um só, marcado na Plataforma). O sistema registra o que se copia dele
+  com `registrarCopiaDoModelo` (`espacos/index.ts`): roda ao criar espaço (`novo: true`) e quando o dono pede
+  (`POST /api/espaco/modelo`, `components/TrazerDoModelo.tsx`; nunca sobrescrever o que o espaço personalizou).
+  Só cadastros de referência — nunca movimentos.
 - **Cadastro, LGPD e feedback (Fase 5D):** `services/conta.ts`. Cadastro (`POST /api/auth/cadastro`): fechado por
   padrão (`cadastro_aberto` nas configurações, público); com convite da plataforma (`convites_plataforma`, criados no
   painel) entra direto como dono do próprio espaço; aberto → `usuarios.confirmar_email` + `tokens_email` (24 h), login

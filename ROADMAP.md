@@ -133,9 +133,13 @@ _Começa assim que a Fase 2 tiver o essencial; as duas andam juntas._
 _Próxima: é o que põe o beta nas mãos das pessoas convidadas (endereço na internet, HTTPS, e-mail de verdade,
 backup fora do servidor)._
 
+- ✅ **6A — Postgres** (12/11/2026, v0.20.0, decidido já para o beta): plataforma no schema `public`, cada espaço no
+  schema `espaco_<id>` (`search_path` só nele); SQLite continua para desenvolvimento; a suíte inteira roda nos dois
+  bancos (CI com serviço Postgres); `npm run db:para-postgres` leva uma instalação SQLite com os mesmos ids
+  (conferido com os dados reais do finanças: respostas da API idênticas)
+- **6B — Deploy:** Docker + Caddy (HTTPS automático), Postgres no servidor ou gerenciado, backup diário (`pg_dump`
+  para R2/B2), e-mail transacional (Resend/Brevo/SES), domínio; provedor com cobrança mensal para o beta
 - Segurança: cifrar os segredos de 2FA com chave do `.env`; e-mail ao dono quando o suporte entra
-- Banco: **SQLite por espaço numa VPS + backup contínuo (Litestream → S3/R2)** é o caminho mais simples e barato
-  para a escala de finanças pessoais; Postgres (um schema por espaço) se um dia precisar de vários servidores
 - Docker multi-stage + compose, deploy (VPS, Railway ou Fly.io), HTTPS
 - Backup agendado para fora do servidor (S3/R2), monitoramento e log de erros (Sentry)
 - **PWA:** instalável no celular, com ícone e cache básico. Cobre boa parte do "mobile" sem app nativo.

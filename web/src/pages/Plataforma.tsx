@@ -114,7 +114,14 @@ export default function Plataforma() {
   const linhaEspaco = (e: EspacoPlataforma) => (
     <tr key={e.id} className={e.ativo ? '' : 'text-muted'}>
       <td>
-        <div className="fw-semibold">{e.nome}</div>
+        <div className="fw-semibold">
+          {e.nome}
+          {e.modelo && (
+            <Badge bg="primary" className="ms-2" title="Espaços novos recebem dele as bibliotecas e cadastros padrão">
+              Modelo
+            </Badge>
+          )}
+        </div>
         <div className="small text-muted">
           {TIPO_ESPACO_LABELS[e.tipo] ?? e.tipo} · desde {fmtDate(e.criado_em)}
         </div>
@@ -154,6 +161,37 @@ export default function Plataforma() {
               Entrar como suporte
               {!e.suporte && <div className="small text-muted">O dono não liberou</div>}
             </Dropdown.Item>
+            {e.modelo ? (
+              <Dropdown.Item
+                onClick={() =>
+                  void acao(
+                    () => api.put(`/plataforma/espacos/${e.id}/modelo`, { modelo: false }),
+                    'Espaço deixou de ser o modelo',
+                  )
+                }
+              >
+                <i className="bi bi-bookmark-x me-2" />
+                Deixar de ser o modelo
+              </Dropdown.Item>
+            ) : (
+              <Dropdown.Item
+                disabled={!e.ativo}
+                onClick={() =>
+                  setConfirma({
+                    titulo: 'Usar como espaço modelo',
+                    msg:
+                      `Espaços novos vão receber de "${e.nome}" as bibliotecas e cadastros padrão (com logos) — nunca ` +
+                      'lançamentos, contas ou outros dados. Os donos dos espaços existentes podem trazer as novidades ' +
+                      'quando quiserem. Só um espaço é o modelo.',
+                    botao: 'Usar como modelo',
+                    fazer: () => api.put(`/plataforma/espacos/${e.id}/modelo`, { modelo: true }),
+                  })
+                }
+              >
+                <i className="bi bi-bookmark-star me-2" />
+                Usar como espaço modelo
+              </Dropdown.Item>
+            )}
             <Dropdown.Divider />
             {e.ativo ? (
               <Dropdown.Item

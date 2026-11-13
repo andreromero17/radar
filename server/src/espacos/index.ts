@@ -9,6 +9,7 @@
 //   abrirEspaco(id)                          banco do espaço (aberto sob demanda, migrado, em cache)
 //   comEspaco(id, fn)                        roda `fn` com o espaço ativo (manutenção, scripts)
 //   dbEspaco                                 `db` do espaço ATIVO (proxy) — o que os routers usam
+//   registrarCopiaDoModelo({ nome, copiar })  o que um espaço novo recebe do espaço MODELO (bibliotecas...)
 // =============================================================================
 import { AsyncLocalStorage } from 'node:async_hooks';
 import fs from 'node:fs';
@@ -233,7 +234,67 @@ export async function criarEspaco(dados: { nome: string; tipo?: string; donoId: 
   });
   await adicionarMembro(Number(id), dados.donoId, 'dono');
   await abrirEspaco(Number(id));
+  // o que o sistema copia do espaço modelo (bibliotecas com logos...). Falha aqui não impede a criação:
+  // o dono pode trazer depois ("Trazer do modelo")
+  await copiarDoModelo(Number(id), { novo: true }).catch(() => null);
   return Number(id);
+}
+
+// ---------------------------------------------------------------- espaço modelo (frame 0.22.0)
+
+/**
+ * O que um espaço recebe do MODELO (marcado pelo administrador na Plataforma). Quem registra é o sistema derivado
+ * e decide o que copia — só cadastros de referência (bibliotecas, categorias padrão), NUNCA movimentos.
+ * `novo` = espaço acabou de ser criado; senão é o dono pedindo "Trazer do modelo" (não sobrescrever o que ele
+ * personalizou). Devolve quantos registros foram incluídos ou completados.
+ */
+export interface CopiaDoModelo {
+  nome: string;
+  copiar(destino: Db, modelo: Db, opts: { novo: boolean }): Promise<number>;
+}
+const copias: CopiaDoModelo[] = [];
+export const registrarCopiaDoModelo = (c: CopiaDoModelo) => {
+  const i = copias.findIndex((x) => x.nome === c.nome);
+  if (i >= 0) copias[i] = c;
+  else copias.push(c);
+};
+export const copiasDoModelo = (): readonly CopiaDoModelo[] => copias;
+
+/** Id do espaço modelo (ativo), ou null */
+export async function espacoModelo(): Promise<number | null> {
+  const r = await conf().plataforma('espacos').whereIn('modelo', [1, true]).whereIn('ativo', [1, true]).first('id');
+  return r ? Number(r.id) : null;
+}
+
+/** Marca (ou desmarca) o espaço modelo — só um por vez */
+export async function definirModelo(id: number, modelo: boolean) {
+  const p = conf().plataforma;
+  await p.transaction(async (t) => {
+    if (modelo) await t('espacos').update({ modelo: toDbValue(p, false) });
+    await t('espacos')
+      .where({ id })
+      .update({ modelo: toDbValue(p, modelo) });
+  });
+}
+
+/** Há o que trazer do modelo para este espaço? (existe modelo, não é ele mesmo e o sistema registrou cópias) */
+export async function modeloDisponivel(espacoId: number): Promise<boolean> {
+  const m = await espacoModelo();
+  return !!m && m !== espacoId && copias.length > 0;
+}
+
+/** Copia do modelo para o espaço o que o sistema registrou. null = não há modelo (ou é o próprio) */
+export async function copiarDoModelo(
+  espacoId: number,
+  opts: { novo: boolean },
+): Promise<{ nome: string; alterados: number }[] | null> {
+  const modeloId = await espacoModelo();
+  if (!modeloId || modeloId === espacoId || !copias.length) return null;
+  const modelo = await abrirEspaco(modeloId);
+  const destino = await abrirEspaco(espacoId);
+  const res = [];
+  for (const c of copias) res.push({ nome: c.nome, alterados: await c.copiar(destino, modelo, opts) });
+  return res;
 }
 
 export async function adicionarMembro(espacoId: number, usuarioId: number, papel: Papel) {

@@ -2,9 +2,9 @@ import { Router, type Request } from 'express';
 import { requirePermission, userOf } from '../auth/middleware';
 import { definirEspacoDaSessao } from '../auth/sessions';
 import type { Db } from '../db/knex';
-import { espacoAtivo, espacosDoUsuario, plataformaDb } from '../espacos';
+import { copiarDoModelo, dbEspaco, espacoAtivo, espacosDoUsuario, modeloDisponivel, plataformaDb } from '../espacos';
 import { liberacaoAtiva, liberacaoSchema, liberarSuporte, revogarSuporte } from '../espacos/suporte';
-import type { Actor } from '../services/logs';
+import { addLog, type Actor } from '../services/logs';
 import type { Mailer } from '../services/mailer';
 import {
   alterarEspaco,
@@ -39,6 +39,8 @@ import { HttpError } from '../utils/http';
  *   DELETE /api/suporte                       revoga (quem estiver dentro sai na hora)  (dono)
  *   PUT    /api/espaco                        { nome, tipo } do espaço em uso          (dono)
  *   POST   /api/espacos                       { nome, tipo } cria um espaço e entra nele
+ *   GET    /api/espaco/modelo                 { disponivel } há espaço modelo para trazer novidades
+ *   POST   /api/espaco/modelo                 traz do modelo o que falta (não sobrescreve o que é do espaço) (dono)
  */
 export function membrosRouter(plataforma: Db, opts: { mailer: Mailer; appUrl: string }) {
   const router = Router();
@@ -130,6 +132,27 @@ export function membrosRouter(plataforma: Db, opts: { mailer: Mailer; appUrl: st
     const dados = lerOuFalhar(espacoSchema, req.body);
     await alterarEspaco(espacoId(), dados, actor(req));
     res.json({ ok: true });
+  });
+
+  router.get('/espaco/modelo', async (_req, res) => {
+    res.json({ disponivel: await modeloDisponivel(espacoId()) });
+  });
+
+  router.post('/espaco/modelo', requirePermission('configuracoes', 'editar'), async (req, res) => {
+    const id = espacoId();
+    const itens = await copiarDoModelo(id, { novo: false });
+    if (!itens) throw new HttpError(404, 'Não há espaço modelo na plataforma.');
+    const total = itens.reduce((a, i) => a + i.alterados, 0);
+    await addLog(
+      dbEspaco,
+      {
+        entidade: 'sistema',
+        acao: 'trazido do modelo',
+        detalhe: itens.map((i) => `${i.nome}: ${i.alterados}`).join(', '),
+      },
+      actor(req),
+    );
+    res.json({ itens, total });
   });
 
   router.post('/espacos', async (req, res) => {

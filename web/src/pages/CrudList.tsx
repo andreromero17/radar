@@ -65,6 +65,8 @@ interface Props {
   entity?: string;
   /** Conteúdo extra entre o título e a tabela (cards, avisos, gráficos...) */
   before?: ReactNode;
+  /** Botões extras no cabeçalho, antes do "Novo" (fora da lixeira) */
+  actions?: ReactNode;
 }
 
 /** Linha de outra entidade que a aplicação mostra junto (hook `listExtras` no servidor) */
@@ -394,6 +396,7 @@ export default function CrudList(props: Props) {
             <span className="d-none d-md-inline ms-1">Esvaziar lixeira</span>
           </Button>
         )}
+        {!trash && props.actions}
         {!trash && podeCriar && (
           <Link to={`/${entity}/novo`} state={origem} className="btn btn-primary">
             <i className="bi bi-plus-lg me-1" /> {novoRotulo(ent)}

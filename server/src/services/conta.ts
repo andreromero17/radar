@@ -10,7 +10,7 @@ import { passwordSchema, TERMOS_VERSAO } from '@frame/shared';
 import { z } from 'zod';
 import { hashPassword } from '../auth/password';
 import { hashToken, newToken } from '../auth/tokens';
-import { createDb, toDbValue } from '../db/knex';
+import { createDb, createPgDb, inserir, listarTabelas, nomeSchema, toDbValue, type Db } from '../db/knex';
 import {
   arquivoEspaco,
   comEspaco,
@@ -18,6 +18,7 @@ import {
   espacosDoUsuario,
   fecharEspaco,
   plataformaDb,
+  schemaEspaco,
   sincronizarUsuarios,
   abrirEspaco,
 } from '../espacos';
@@ -184,7 +185,7 @@ export async function cadastrar(
       .where({ id: usuarioId })
       .update({ ...linha, atualizado_em: agora });
   } else {
-    const [id] = await p()('usuarios').insert({ ...linha, email: dados.email, criado_em: agora });
+    const id = await inserir(p()('usuarios'), { ...linha, email: dados.email, criado_em: agora });
     usuarioId = Number(id);
   }
   await addLog(
@@ -293,10 +294,7 @@ export async function exportarMeusDados(usuarioId: number) {
           preferencias: await db('preferencias').where({ usuario_id: usuarioId }).select(),
           notificacoes: await db('notificacoes').where({ usuario_id: usuarioId }).select(),
         };
-      const tabelas = ((await db('sqlite_master').where({ type: 'table' }).select('name')) as { name: string }[])
-        .map((t) => t.name)
-        .filter((t) => !SEM_EXPORTAR.has(t))
-        .sort();
+      const tabelas = (await listarTabelas(db)).filter((t) => !SEM_EXPORTAR.has(t));
       const out: Record<string, unknown[]> = {};
       for (const t of tabelas) out[t] = ((await db(t).select()) as Record<string, unknown>[]).map(limpar);
       return out;
@@ -355,6 +353,13 @@ export async function excluirEspaco(espacoId: number, motivo: string) {
     fs.renameSync(arquivo, guardado);
     for (const ext of ['-wal', '-shm']) if (fs.existsSync(arquivo + ext)) fs.rmSync(arquivo + ext);
   }
+  // Postgres: o schema é renomeado (fica fora de qualquer search_path de espaço) até ser apagado de vez
+  const schema = schemaEspaco(espacoId);
+  if (schema) {
+    const novo = nomeSchema(`excluido_${espacoId}_${Date.now()}`);
+    await p().raw('alter schema ?? rename to ??', [schema, novo]);
+    guardado = `pg:${novo}`;
+  }
   await p()('sessoes').where({ espaco_id: espacoId }).update({ espaco_id: null, suporte_id: null });
   await p()('espacos').where({ id: espacoId }).del(); // membros, convites e liberações de suporte vão junto
   await p()('espacos_excluidos').insert({
@@ -370,19 +375,28 @@ export async function excluirEspaco(espacoId: number, motivo: string) {
 export async function apagarEspacosExcluidos(dias = DIAS_GUARDA_EXCLUIDOS) {
   const limite = nowLocal(new Date(Date.now() - dias * 86_400_000));
   const lista = await p()('espacos_excluidos').whereNull('apagado_em').where('excluido_em', '<', limite).select();
+  const apagarAnexos = async (db: Db) => {
+    if (!(await db.schema.hasTable('anexos'))) return;
+    for (const a of (await db('anexos').select('entidade', 'arquivo')) as { entidade: string; arquivo: string }[]) {
+      const f = path.join(anexoDir(), a.entidade, a.arquivo);
+      if (fs.existsSync(f)) fs.rmSync(f);
+    }
+  };
   for (const e of lista) {
-    if (e.arquivo && fs.existsSync(e.arquivo)) {
+    if (typeof e.arquivo === 'string' && e.arquivo.startsWith('pg:')) {
+      const schema = nomeSchema(e.arquivo.slice(3));
+      const url = (p().client.config.connection as string) ?? '';
+      const db = createPgDb(url, schema, { max: 1 });
+      try {
+        await apagarAnexos(db);
+      } finally {
+        await db.destroy();
+      }
+      await p().raw('drop schema if exists ?? cascade', [schema]);
+    } else if (e.arquivo && fs.existsSync(e.arquivo)) {
       const db = createDb(e.arquivo);
       try {
-        if (await db.schema.hasTable('anexos')) {
-          for (const a of (await db('anexos').select('entidade', 'arquivo')) as {
-            entidade: string;
-            arquivo: string;
-          }[]) {
-            const f = path.join(anexoDir(), a.entidade, a.arquivo);
-            if (fs.existsSync(f)) fs.rmSync(f);
-          }
-        }
+        await apagarAnexos(db);
       } finally {
         await db.destroy();
       }
@@ -510,7 +524,7 @@ export async function registrarFeedback(
   navegador: string | undefined,
   envio: Envio | null,
 ) {
-  const [id] = await p()('feedbacks').insert({
+  const id = await inserir(p()('feedbacks'), {
     usuario_id: user.id,
     nome: user.nome,
     email: user.email,

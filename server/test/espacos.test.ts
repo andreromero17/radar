@@ -8,7 +8,7 @@ import { entities } from '@frame/shared';
 import { createApp } from '../src/app';
 import { hashPassword } from '../src/auth/password';
 import { createEntityTable } from '../src/db/diff';
-import { createDb } from '../src/db/knex';
+import { createDb, inserir } from '../src/db/knex';
 import { migracoesDe, migrateLatest } from '../src/db/migrator';
 import { seed } from '../src/db/seed';
 import { abrirEspaco, adicionarMembro, configurarEspacos, criarEspaco, fecharEspacos } from '../src/espacos';
@@ -18,7 +18,7 @@ import { registerAlerta, verificarAlertas } from '../src/services/notificacoes';
 import { conjuntosInfo, fontesRegistradas } from '../src/services/paineis';
 import { nowLocal } from '../src/utils/time';
 import { fixtureEntities, seedFixtures, seedFixtureUsuarios } from './fixtures';
-import { makeTestApp, type TestCtx } from './helpers';
+import { makeTestApp, opcoesEspacosTeste, TESTE_PG_URL, type TestCtx } from './helpers';
 
 // Fase 5A: cada espaço no próprio banco. NENHUMA rota pode mostrar dado de outro espaço.
 let ctx: TestCtx;
@@ -32,7 +32,7 @@ beforeAll(async () => {
   ctx = await makeTestApp();
   // espaço B: outro dono (administrador, vê tudo), com dados próprios
   const perfilAdmin = await ctx.plataforma('perfis').whereIn('admin', [1, true]).first('id');
-  [zeId] = await ctx.plataforma('usuarios').insert({
+  zeId = await inserir(ctx.plataforma('usuarios'), {
     nome: 'Zé Assinante',
     email: 'ze@outro.com',
     perfil_id: perfilAdmin.id,
@@ -158,6 +158,19 @@ describe('isolamento entre espaços', () => {
     for (const l of r.novas.values()) semDadosDeA(JSON.stringify(l), 'alerta');
   });
 
+  it.runIf(!!TESTE_PG_URL)('Postgres: cada espaço só enxerga o próprio schema', async () => {
+    const dbB = await abrirEspaco(espacoB);
+    const schema = async (d: typeof dbB) =>
+      ((await d.raw('select current_schema() as s')) as { rows: { s: string }[] }).rows[0].s;
+    expect(await schema(dbB)).toMatch(new RegExp(`espaco_${espacoB}$`));
+    expect(await schema(ctx.db)).toMatch(new RegExp(`espaco_${ctx.espacoId}$`));
+    // sem prefixo de schema, a consulta do B não alcança a tabela do A
+    const nomesB = (await dbB('clientes').pluck('nome')) as string[];
+    expect(nomesB).toContain('Segredo do Zé');
+    expect(nomesB).not.toContain('Padaria Bom Dia');
+    expect(await dbB.schema.hasTable('espacos')).toBe(false); // tabelas da plataforma também não
+  });
+
   it('o banco do espaço não guarda senha nem sessão', async () => {
     const dbB = await abrirEspaco(espacoB);
     expect(await dbB('usuarios').whereNot('senha', '!').first()).toBeUndefined();
@@ -224,6 +237,6 @@ describe('conversão da instalação antiga (um banco só)', () => {
     await fecharEspacos();
     await plat.destroy();
     fs.rmSync(pasta, { recursive: true, force: true });
-    configurarEspacos({ plataforma: ctx.plataforma, dir: null, autoMigrar: true });
+    configurarEspacos(opcoesEspacosTeste);
   });
 });

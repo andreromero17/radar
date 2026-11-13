@@ -1,6 +1,6 @@
 {
   "name": "frame-app",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "private": true,
   "type": "module",
   "description": "Frame genérico: navegação, CRUD dirigido por configuração, dashboard e configurações",
@@ -31,7 +31,9 @@
     "db:diff": "npm run db -w server -- diff",
     "db:seed": "npm run db -w server -- seed",
     "db:reset": "npm run db -w server -- reset",
-    "db:admin": "npm run db -w server -- admin"
+    "db:admin": "npm run db -w server -- admin",
+    "test:pg": "npm run test --workspace server",
+    "db:para-postgres": "npm run db -w server -- para-postgres"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs}": [

@@ -4,8 +4,8 @@ import { z } from 'zod';
 import { requireAdmin, userOf } from '../auth/middleware';
 import { deleteUserSessions } from '../auth/sessions';
 import type { Db } from '../db/knex';
-import { toDbValue } from '../db/knex';
-import { arquivoEspaco, comEspaco } from '../espacos';
+import { isPg, toDbValue } from '../db/knex';
+import { arquivoEspaco, comEspaco, schemaEspaco } from '../espacos';
 import { derrubarSuporte, entrarComoSuporte, liberacaoAtiva, sairDoSuporte } from '../espacos/suporte';
 import { desativarDoisFatores } from '../services/doisFatores';
 import { addLog, type Actor } from '../services/logs';
@@ -44,12 +44,23 @@ export function plataformaRouter(db: Db, opts: { envio: { mailer: Mailer; appUrl
     if (!Number.isInteger(n) || n < 1) throw new HttpError(404, 'Não encontrado');
     return n;
   };
-  const tamanho = (id: number) => {
-    const f = arquivoEspaco(id);
-    if (!f) return 0;
-    let t = 0;
-    for (const x of [f, `${f}-wal`]) if (fs.existsSync(x)) t += fs.statSync(x).size;
-    return t;
+  /** Bytes de cada espaço: arquivo (SQLite) ou tabelas do schema (Postgres, uma consulta para todos) */
+  const tamanhos = async (): Promise<(id: number) => number> => {
+    if (isPg(db)) {
+      const r = (await db.raw(
+        `select table_schema as s, sum(pg_total_relation_size(format('%I.%I', table_schema, table_name))) as n
+           from information_schema.tables group by table_schema`,
+      )) as { rows: { s: string; n: number | string }[] };
+      const porSchema = new Map(r.rows.map((x) => [x.s, Number(x.n)]));
+      return (id) => porSchema.get(schemaEspaco(id) ?? '') ?? 0;
+    }
+    return (id) => {
+      const f = arquivoEspaco(id);
+      if (!f) return 0;
+      let t = 0;
+      for (const x of [f, `${f}-wal`]) if (fs.existsSync(x)) t += fs.statSync(x).size;
+      return t;
+    };
   };
 
   // sair do suporte: qualquer sessão logada (a pessoa pode ter perdido o perfil de administrador no meio)
@@ -125,6 +136,7 @@ export function plataformaRouter(db: Db, opts: { envio: { mailer: Mailer; appUrl
       .select('espaco_id')
       .max({ u: 'ultimo_uso' });
     const ultimo = new Map(acessos.map((a) => [Number(a.espaco_id), a.u as string]));
+    const tamanho = await tamanhos();
     const listaEspacos = [];
     for (const e of espacos)
       listaEspacos.push({

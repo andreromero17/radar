@@ -18,7 +18,7 @@ import {
   type Row,
 } from '@frame/shared';
 import { hashPassword } from '../auth/password';
-import { count, toDbValue, type Db } from '../db/knex';
+import { count, toDbValue, type Db, likeOp } from '../db/knex';
 import { hooks } from '../hooks';
 import { badRequest, HttpError } from '../utils/http';
 import { generateCode, nowLocal } from '../utils/time';
@@ -49,6 +49,14 @@ const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 const values = (v: unknown): string[] => (Array.isArray(v) ? v : [v]).map(str).filter((x): x is string => x !== '');
 
 /** O que sai da API: sem senhas, com JSON já convertido */
+/** 'AAAA-MM-DD' com dia além do fim do mês vira o último dia do mês; o resto passa igual */
+export function dataValida(v: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})(.*)$/.exec(v);
+  if (!m) return v;
+  const ultimo = new Date(Date.UTC(Number(m[1]), Number(m[2]), 0)).getUTCDate();
+  return Number(m[3]) > ultimo ? `${m[1]}-${m[2]}-${String(ultimo).padStart(2, '0')}${m[4]}` : v;
+}
+
 export function present(ent: EntityDef, row: Row | undefined): Row | undefined {
   if (!row) return row;
   const out: Row = { ...row };
@@ -56,6 +64,8 @@ export function present(ent: EntityDef, row: Row | undefined): Row | undefined {
   for (const k of Object.keys(out)) if (k.startsWith('segredo_')) delete out[k];
   for (const f of ent.fields) {
     if (f.type === 'password') delete out[f.name];
+    // booleano sempre true/false na API (o SQLite guarda 0/1; o Postgres, boolean)
+    if (f.type === 'boolean' && out[f.name] != null) out[f.name] = !!out[f.name];
     if (JSON_TYPES.has(f.type) && typeof out[f.name] === 'string') {
       try {
         out[f.name] = JSON.parse(out[f.name] as string);
@@ -102,6 +112,7 @@ function selectWithLabels(db: Db, table: string, ent: EntityDef) {
 export function applyFilters(db: Db, qb: Knex.QueryBuilder, table: string, ent: EntityDef, query: Query) {
   const col = (f: FieldDef) => `${table}.${f.name}`;
   const fields = queryable(ent);
+  const like = likeOp(db);
 
   if (ent.lixeira) {
     if (query.lixeira === '1' || query.lixeira === 'true') qb.whereNotNull(`${table}.${TRASH_COLUMN}`);
@@ -110,22 +121,23 @@ export function applyFilters(db: Db, qb: Knex.QueryBuilder, table: string, ent: 
 
   const term = str(query.q);
   const searchable = fields.filter((f) => f.search);
-  if (term && searchable.length) qb.where((w) => searchable.forEach((f) => w.orWhere(col(f), 'like', `%${term}%`)));
+  if (term && searchable.length) qb.where((w) => searchable.forEach((f) => w.orWhere(col(f), like, `%${term}%`)));
 
   for (const f of fields) {
     const eq = values(query[f.name]);
     if (eq.length) {
       if (f.type === 'boolean') qb.where(col(f), toDbValue(db, eq[0] === '1' || eq[0] === 'true'));
       else if (f.type === 'multiselect')
-        qb.where((w) => eq.forEach((v) => w.orWhere(col(f), 'like', `%${JSON.stringify(v)}%`)));
+        qb.where((w) => eq.forEach((v) => w.orWhere(col(f), like, `%${JSON.stringify(v)}%`)));
       else if (eq.length > 1) qb.whereIn(col(f), eq);
       else qb.where(col(f), eq[0]);
     }
 
     if (RANGE_TYPES.has(f.type)) {
       const isNum = !['date', 'datetime'].includes(f.type);
-      const de = str(query[`${f.name}__de`]);
-      const ate = str(query[`${f.name}__ate`]);
+      // "2026-11-31" (fim de mês calculado sem olhar o calendário) vira o último dia: o Postgres recusa data inválida
+      const de = dataValida(str(query[`${f.name}__de`]));
+      const ate = dataValida(str(query[`${f.name}__ate`]));
       if (de)
         qb.where(col(f), '>=', isNum ? Number(de) : f.type === 'datetime' && de.length === 10 ? `${de} 00:00:00` : de);
       if (ate)
@@ -137,7 +149,7 @@ export function applyFilters(db: Db, qb: Knex.QueryBuilder, table: string, ent: 
     }
 
     const contem = str(query[`${f.name}__contem`]);
-    if (contem) qb.where(col(f), 'like', `%${contem}%`);
+    if (contem) qb.where(col(f), like, `%${contem}%`);
   }
   return qb;
 }

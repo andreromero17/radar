@@ -15,7 +15,8 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
 - Monorepo com npm workspaces: `shared/`, `server/`, `web/` — tudo em TypeScript (strict)
 - Front: React 19 + Vite, react-bootstrap (Bootstrap 5), Bootstrap Icons, Chart.js, react-router-dom 7
 - Back: Node.js ≥ 22 + Express 5, Knex (query builder + migrações), better-sqlite3, pino, Zod
-- Banco: SQLite em `server/data/app.db` (Postgres previsto na Fase 6 — por isso tudo passa pelo Knex)
+- Banco: **Postgres** em produção (`DATABASE_URL`; plataforma no schema `public`, cada espaço no `espaco_<id>`) ou
+  SQLite em arquivos (`server/data/`, desenvolvimento) — tudo passa pelo Knex e a suíte roda nos dois
 
 ## Comandos (na raiz)
 
@@ -25,6 +26,8 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
 - `npm test` / `npm run lint` / `npm run typecheck` / `npm run format`
 - `npm run db:migrate | db:rollback | db:status | db:diff -- descricao | db:seed | db:reset`
 - `npm run db:admin -- email "Nome"` — cria/recupera administrador (senha provisória)
+- `npm run db:para-postgres` — copia a instalação SQLite para o Postgres do `DATABASE_URL` (vazio; `-- --substituir`)
+- Testes no Postgres: `TESTE_PG_URL=postgres://... npm run test --workspace server` (o CI roda os dois)
 - Login de dev (seed): admin@sistema.com / admin123
 - `npm run build` + `npm start` — produção (Express serve a API e o front buildado)
 
@@ -60,8 +63,14 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
   do espaço. Logs: `/api/logs` = do espaço; `?origem=plataforma` = acessos/usuários/identidade (admin). Instalação
   antiga (um banco) é convertida sozinha no boot/`db:migrate` (`espacos/conversao.ts`, com backup). Teste de
   isolamento em `server/test/espacos.test.ts`: toda rota/fonte/relatório nova entra na varredura automaticamente.
-- **Acesso a dados só via Knex** (nada de SQL específico de SQLite). Datas gravadas pela aplicação
+- **Acesso a dados só via Knex** (nada de SQL específico de um banco). Datas gravadas pela aplicação
   como texto local `YYYY-MM-DD HH:MM:SS` (`server/src/utils/time.ts`). Booleanos passam por `toDbValue`.
+- **Postgres × SQLite (Fase 6A, `db/knex.ts`, `db/conexao.ts`):** espaço = schema (`createPgDb(url, schema)` com
+  `search_path` só nele) ou arquivo. Regras para o código rodar nos dois: INSERT que precisa do id → `inserir(qb, linha)`
+  (o Postgres só devolve com RETURNING); busca de texto → `likeOp(db)` (ilike); data vinda da URL → `dataValida`
+  (o Postgres recusa 2026-11-31); booleano lido do banco → `!!v` (0/1 × true/false; a API já devolve true/false);
+  `numeric`/`count` chegam como número e `date` como texto (parsers em `knex.ts`); listar tabelas → `listarTabelas`.
+  Backup do espaço: arquivo (SQLite) ou JSON (Postgres) — `gerarBackup`. Cópia SQLite → Postgres: `db/paraPostgres.ts`.
 - **Server:** `app.ts` monta o Express (`createApp`, usado também nos testes); `index.ts` só faz boot.
   Rotas de sistema (`routes/system.ts`: meta, settings, dashboard, logs, backup) ficam antes do CRUD.
   Regras de negócio em `services/`. Express 5 já repassa erros de handlers async.

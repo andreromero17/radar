@@ -145,8 +145,13 @@ export async function verificarAlertas(
           criada_em: nowLocal(),
           lida_em: null,
         };
-        const [id] = await db('notificacoes').insert(linha).onConflict(['usuario_id', 'chave']).ignore();
-        if (!id) continue;
+        const [r] = (await db('notificacoes')
+          .insert(linha)
+          .onConflict(['usuario_id', 'chave'])
+          .ignore()
+          .returning('id')) as ({ id: number } | number)[];
+        const id = typeof r === 'object' ? r?.id : r;
+        if (!id) continue; // já existia (mesma chave)
         novas.set(u.id, [...(novas.get(u.id) ?? []), { id: Number(id), ...linha } as Notificacao]);
         total++;
       }

@@ -21,7 +21,7 @@ import {
 import { z } from 'zod';
 import { hashToken, newToken } from '../auth/tokens';
 import { hashPassword } from '../auth/password';
-import { toDbValue } from '../db/knex';
+import { toDbValue, inserir } from '../db/knex';
 import {
   abrirEspaco,
   adicionarMembro,
@@ -229,7 +229,7 @@ export async function convidar(
   // um convite pendente por e-mail: o novo substitui o anterior
   await pendentes(espacoId).clone().where({ email }).update({ cancelado_em: nowLocal() });
   const token = newToken();
-  const [id] = await p()('convites').insert({
+  const id = await inserir(p()('convites'), {
     espaco_id: espacoId,
     email,
     papel: dados.papel,
@@ -323,7 +323,7 @@ export async function verConvite(token: string): Promise<ConvitePublico> {
 async function perfilDeConvidado(): Promise<number> {
   const perfil = await p()('perfis').whereIn('completo', ativoSim).whereNot('admin', 1).orderBy('id').first('id');
   if (perfil) return Number(perfil.id);
-  const [id] = await p()('perfis').insert({
+  const id = await inserir(p()('perfis'), {
     nome: `Membro ${Date.now()}`.slice(0, 60),
     descricao: 'Dados dos espaços em que participa, conforme o papel',
     admin: toDbValue(p(), false),
@@ -360,7 +360,7 @@ export async function aceitarConvite(
     const existe = await p()('usuarios').whereRaw('lower(email) = ?', [c.email]).first('id');
     if (existe)
       throw new HttpError(401, 'Já existe uma conta com este e-mail: entre para aceitar.', undefined, 'CONVITE_LOGIN');
-    const [id] = await p()('usuarios').insert({
+    const id = await inserir(p()('usuarios'), {
       nome: quem.nova.nome,
       email: c.email,
       perfil_id: await perfilDeConvidado(),

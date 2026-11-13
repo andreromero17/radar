@@ -12,13 +12,13 @@
 // antiga (um banco só) é convertida aqui também, com backup (espacos/conversao.ts).
 // =============================================================================
 import fs from 'node:fs';
-import path from 'node:path';
 import { hashPassword, randomPassword } from '../auth/password';
 import { deleteUserSessions } from '../auth/sessions';
 import { addLog } from '../services/logs';
 import { nowLocal } from '../utils/time';
 import { config } from '../config';
-import { createDb } from './knex';
+import { abrirPlataforma, descreverBanco, opcoesEspacos, usaPostgres } from './conexao';
+import { copiarParaPostgres } from './paraPostgres';
 import { computeDiff, entidadesDe, isEmptyDiff, writeMigration } from './diff';
 import { migrateLatest, migrationStatus, rollback } from './migrator';
 import { seed, seedEspaco, SEED_LOGINS } from './seed';
@@ -27,6 +27,7 @@ import {
   abrirEspaco,
   adicionarMembro,
   comEspaco,
+  conectarEspaco,
   configurarEspacos,
   criarEspaco,
   espacosDoUsuario,
@@ -37,9 +38,32 @@ import {
 import { converterInstalacaoUnica, garantirEspacoInicial } from '../espacos/conversao';
 
 const [command = 'status', ...args] = process.argv.slice(2);
-if (command !== 'reset') await converterInstalacaoUnica(config.dbFile, config.espacosDir);
-let db = createDb(config.dbFile);
-const prepararEspacos = () => configurarEspacos({ plataforma: db, dir: config.espacosDir, autoMigrar: true });
+
+// SQLite → Postgres: lê os arquivos (DB_PATH, ESPACOS_DIR) e grava no DATABASE_URL (precisa estar vazio)
+if (command === 'para-postgres') {
+  if (!config.DATABASE_URL) {
+    console.error('Preencha DATABASE_URL no server/.env com o Postgres de destino (vazio) e rode de novo.');
+    process.exit(1);
+  }
+  await converterInstalacaoUnica(config.dbFile, config.espacosDir);
+  console.log(`Copiando ${config.dbFile} (+ ${config.espacosDir}) → ${descreverBanco(config)}\n`);
+  const resumo = await copiarParaPostgres({
+    plataformaSqlite: config.dbFile,
+    espacosDir: config.espacosDir,
+    pgUrl: config.DATABASE_URL,
+    substituir: args.includes('--substituir'),
+    log: (m) => console.log(m),
+  });
+  const total = Object.values(resumo).reduce((a, r) => a + Object.values(r).reduce((x, n) => x + n, 0), 0);
+  console.log(
+    `\n✔ ${total} registro(s) copiado(s) em ${Object.keys(resumo).length} banco(s), contagens conferidas.\n` +
+      '  Os arquivos SQLite continuam intactos. Com DATABASE_URL preenchida, o sistema já sobe no Postgres.',
+  );
+  process.exit(0);
+}
+if (command !== 'reset' && !usaPostgres(config)) await converterInstalacaoUnica(config.dbFile, config.espacosDir);
+let db = abrirPlataforma(config);
+const prepararEspacos = () => configurarEspacos({ plataforma: db, ...opcoesEspacos(config), autoMigrar: true });
 prepararEspacos();
 const list = (items: string[]) => (items.length ? items.map((i) => `   • ${i}`).join('\n') : '   (nenhuma)');
 
@@ -64,7 +88,7 @@ try {
         break;
       }
       for (const id of await idsEspacosAtivos()) {
-        const espaco = createDb(path.join(config.espacosDir, `${id}.db`));
+        const espaco = await conectarEspaco(id);
         try {
           console.log(`↩ Espaço ${id} — revertidas:\n${list(await rollback(espaco))}`);
         } finally {
@@ -75,9 +99,11 @@ try {
     }
     case 'status': {
       const s = await migrationStatus(db, 'plataforma');
-      console.log(`Plataforma: ${config.dbFile}\n\nAplicadas:\n${list(s.done)}\n\nPendentes:\n${list(s.pending)}`);
+      console.log(
+        `Plataforma: ${descreverBanco(config)}\n\nAplicadas:\n${list(s.done)}\n\nPendentes:\n${list(s.pending)}`,
+      );
       for (const id of await idsEspacosAtivos()) {
-        const espaco = createDb(path.join(config.espacosDir, `${id}.db`));
+        const espaco = await conectarEspaco(id);
         try {
           const e = await migrationStatus(espaco);
           console.log(
@@ -128,14 +154,23 @@ try {
     }
     case 'reset': {
       if (config.NODE_ENV === 'production') throw new Error('reset bloqueado em produção');
-      // SQLite: apaga os arquivos (funciona mesmo se o histórico de migrações mudou)
+      // apaga tudo (funciona mesmo se o histórico de migrações mudou)
       await fecharEspacos();
+      if (usaPostgres(config)) {
+        // Postgres: schemas dos espaços e tudo o que está no public
+        const schemas = (await db('information_schema.schemata')
+          .where('schema_name', 'like', 'espaco\\_%')
+          .pluck('schema_name')) as string[];
+        for (const sc of schemas) await db.raw('drop schema ?? cascade', [sc]);
+        await db.raw('drop schema public cascade');
+        await db.raw('create schema public');
+      }
       await db.destroy();
-      if (config.dbFile !== ':memory:')
+      if (!usaPostgres(config) && config.dbFile !== ':memory:')
         for (const f of [config.dbFile, `${config.dbFile}-wal`, `${config.dbFile}-shm`]) fs.rmSync(f, { force: true });
       fs.rmSync(config.espacosDir, { recursive: true, force: true });
       fs.rmSync(config.uploadDir, { recursive: true, force: true }); // anexos dos bancos apagados
-      db = createDb(config.dbFile);
+      db = abrirPlataforma(config);
       prepararEspacos();
       await migrateLatest(db, 'plataforma');
       await seed(db);
@@ -204,7 +239,9 @@ try {
       break;
     }
     default:
-      console.error(`Comando desconhecido: ${command}\nUse: migrate | rollback | status | diff | seed | reset | admin`);
+      console.error(
+        `Comando desconhecido: ${command}\nUse: migrate | rollback | status | diff | seed | reset | admin | para-postgres`,
+      );
       process.exitCode = 1;
   }
 } catch (err) {

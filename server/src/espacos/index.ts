@@ -14,7 +14,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Knex } from 'knex';
-import { createDb, isSqlite, toDbValue, type Db } from '../db/knex';
+import { createDb, createPgDb, isSqlite, nomeSchema, toDbValue, type Db, inserir } from '../db/knex';
 import { migrateLatest, migrationStatus } from '../db/migrator';
 import { nowLocal } from '../utils/time';
 import { HttpError } from '../utils/http';
@@ -37,6 +37,11 @@ interface Opcoes {
   autoMigrar: boolean;
   /** Quantos bancos manter abertos (os menos usados fecham) */
   maxAbertos?: number;
+  /**
+   * Postgres (Fase 6A): cada espaço é um SCHEMA `<prefixo>espaco_<id>` no mesmo banco (em vez de um arquivo).
+   * Ausente = SQLite (um arquivo por espaço em `dir`).
+   */
+  pg?: { url: string; prefixo?: string };
 }
 
 let cfg: Opcoes | null = null;
@@ -60,8 +65,25 @@ const conf = () => {
 
 export const plataformaDb = () => conf().plataforma;
 
-/** Arquivo do banco de um espaço (null em memória) */
-export const arquivoEspaco = (id: number) => (conf().dir ? path.join(conf().dir!, `${id}.db`) : null);
+/** Arquivo do banco de um espaço (null em memória ou no Postgres) */
+export const arquivoEspaco = (id: number) => (!conf().pg && conf().dir ? path.join(conf().dir!, `${id}.db`) : null);
+
+/** Schema do espaço no Postgres (null no SQLite) */
+export const schemaEspaco = (id: number) =>
+  conf().pg ? nomeSchema(`${conf().pg!.prefixo ?? ''}espaco_${Number(id)}`) : null;
+
+/** Conexão nova com o banco do espaço (sem cache: quem abre, fecha) */
+export async function conectarEspaco(id: number): Promise<Db> {
+  const pgc = conf().pg;
+  if (pgc) {
+    const schema = schemaEspaco(id)!;
+    await conf().plataforma.raw('create schema if not exists ??', [schema]);
+    return createPgDb(pgc.url, schema, { max: 3 });
+  }
+  const arquivo = arquivoEspaco(id);
+  if (arquivo) fs.mkdirSync(path.dirname(arquivo), { recursive: true });
+  return createDb(arquivo ?? ':memory:');
+}
 
 /** Banco do espaço: abre (criando o arquivo e migrando, se preciso), guarda em cache e devolve */
 export async function abrirEspaco(id: number): Promise<Db> {
@@ -75,9 +97,7 @@ export async function abrirEspaco(id: number): Promise<Db> {
   const promessa = (async () => {
     const existe = await conf().plataforma('espacos').where({ id }).first('id');
     if (!existe) throw new HttpError(404, 'Espaço não encontrado');
-    const arquivo = arquivoEspaco(id);
-    if (arquivo) fs.mkdirSync(path.dirname(arquivo), { recursive: true });
-    const db = createDb(arquivo ?? ':memory:');
+    const db = await conectarEspaco(id);
     try {
       if (conf().autoMigrar) await migrateLatest(db, 'espaco');
       else {
@@ -103,8 +123,8 @@ export async function abrirEspaco(id: number): Promise<Db> {
 }
 
 async function fecharExcedentes() {
-  const max = conf().maxAbertos ?? 100;
-  if (!conf().dir || abertos.size <= max) return; // em memória fechar = perder os dados
+  const max = conf().maxAbertos ?? (conf().pg ? 25 : 100);
+  if ((!conf().dir && !conf().pg) || abertos.size <= max) return; // em memória fechar = perder os dados
   const ordem = [...abertos.entries()].sort((a, b) => a[1].usado - b[1].usado);
   for (const [id, { db }] of ordem.slice(0, abertos.size - max)) {
     abertos.delete(id);
@@ -204,7 +224,7 @@ export async function membrosAtivos(espacoId: number): Promise<number[]> {
 export async function criarEspaco(dados: { nome: string; tipo?: string; donoId: number }): Promise<number> {
   const p = conf().plataforma;
   const agora = nowLocal();
-  const [id] = await p('espacos').insert({
+  const id = await inserir(p('espacos'), {
     nome: dados.nome,
     tipo: dados.tipo ?? 'pessoal',
     dono_id: dados.donoId,
@@ -283,8 +303,7 @@ export async function sincronizarUsuarios(espacoId: number, db: Db) {
 export async function migrarTodos(): Promise<{ id: number; aplicadas: string[] }[]> {
   const out = [];
   for (const id of await idsEspacosAtivos()) {
-    const arquivo = arquivoEspaco(id);
-    const db = abertos.get(id)?.db ?? createDb(arquivo ?? ':memory:');
+    const db = abertos.get(id)?.db ?? (await conectarEspaco(id));
     try {
       out.push({ id, aplicadas: await migrateLatest(db, 'espaco') });
     } finally {

@@ -59,7 +59,7 @@ describe('CRUD genérico', () => {
   it('atualiza parcialmente sem apagar outros campos', async () => {
     const res = await ctx.admin.put('/api/clientes/1').send({ telefone: '(51) 1234-5678', ativo: false });
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ nome: 'Cliente Teste Hugo', telefone: '(51) 1234-5678', ativo: 0 });
+    expect(res.body).toMatchObject({ nome: 'Cliente Teste Hugo', telefone: '(51) 1234-5678', ativo: false });
     expect(res.body.atualizado_em).toBeTruthy();
   });
 

@@ -2,7 +2,7 @@ import { config } from './config';
 import { logger } from './logger';
 import { createApp } from './app';
 import { VERSION } from './version';
-import { createDb } from './db/knex';
+import { abrirPlataforma, opcoesEspacos, usaPostgres } from './db/conexao';
 import { migrateLatest, migrationStatus, OutdatedHistoryError } from './db/migrator';
 import { purgeExpiredAuth } from './auth/sessions';
 import { apagarEspacosExcluidos, limparCadastrosPendentes } from './services/conta';
@@ -21,8 +21,8 @@ import { converterInstalacaoUnica, garantirEspacoInicial } from './espacos/conve
 import { entities } from '@frame/shared';
 
 // Plataforma (usuários, sessões, identidade, espaços) + um banco por espaço (Fase 5A)
-await converterInstalacaoUnica(config.dbFile, config.espacosDir, logger);
-const db = createDb(config.dbFile);
+if (!usaPostgres(config)) await converterInstalacaoUnica(config.dbFile, config.espacosDir, logger);
+const db = abrirPlataforma(config);
 configureAnexos({ dir: config.uploadDir, maxMb: config.UPLOAD_MAX_MB });
 const producao = config.NODE_ENV === 'production';
 
@@ -52,7 +52,7 @@ if (config.demo) {
   registerDemo();
   logger.info('módulo de demonstração ativo');
 }
-configurarEspacos({ plataforma: db, dir: config.espacosDir, autoMigrar: !producao });
+configurarEspacos({ plataforma: db, ...opcoesEspacos(config), autoMigrar: !producao });
 const inicial = await garantirEspacoInicial(db, criarEspaco);
 if (inicial) logger.info({ espaco: inicial }, 'espaço inicial criado');
 

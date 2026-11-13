@@ -4,6 +4,24 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.20.0 — 12/11/2026
+
+**Fase 6A: Postgres**
+
+- `DATABASE_URL=postgres://...` liga o Postgres: plataforma no schema `public`, **cada espaço no próprio schema**
+  (`espaco_<id>`), com a conexão presa a ele (`search_path`) — o mesmo isolamento dos arquivos. Sem a variável,
+  continua o SQLite em arquivos (desenvolvimento)
+- `npm run db:para-postgres`: copia a instalação SQLite (plataforma + espaços) para um Postgres vazio, com os mesmos
+  ids, sequências acertadas e contagens conferidas; os arquivos originais ficam intactos
+- **A suíte inteira roda nos dois bancos** (`TESTE_PG_URL`); o CI ganhou um job com Postgres 16, que também aplica as
+  migrações e o seed do zero
+- Diferenças tratadas: id de INSERT (`inserir`), busca sem diferenciar maiúsculas (`likeOp`), datas inválidas da URL
+  (`dataValida`: 31/11 vira 30/11), decimais/contagens como número e datas como texto, booleanos sempre true/false
+  na API (antes 0/1 no SQLite)
+- Backup do espaço no Postgres: JSON com todas as tabelas; tamanho dos espaços no painel pelo Postgres; exclusão de
+  espaço renomeia o schema e o apaga de vez em 30 dias
+- `.gitignore`: backups em `server/data/backup-*`
+
 ## 0.19.0 — 12/11/2026
 
 **Fase 5D: cadastro, LGPD e feedback — pronto para um beta fechado**

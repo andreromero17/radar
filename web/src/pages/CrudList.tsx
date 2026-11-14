@@ -16,6 +16,7 @@ import {
 import { api, download, errorMessage } from '../lib/api';
 import {
   activeFilters,
+  presetDoFiltro,
   bulkEditableFields,
   filterableFields,
   lembrarLista,
@@ -67,6 +68,9 @@ interface Props {
   before?: ReactNode;
   /** Botões extras no cabeçalho, antes do "Novo" (fora da lixeira) */
   actions?: ReactNode;
+  /** Depois de qualquer alteração feita na lista (liga/desliga, excluir, restaurar, em lote): recarregar o que
+   * depende dela (cards de totais no `before`...) */
+  onAlterado?: () => void;
 }
 
 /** Linha de outra entidade que a aplicação mostra junto (hook `listExtras` no servidor) */
@@ -156,17 +160,21 @@ export default function CrudList(props: Props) {
     [params],
   );
 
-  const load = useCallback(() => {
-    setLoading(true);
-    api
-      .get<ListResponse>(`/${entity}?${queryString({ page: String(page), pageSize: String(pageSize) })}`)
-      .then((d) => {
-        setData(d);
-        setSelected(new Set());
-      })
-      .catch((e) => toast.error(errorMessage(e)))
-      .finally(() => setLoading(false));
-  }, [entity, queryString, page, pageSize, toast]);
+  // silencioso: recarrega sem o "carregando" (depois de mudar uma linha, a tabela não pisca)
+  const load = useCallback(
+    (silencioso = false) => {
+      if (!silencioso) setLoading(true);
+      api
+        .get<ListResponse>(`/${entity}?${queryString({ page: String(page), pageSize: String(pageSize) })}`)
+        .then((d) => {
+          setData(d);
+          setSelected(new Set());
+        })
+        .catch((e) => toast.error(errorMessage(e)))
+        .finally(() => setLoading(false));
+    },
+    [entity, queryString, page, pageSize, toast],
+  );
 
   useEffect(() => {
     if (allowed && !waitingPeriod) load();
@@ -196,6 +204,7 @@ export default function CrudList(props: Props) {
   const cols = available.filter((f) => colNames.includes(f.name));
   const pages = Math.max(1, Math.ceil(data.total / pageSize));
   const filters = activeFilters(ent, params, labels);
+  const preset = presetDoFiltro(ent, params);
   const hasTotals = cols.some((f) => data.totais && f.name in data.totais);
   const selectable = podeExcluir || (podeEditar && !trash && bulkEditableFields(ent).length > 0);
   const proprias = data.rows.filter((r) => !extraDe(r));
@@ -210,6 +219,11 @@ export default function CrudList(props: Props) {
     }
     if (!keepPage) next.delete('page');
     setParams(next);
+  };
+
+  const alterado = () => {
+    load(true);
+    props.onAlterado?.();
   };
 
   const removeFilter = (keys: string[]) => {
@@ -249,7 +263,7 @@ export default function CrudList(props: Props) {
       if (r.ok) toast.success(`${r.ok} registro(s) ${verbo}`);
       if (r.erros.length) toast.error(`${r.erros.length} registro(s) não puderam ser alterados`);
       setBulkErrors(r.erros);
-      load();
+      alterado();
     } catch (e) {
       toast.error(errorMessage(e));
     }
@@ -262,7 +276,7 @@ export default function CrudList(props: Props) {
         r.apagados ? `Lixeira esvaziada: ${r.apagados} registro(s) apagado(s)` : 'A lixeira já estava vazia',
       );
       setSelected(new Set());
-      load();
+      alterado();
     } catch (e) {
       toast.error(errorMessage(e));
     }
@@ -272,7 +286,7 @@ export default function CrudList(props: Props) {
     try {
       const r = await api.del<{ lixeira?: boolean } | null>(`/${entity}/${row.id}${definitivo ? '?definitivo=1' : ''}`);
       toast.success(r?.lixeira ? `${ent.singular} enviado para a lixeira` : `${ent.singular} excluído`);
-      load();
+      alterado();
     } catch (e) {
       toast.error(errorMessage(e));
     }
@@ -286,6 +300,8 @@ export default function CrudList(props: Props) {
       const salvo = await api.put<Row>(`/${entity}/${row.id}`, { [f.name]: novo });
       setData((d) => ({ ...d, rows: d.rows.map((r) => (r.id === row.id ? { ...r, ...salvo } : r)) }));
       if (!!salvo[f.name] !== novo) toast.info(`${f.label}: não foi possível alterar este registro`);
+      // o que depende da linha (totais, linhas extras como saldos do dia, cards do `before`) é recalculado
+      alterado();
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {
@@ -297,7 +313,7 @@ export default function CrudList(props: Props) {
     try {
       await api.post(`/${entity}/${row.id}/restaurar`);
       toast.success(`${ent.singular} restaurado`);
-      load();
+      alterado();
     } catch (e) {
       toast.error(errorMessage(e));
     }
@@ -398,7 +414,7 @@ export default function CrudList(props: Props) {
         )}
         {!trash && props.actions}
         {!trash && podeCriar && (
-          <Link to={`/${entity}/novo`} state={origem} className="btn btn-primary">
+          <Link to={`/${entity}/novo${preset ? `?${preset}` : ''}`} state={origem} className="btn btn-primary">
             <i className="bi bi-plus-lg me-1" /> {novoRotulo(ent)}
           </Link>
         )}
@@ -785,7 +801,13 @@ export default function CrudList(props: Props) {
       />
 
       {podeImportar && (
-        <ImportModal show={showImport} entity={entity} ent={ent} onHide={() => setShowImport(false)} onDone={load} />
+        <ImportModal
+          show={showImport}
+          entity={entity}
+          ent={ent}
+          onHide={() => setShowImport(false)}
+          onDone={() => alterado()}
+        />
       )}
 
       <BulkEditModal

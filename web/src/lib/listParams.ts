@@ -127,3 +127,19 @@ export const monthLabel = (year: number, month: number) => {
   const s = new Date(year, month, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
+
+/**
+ * "Novo" a partir de uma listagem filtrada: os filtros de UM valor viram o preenchimento do formulário
+ * (ex.: lista da conta Itaú → novo lançamento já na conta Itaú). Filtro com vários valores ("A ou B"), faixas,
+ * busca e o período ficam de fora; campos que o formulário não edita também.
+ */
+export function presetDoFiltro(ent: EntityDef, params: URLSearchParams): string {
+  const out = new URLSearchParams();
+  for (const f of ent.fields) {
+    if (HIDDEN.has(f.type) || f.readonly || f.auto || f.compute || f.name === ent.periodField) continue;
+    const vals = params.getAll(f.name).filter(Boolean);
+    if (vals.length !== 1 || vals[0].includes(',')) continue;
+    out.set(f.name, vals[0]);
+  }
+  return out.toString();
+}

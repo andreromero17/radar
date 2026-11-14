@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { contrastText, shade, applyTheme } from '../src/lib/theme';
 import { activeMenuPath } from '../src/config/menu';
 import { fmtBytes, fmtMoney } from '../src/lib/format';
+import { presetDoFiltro } from '../src/lib/listParams';
+import type { EntityDef } from '@frame/shared';
 
 describe('tema', () => {
   it('escurece e clareia cores', () => {
@@ -78,5 +80,32 @@ describe('datas no fuso do Brasil (regressão)', () => {
     } finally {
       process.env.TZ = tz;
     }
+  });
+});
+
+describe('presetDoFiltro (novo a partir da lista filtrada)', () => {
+  const ent = {
+    name: 'movs',
+    label: 'Movs',
+    singular: 'Mov',
+    periodField: 'data',
+    fields: [
+      { name: 'descricao', label: 'Descrição', type: 'text' },
+      { name: 'data', label: 'Data', type: 'date' },
+      { name: 'conta_id', label: 'Conta', type: 'relation', entity: 'contas' },
+      { name: 'tipo', label: 'Tipo', type: 'select', options: ['A', 'B'] },
+      { name: 'pago', label: 'Pago', type: 'boolean' },
+      { name: 'codigo', label: 'Código', type: 'text', auto: 'code' },
+      { name: 'saldo', label: 'Saldo', type: 'money', readonly: true },
+    ],
+  } as unknown as EntityDef;
+
+  it('leva os filtros de um valor só', () => {
+    const p = new URLSearchParams('conta_id=3&tipo=A&pago=1&page=2&sort=data&q=mercado&data__de=2026-11-01');
+    expect(presetDoFiltro(ent, p)).toBe('conta_id=3&tipo=A&pago=1');
+  });
+  it('deixa de fora "A ou B", período, automáticos e somente leitura', () => {
+    const p = new URLSearchParams('conta_id=3&conta_id=4&tipo=A,B&data=2026-11-01&codigo=X&saldo=10');
+    expect(presetDoFiltro(ent, p)).toBe('');
   });
 });

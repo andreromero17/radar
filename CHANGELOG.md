@@ -4,6 +4,14 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.22.1 — 14/11/2026
+
+- Listagem: ligar/desligar na linha (ex.: efetivado) recarrega a lista sem piscar — totais e linhas extras
+  (saldos do dia) são recalculados; o mesmo depois de excluir, restaurar, editar em lote e importar
+- `CrudList` aceita `onAlterado` (avisa o que depende da lista, como os cards do `before`)
+- "Novo" numa lista filtrada já vem com os filtros de um valor só (`presetDoFiltro`): lista da conta X → novo
+  registro na conta X
+
 ## 0.22.0 — 13/11/2026
 
 **Espaço modelo**

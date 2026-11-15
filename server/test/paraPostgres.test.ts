@@ -66,5 +66,5 @@ describe.runIf(!!TESTE_PG_URL)('cópia SQLite → Postgres', () => {
       fs.rmSync(pasta, { recursive: true, force: true });
       if (opcoesEspacosTeste) configurarEspacos(opcoesEspacosTeste);
     }
-  });
+  }, 30_000); // migra a plataforma e dois espaços no Postgres: no CI passa dos 5 s padrão
 });

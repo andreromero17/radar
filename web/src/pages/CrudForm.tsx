@@ -42,11 +42,29 @@ const emptyDetails = (ent: EntityDef): Details =>
     }),
   );
 
+/** O que um campo próprio recebe (CrudForm `campos`) */
+export interface CampoProprioCtx {
+  field: FieldDef;
+  value: FormValue;
+  values: Values;
+  /** Muda um campo qualquer do formulário (um campo próprio pode preencher vários) */
+  set: (name: string, v: FormValue) => void;
+  error?: string;
+  /** Opções já carregadas dos campos de relacionamento, por nome do campo */
+  options: Record<string, Option[]>;
+  disabled: boolean;
+  isNew: boolean;
+}
+
 interface Props {
   /** Entidade (padrão: a da URL) — para telas próprias que reaproveitam o formulário genérico */
   entity?: string;
   /** Conteúdo extra abaixo do formulário */
   after?: ReactNode;
+  /** Campos desenhados pelo sistema, por nome: substituem o campo genérico no mesmo lugar e largura */
+  campos?: Record<string, (ctx: CampoProprioCtx) => ReactNode>;
+  /** Campos escondidos conforme o que está preenchido (continuam no formulário e são enviados) */
+  ocultar?: (values: Values) => string[];
 }
 
 const fromRow = (ent: EntityDef, r: Row): Values =>
@@ -209,6 +227,7 @@ export default function CrudForm(props: Props) {
     ...detailSums(ent, details as Record<string, Record<string, unknown>[]>),
   };
   const naLixeira = !!record?.excluido_em;
+  const ocultos = new Set(props.ocultar?.(values) ?? []);
 
   return (
     <>
@@ -225,6 +244,7 @@ export default function CrudForm(props: Props) {
               {sections(
                 ent.fields
                   .filter((f) => !f.hidden && !(isNew && f.readonly) && !(!isNew && f.createOnly))
+                  .filter((f) => !ocultos.has(f.name))
                   .filter((f) => !(readOnly && f.type === 'password')),
               ).map(([section, fields], i) => (
                 <fieldset key={section ?? i} className={section ? 'form-section' : undefined}>
@@ -232,16 +252,29 @@ export default function CrudForm(props: Props) {
                   <BsRow className="g-3">
                     {fields.map((f) => (
                       <Col key={f.name} xs={12} md={f.col || (f.type === 'textarea' ? 12 : 6)}>
-                        <FieldInput
-                          field={f}
-                          value={shown[f.name]}
-                          onChange={onChange}
-                          error={errors[f.name]}
-                          options={relOptions[f.name]}
-                          isNew={isNew}
-                          values={values}
-                          disabled={readOnly || somas.has(f.name) || !!(f.disabledWhen && values[f.disabledWhen])}
-                        />
+                        {props.campos?.[f.name] ? (
+                          props.campos[f.name]({
+                            field: f,
+                            value: shown[f.name],
+                            values,
+                            set: onChange,
+                            error: errors[f.name],
+                            options: relOptions,
+                            disabled: readOnly,
+                            isNew,
+                          })
+                        ) : (
+                          <FieldInput
+                            field={f}
+                            value={shown[f.name]}
+                            onChange={onChange}
+                            error={errors[f.name]}
+                            options={relOptions[f.name]}
+                            isNew={isNew}
+                            values={values}
+                            disabled={readOnly || somas.has(f.name) || !!(f.disabledWhen && values[f.disabledWhen])}
+                          />
+                        )}
                       </Col>
                     ))}
                   </BsRow>

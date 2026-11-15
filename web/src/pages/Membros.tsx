@@ -330,6 +330,13 @@ function ConviteModal({ show, onHide, onEnviado }: { show: boolean; onHide: () =
       onHide();
       onEnviado();
     } catch (err) {
+      if (err instanceof ApiError && err.code === 'EMAIL_FALHOU') {
+        // o convite ficou registrado: fecha e mostra na lista, com o aviso
+        toast.error(err.message);
+        onHide();
+        onEnviado();
+        return;
+      }
       setErro(err instanceof ApiError ? (err.fields.email ?? err.message) : errorMessage(err));
     } finally {
       setEnviando(false);

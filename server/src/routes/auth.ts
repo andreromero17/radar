@@ -499,17 +499,28 @@ export function authRouter(db: Db, opts: AuthOptions) {
         expira_em: nowLocal(new Date(Date.now() + RESET_HOURS * 3_600_000)),
       });
       const link = `${opts.appUrl.replace(/\/$/, '')}/redefinir-senha?token=${token}`;
-      await opts.mailer.send({
-        to: user.email,
-        subject: 'Redefinição de senha',
-        text:
-          `Olá, ${user.nome}.\n\nRecebemos um pedido para redefinir sua senha. ` +
-          `Para criar uma nova, acesse o link abaixo (válido por ${RESET_HOURS} hora):\n\n${link}\n\n` +
-          'Se não foi você, ignore este e-mail: sua senha continua a mesma.',
-      });
+      // falha no envio fica só no log: a resposta continua igual (não revela quem é cadastrado)
+      const enviado = await opts.mailer
+        .send({
+          to: user.email,
+          subject: 'Redefinição de senha',
+          text:
+            `Olá, ${user.nome}.\n\nRecebemos um pedido para redefinir sua senha. ` +
+            `Para criar uma nova, acesse o link abaixo (válido por ${RESET_HOURS} hora):\n\n${link}\n\n` +
+            'Se não foi você, ignore este e-mail: sua senha continua a mesma.',
+        })
+        .then(
+          () => true,
+          () => false,
+        );
       await addLog(
         db,
-        { entidade: 'auth', registro_id: user.id, acao: 'redefinição solicitada', detalhe: email },
+        {
+          entidade: 'auth',
+          registro_id: user.id,
+          acao: enviado ? 'redefinição solicitada' : 'redefinição solicitada (e-mail não enviado)',
+          detalhe: email,
+        },
         actor(req, user),
       );
     }

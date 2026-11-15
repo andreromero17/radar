@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import type { Logger } from 'pino';
+import { HttpError } from '../utils/http';
 
 export interface Mail {
   to: string;
@@ -21,6 +22,18 @@ export interface SmtpConfig {
   SMTP_FROM: string;
 }
 
+/**
+ * Falha do servidor de e-mail (senha errada, servidor fora do ar...). 502 com mensagem clara em vez de "Erro
+ * interno"; o motivo técnico fica no log. Quem chama pode trocar a mensagem (ex.: "o convite foi registrado").
+ */
+export class EmailNaoEnviado extends HttpError {
+  constructor(
+    message = 'Não foi possível enviar o e-mail. Verifique a configuração de e-mail do servidor e tente de novo.',
+  ) {
+    super(502, message, undefined, 'EMAIL_FALHOU');
+  }
+}
+
 /** SMTP se configurado; senão, escreve o e-mail no log (útil em desenvolvimento). */
 export function createMailer(cfg: SmtpConfig, logger: Logger): Mailer {
   if (!cfg.SMTP_HOST) {
@@ -40,18 +53,30 @@ export function createMailer(cfg: SmtpConfig, logger: Logger): Mailer {
   });
   return {
     async send(mail) {
-      await transport.sendMail({ from: cfg.SMTP_FROM, ...mail });
+      try {
+        await transport.sendMail({ from: cfg.SMTP_FROM, ...mail });
+      } catch (err) {
+        const e = err as { code?: string; responseCode?: number; message?: string };
+        logger.error(
+          { para: mail.to, assunto: mail.subject, codigo: e.code, resposta: e.responseCode, motivo: e.message },
+          'falha ao enviar e-mail',
+        );
+        throw new EmailNaoEnviado();
+      }
     },
   };
 }
 
-/** Mailer de testes: guarda os e-mails em memória */
-export function memoryMailer(): Mailer & { sent: Mail[] } {
+/** Mailer de testes: guarda os e-mails em memória; `falhar = true` simula o servidor de e-mail recusando */
+export function memoryMailer(): Mailer & { sent: Mail[]; falhar: boolean } {
   const sent: Mail[] = [];
-  return {
+  const m = {
     sent,
-    async send(mail) {
+    falhar: false,
+    async send(mail: Mail) {
+      if (m.falhar) throw new EmailNaoEnviado();
       sent.push(mail);
     },
   };
+  return m;
 }

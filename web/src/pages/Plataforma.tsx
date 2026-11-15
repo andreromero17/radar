@@ -22,7 +22,7 @@ import {
   type PlataformaResposta,
   type UsuarioPlataforma,
 } from '@frame/shared';
-import { api, errorMessage } from '../lib/api';
+import { api, ApiError, errorMessage } from '../lib/api';
 import { fmtBytes, fmtDate } from '../lib/format';
 import { recarregarNoEspaco } from '../lib/espacos';
 import { useAuth } from '../context/AuthContext';
@@ -499,6 +499,10 @@ function ConvidarModal({ show, onHide, onEnviado }: { show: boolean; onHide: () 
       onEnviado();
     } catch (err) {
       toast.error(errorMessage(err));
+      if (err instanceof ApiError && err.code === 'EMAIL_FALHOU') {
+        onHide(); // o convite ficou registrado
+        onEnviado();
+      }
     } finally {
       setEnviando(false);
     }

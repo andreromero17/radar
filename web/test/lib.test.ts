@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { contrastText, shade, applyTheme } from '../src/lib/theme';
 import { activeMenuPath } from '../src/config/menu';
 import { fmtBytes, fmtMoney } from '../src/lib/format';
-import { presetDoFiltro } from '../src/lib/listParams';
+import { listableFields, presetDoFiltro } from '../src/lib/listParams';
 import type { EntityDef } from '@frame/shared';
 
 describe('tema', () => {
@@ -107,5 +107,26 @@ describe('presetDoFiltro (novo a partir da lista filtrada)', () => {
   it('deixa de fora "A ou B", período, automáticos e somente leitura', () => {
     const p = new URLSearchParams('conta_id=3&conta_id=4&tipo=A,B&data=2026-11-01&codigo=X&saldo=10');
     expect(presetDoFiltro(ent, p)).toBe('');
+  });
+});
+
+describe('listableFields (ordem das colunas)', () => {
+  const base = {
+    name: 'x',
+    label: 'X',
+    singular: 'X',
+    fields: [
+      { name: 'a', label: 'A', type: 'text' },
+      { name: 'b', label: 'B', type: 'text' },
+      { name: 'c', label: 'C', type: 'text' },
+      { name: 'd', label: 'D', type: 'text' },
+    ],
+  };
+  it('sem listOrder: a ordem dos campos', () => {
+    expect(listableFields(base as unknown as EntityDef).map((f) => f.name)).toEqual(['a', 'b', 'c', 'd']);
+  });
+  it('com listOrder: os citados primeiro, o resto depois', () => {
+    const ent = { ...base, listOrder: ['c', 'a'] } as unknown as EntityDef;
+    expect(listableFields(ent).map((f) => f.name)).toEqual(['c', 'a', 'b', 'd']);
   });
 });

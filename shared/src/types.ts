@@ -143,6 +143,9 @@ export interface EntityDef {
   pageSize?: number;
   /** Ordenação padrão da listagem (padrão: id decrescente) */
   defaultSort?: { field: string; dir: 'asc' | 'desc' };
+  /** Ordem das colunas da listagem (os campos citados vêm primeiro, nessa ordem; o resto na ordem dos campos). O
+   * formulário segue a ordem de `fields`. */
+  listOrder?: string[];
   /** Grupo na matriz de permissões (padrão: "Cadastros" ou "Acesso" para o núcleo) */
   group?: string;
   /** Sub-tabelas editadas e gravadas junto com o registro */

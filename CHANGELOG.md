@@ -4,6 +4,10 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.23.1 — 15/11/2026
+
+- Entidade aceita `listOrder`: a ordem das colunas da listagem pode ser diferente da do formulário
+
 ## 0.23.0 — 15/11/2026
 
 - `CrudForm` aceita `campos` (o sistema desenha um campo no lugar do genérico — mesmo lugar e largura — e pode

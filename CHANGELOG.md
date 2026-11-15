@@ -4,6 +4,12 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.23.0 — 15/11/2026
+
+- `CrudForm` aceita `campos` (o sistema desenha um campo no lugar do genérico — mesmo lugar e largura — e pode
+  preencher outros campos com `set`) e `ocultar(values)` (esconde campos conforme o que está preenchido; continuam
+  sendo enviados)
+
 ## 0.22.1 — 14/11/2026
 
 - Listagem: ligar/desligar na linha (ex.: efetivado) recarrega a lista sem piscar — totais e linhas extras

@@ -68,6 +68,8 @@ export interface EspacoPlataforma {
   nome: string;
   tipo: string;
   ativo: boolean;
+  /** Espaço MODELO: espaços novos recebem dele as bibliotecas/cadastros padrão (frame 0.22.0) */
+  modelo: boolean;
   criado_em: string;
   dono: string | null;
   dono_email: string | null;
@@ -131,4 +133,12 @@ export interface FeedbackInfo {
   versao: string | null;
   criado_em: string;
   lido_em: string | null;
+}
+
+// ---------------------------------------------------------------- frame 0.22.0: espaço modelo
+
+/** Resposta de POST /api/espaco/modelo */
+export interface ResultadoModelo {
+  itens: { nome: string; alterados: number }[];
+  total: number;
 }

@@ -4,6 +4,17 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.22.0 — 13/11/2026
+
+**Espaço modelo**
+
+- O administrador marca um espaço como **modelo** (Plataforma → ações do espaço; só um por vez, precisa estar ativo)
+- O sistema registra o que se copia dele com `registrarCopiaDoModelo({ nome, copiar(destino, modelo, { novo }) })`
+  (bibliotecas, cadastros padrão — nunca movimentos); espaço novo recebe na criação
+- Espaços que já existem: o dono traz as novidades (`POST /api/espaco/modelo`, botão `<TrazerDoModelo>`), sem
+  sobrescrever o que personalizou; registrado no log do espaço
+- `CrudList` aceita `actions` (botões extras no cabeçalho)
+
 ## 0.21.1 — 13/11/2026
 
 **Falha no envio de e-mail com mensagem clara**

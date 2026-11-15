@@ -5,7 +5,7 @@ import { requireAdmin, userOf } from '../auth/middleware';
 import { deleteUserSessions } from '../auth/sessions';
 import type { Db } from '../db/knex';
 import { isPg, toDbValue } from '../db/knex';
-import { arquivoEspaco, comEspaco, schemaEspaco } from '../espacos';
+import { arquivoEspaco, comEspaco, definirModelo, schemaEspaco } from '../espacos';
 import { derrubarSuporte, entrarComoSuporte, liberacaoAtiva, sairDoSuporte } from '../espacos/suporte';
 import { desativarDoisFatores } from '../services/doisFatores';
 import { addLog, type Actor } from '../services/logs';
@@ -28,6 +28,8 @@ import { nowLocal } from '../utils/time';
  * Montado antes do resolverEspaco (o administrador pode não estar em espaço nenhum).
  *   GET  /api/plataforma                         totais, espaços e usuários
  *   PUT  /api/plataforma/espacos/:id             { ativo }   desativa/reativa um espaço (todos perdem o acesso)
+ *   PUT  /api/plataforma/espacos/:id/modelo      { modelo }  marca o espaço MODELO (espaços novos recebem dele o que
+ *                                                            o sistema registrar: bibliotecas...) — só um
  *   PUT  /api/plataforma/usuarios/:id            { ativo }   desativa/reativa uma conta
  *   POST /api/plataforma/usuarios/:id/sessoes    encerra as sessões
  *   POST /api/plataforma/usuarios/:id/2fa        desliga a verificação em duas etapas (celular perdido)
@@ -111,9 +113,19 @@ export function plataformaRouter(db: Db, opts: { envio: { mailer: Mailer; appUrl
     const espacos = (await db('espacos as e')
       .leftJoin('usuarios as u', 'u.id', 'e.dono_id')
       .orderBy('e.id')
-      .select('e.id', 'e.nome', 'e.tipo', 'e.ativo', 'e.criado_em', 'u.nome as dono', 'u.email as dono_email')) as {
+      .select(
+        'e.id',
+        'e.nome',
+        'e.tipo',
+        'e.ativo',
+        'e.modelo',
+        'e.criado_em',
+        'u.nome as dono',
+        'u.email as dono_email',
+      )) as {
       id: number;
       ativo: unknown;
+      modelo: unknown;
       [k: string]: unknown;
     }[];
     const membros: { espaco_id: number; n: number }[] = await db('membros')
@@ -142,6 +154,7 @@ export function plataformaRouter(db: Db, opts: { envio: { mailer: Mailer; appUrl
       listaEspacos.push({
         ...e,
         ativo: !!e.ativo,
+        modelo: !!e.modelo,
         membros: nMembros.get(e.id) ?? 0,
         convites: nConvites.get(e.id) ?? 0,
         tamanho: tamanho(e.id),
@@ -217,6 +230,28 @@ export function plataformaRouter(db: Db, opts: { envio: { mailer: Mailer; appUrl
       await derrubarSuporte(id);
     } else await noEspaco();
     await addLog(db, { entidade: 'espacos', registro_id: id, acao, detalhe: esp.nome }, actor(req));
+    res.json({ ok: true });
+  });
+
+  const modeloSchema = z.object({ modelo: z.boolean({ message: 'Informe modelo' }) });
+
+  router.put('/plataforma/espacos/:id/modelo', async (req, res) => {
+    const id = idDe(req.params.id);
+    const { modelo } = lerOuFalhar(modeloSchema, req.body);
+    const esp = await db('espacos').where({ id }).first('nome', 'ativo');
+    if (!esp) throw new HttpError(404, 'Espaço não encontrado');
+    if (modelo && !esp.ativo) throw conflict('Reative o espaço antes de usá-lo como modelo.');
+    await definirModelo(id, modelo);
+    await addLog(
+      db,
+      {
+        entidade: 'espacos',
+        registro_id: id,
+        acao: modelo ? 'espaço modelo definido' : 'deixou de ser o espaço modelo',
+        detalhe: esp.nome,
+      },
+      actor(req),
+    );
     res.json({ ok: true });
   });
 

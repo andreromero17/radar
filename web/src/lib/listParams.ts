@@ -12,9 +12,16 @@ const HIDDEN = new Set(['password', 'permissions']);
 export const filterableFields = (ent: EntityDef) =>
   ent.fields.filter((f) => !HIDDEN.has(f.type) && !f.hidden && (f.filter ?? DEFAULT_FILTER_TYPES.has(f.type)));
 
-/** Campos que podem virar coluna na listagem */
-export const listableFields = (ent: EntityDef) =>
-  ent.fields.filter((f) => !HIDDEN.has(f.type) && !f.hidden && f.type !== 'textarea');
+/** Campos que podem virar coluna na listagem, na ordem de `listOrder` (os citados primeiro) e depois na dos campos */
+export const listableFields = (ent: EntityDef) => {
+  const campos = ent.fields.filter((f) => !HIDDEN.has(f.type) && !f.hidden && f.type !== 'textarea');
+  const ordem = ent.listOrder ?? [];
+  const pos = (n: string) => (ordem.includes(n) ? ordem.indexOf(n) : ordem.length);
+  return campos
+    .map((f, i) => ({ f, i }))
+    .sort((a, b) => pos(a.f.name) - pos(b.f.name) || a.i - b.i)
+    .map((x) => x.f);
+};
 
 const BULK_TYPES = new Set(['select', 'boolean', 'relation', 'multiselect', 'date']);
 

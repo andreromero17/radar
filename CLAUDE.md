@@ -168,6 +168,8 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
   `chave` única (inclua no texto da chave o que torna o aviso único: id, mês, data). Uma notificação por usuário e
   chave (tabela `notificacoes`); verificação na manutenção diária (+ resumo por e-mail para quem pediu) e ao abrir o
   sino (10 min). Web: `components/Sino.tsx`, `pages/Notificacoes.tsx`, ajudantes em `lib/notificacoes.ts`.
+- **Tarefas diárias (0.24.0):** `registrarTarefaDiaria({ nome, horarios: ['HH:MM'], executar })` (`services/agenda.ts`),
+  registrada pelo sistema em `server/src/app/`; roda fora de um espaço (percorra `idsEspacosAtivos()` + `comEspaco`).
 - **Logs:** `addLog(db, entrada, actor)` com `diffRecord()` → coluna `alteracoes` `{ campo: { de, para } }`.
 - **Front:** `AuthContext` (`useAuth`), `RouteGuards` (`RequireAuth`, `PublicOnly`, `Guard`). A camada `lib/api.ts`
   dispara eventos em 401/TROCAR_SENHA. Relações no form usam `GET /api/:entidade/opcoes` (liberado a qualquer logado).

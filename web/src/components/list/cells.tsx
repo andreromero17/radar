@@ -55,7 +55,7 @@ export function renderCell(f: FieldDef, row: Row, inline?: InlineToggle) {
     case 'money':
       return <span className={`text-nowrap ${signClass(f, v)}`}>{fmtMoney(v)}</span>;
     case 'number':
-      return <span className={signClass(f, v)}>{Number(v).toLocaleString('pt-BR')}</span>;
+      return <span className={signClass(f, v)}>{Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 8 })}</span>;
     case 'percent':
       return fmtPercent(v);
     case 'date':

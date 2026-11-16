@@ -4,6 +4,14 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.24.0 — 16/11/2026
+
+- **Tarefas diárias em horário fixo** (`services/agenda.ts`): o sistema registra com
+  `registrarTarefaDiaria({ nome, horarios: ['19:30'], executar })` e o boot confere a cada minuto o que já passou
+  da hora e ainda não rodou hoje (ex.: buscar cotações depois do fechamento da bolsa). Falha vai para o log e não
+  derruba as outras
+- Número na listagem com até 8 casas decimais (cotas de fundo, cripto), em vez de 3
+
 ## 0.23.1 — 15/11/2026
 
 - Entidade aceita `listOrder`: a ordem das colunas da listagem pode ser diferente da do formulário

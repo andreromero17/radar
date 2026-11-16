@@ -10,6 +10,7 @@ import { activeAdmins } from './hooks/usuarios';
 import { purgeLogs } from './services/logs';
 import { createMailer } from './services/mailer';
 import { registrarPaineis } from './app/paineis';
+import { iniciarAgenda } from './services/agenda';
 import { enviarResumos, purgeNotificacoes, verificarAlertas } from './services/notificacoes';
 import { registerDemo, setupDemo } from './demo/setup';
 import { getSettings } from './services/settings';
@@ -88,6 +89,8 @@ const manutencao = async () => {
 };
 await manutencao();
 setInterval(() => manutencao().catch((err) => logger.error({ err }, 'falha na manutenção')), 86_400_000).unref();
+// tarefas diárias em horário fixo registradas pelo sistema (registrarTarefaDiaria, services/agenda.ts)
+iniciarAgenda(logger);
 
 if ((await activeAdmins(db)) === 0) {
   logger.warn('Nenhum administrador ativo. Crie um com: npm run db:admin -- seu@email.com "Seu Nome"');

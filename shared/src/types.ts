@@ -132,6 +132,11 @@ export interface EntityDef {
   icon: string;
   /** Campo usado como "nome" do registro em relações, logs e confirmações */
   labelField: string;
+  /**
+   * Na importação de OUTRA entidade que aponta para esta (relação), além do nome (`labelField`) aceita o valor
+   * destes campos — use campos únicos, como um código (ex.: ['codigo'] → "PETR4" acha o ativo "Petrobras")
+   */
+  chavesImportacao?: string[];
   fields: FieldDef[];
   /** Exclusão vai para a lixeira (coluna `excluido_em`), de onde dá para restaurar */
   lixeira?: boolean;

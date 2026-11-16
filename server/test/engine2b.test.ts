@@ -278,4 +278,29 @@ describe('importação', () => {
     expect((await ctx.admin.get('/api/demo_orcamento_itens/importar/modelo')).status).toBe(404);
     expect((await post('previa=1', 'só cabeçalho')).body).toMatchObject({ total: 0 });
   });
+
+  it('relação: nome repetido é ambíguo; chavesImportacao aceita outro campo único (ex.: código)', async () => {
+    await ctx.db('demo_categorias').insert([
+      { nome: 'Dupla', tipo: 'Despesa', cor: '#111111' },
+      { nome: 'Dupla', tipo: 'Despesa', cor: '#222222' },
+    ]);
+    const linhas = [
+      'Descrição;Data;Tipo;Categoria;Valor',
+      'a;10/11/2026;Despesa;Dupla;10',
+      'b;10/11/2026;Despesa;#222222;10',
+    ];
+    let res = await post('previa=1', linhas.join('\n'));
+    expect(res.body.linhas[0].erros.categoria_id).toMatch(/mais de um registro/);
+    expect(res.body.linhas[1].erros.categoria_id).toMatch(/não encontrado/);
+    const cat = entities.demo_categorias;
+    cat.chavesImportacao = ['cor'];
+    try {
+      res = await post('previa=1', linhas.join('\n'));
+      expect(res.body.linhas[1].erros).toEqual({});
+      const id = (await ctx.db('demo_categorias').where({ cor: '#222222' }).first()).id;
+      expect(res.body.linhas[1].dados?.categoria_id ?? id).toBe(id);
+    } finally {
+      delete cat.chavesImportacao;
+    }
+  });
 });

@@ -147,17 +147,35 @@ export function suggestMap(colunas: string[], fields: FieldDef[]) {
 }
 
 type Lookup = Map<string, Map<string, number>>;
+/** Nome repetido em mais de um registro: não dá para saber qual é */
+const AMBIGUO = -1;
 
-/** Nome → id dos registros das relações (para aceitar "Mercado" em vez do id) */
+/**
+ * Nome → id dos registros das relações (para aceitar "Mercado" em vez do id). Também aceita os campos de
+ * `chavesImportacao` da entidade apontada (ex.: código), que têm prioridade sobre o nome. Nome repetido em mais
+ * de um registro fica marcado como ambíguo (erro na linha, em vez de ligar ao registro errado).
+ */
 async function relationLookup(db: Db, fields: FieldDef[]): Promise<Lookup> {
   const out: Lookup = new Map();
   for (const f of fields) {
     const rel = f.type === 'relation' ? getEntity(f.entity) : undefined;
     if (!rel || out.has(f.entity!)) continue;
-    const q = db(f.entity!).select('id', `${rel.labelField} as label`);
+    const chaves = (rel.chavesImportacao ?? []).filter((c) => c !== rel.labelField);
+    const q = db(f.entity!).select('id', `${rel.labelField} as label`, ...chaves);
     if (rel.lixeira) q.whereNull(TRASH_COLUMN);
-    const m = new Map<string, number>();
-    for (const r of await q) m.set(norm(String(r.label ?? '')), Number(r.id));
+    const porNome = new Map<string, number>();
+    const porChave = new Map<string, number>();
+    for (const r of await q) {
+      const id = Number(r.id);
+      const nome = norm(String(r.label ?? ''));
+      porNome.set(nome, porNome.has(nome) && porNome.get(nome) !== id ? AMBIGUO : id);
+      for (const c of chaves) {
+        const v = norm(String(r[c] ?? ''));
+        if (v) porChave.set(v, porChave.has(v) && porChave.get(v) !== id ? AMBIGUO : id);
+      }
+    }
+    const m = new Map(porNome);
+    for (const [k, id] of porChave) if (id !== AMBIGUO || !m.has(k)) m.set(k, id);
     out.set(f.entity!, m);
   }
   return out;
@@ -209,6 +227,8 @@ function convert(f: FieldDef, raw: string, lookup: Lookup): { value?: unknown; e
       if (/^\d+$/.test(v)) return { value: Number(v) };
       const id = lookup.get(f.entity!)?.get(norm(v));
       const rel = getEntity(f.entity);
+      if (id === AMBIGUO)
+        return { error: `“${v}” aparece em mais de um registro de ${rel?.label ?? f.entity}: use um nome único` };
       return id ? { value: id } : { error: `“${v}” não encontrado em ${rel?.label ?? f.entity}` };
     }
     default:
@@ -374,7 +394,13 @@ export async function importTemplate(ent: EntityDef): Promise<Buffer> {
     let texto = como[f.type] ?? 'Texto';
     if (f.type === 'select') texto = `Uma destas: ${f.options?.join(', ')}`;
     if (f.type === 'multiselect') texto = `Uma ou mais, separadas por vírgula: ${f.options?.join(', ')}`;
-    if (f.type === 'relation') texto = `Nome de um registro de ${getEntity(f.entity)?.label ?? f.entity} já cadastrado`;
+    if (f.type === 'relation') {
+      const rel = getEntity(f.entity);
+      const outros = (rel?.chavesImportacao ?? [])
+        .map((c) => rel?.fields.find((x) => x.name === c)?.label?.toLowerCase())
+        .filter(Boolean);
+      texto = `Nome${outros.length ? ` (ou ${outros.join('/')})` : ''} de um registro de ${rel?.label ?? f.entity} já cadastrado`;
+    }
     info.addRow({ coluna: f.label, obrigatorio: f.required ? 'Sim' : '', como: texto });
   }
   return Buffer.from(await wb.xlsx.writeBuffer());

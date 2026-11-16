@@ -4,6 +4,13 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.25.0 — 16/11/2026
+
+- Importação: relação também pelo **código** — `chavesImportacao` na entidade apontada (ex.: `['codigo']`) faz
+  "PETR4" achar o ativo "Petrobras"; o código tem prioridade sobre o nome
+- Importação: nome repetido em mais de um registro agora dá erro na linha ("use um nome único"), em vez de ligar
+  ao registro errado sem avisar
+
 ## 0.24.0 — 16/11/2026
 
 - **Tarefas diárias em horário fixo** (`services/agenda.ts`): o sistema registra com

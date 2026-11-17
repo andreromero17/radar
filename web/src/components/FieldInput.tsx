@@ -1,6 +1,7 @@
 import { Form, InputGroup } from 'react-bootstrap';
 import { maskDocument, maskPhone, type FieldDef, type Permissions } from '@frame/shared';
 import MoneyInput from './MoneyInput';
+import NumberInput from './NumberInput';
 import PasswordInput from './PasswordInput';
 import PermissionMatrix from './PermissionMatrix';
 import ImageInput from './ImageInput';
@@ -115,14 +116,14 @@ export default function FieldInput({
       break;
     case 'number':
       input = (
-        <Form.Control
-          type="number"
-          step="any"
-          min={f.min}
-          max={f.max}
-          value={text}
-          onChange={(e) => set(e.target.value)}
-          {...common}
+        <NumberInput
+          id={id}
+          value={value as number | string | null}
+          onChange={set}
+          isInvalid={!!error}
+          disabled={isDisabled}
+          required={required}
+          aria-label={bare ? f.label : undefined}
         />
       );
       break;

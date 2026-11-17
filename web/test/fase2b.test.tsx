@@ -31,7 +31,7 @@ describe('DetailTable', () => {
     expect(screen.getByText('Itens do pedido')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Qtd.'), { target: { value: '3' } });
-    expect(onChange.mock.calls[0][0][0]).toMatchObject({ qtd: '3', valor: 15 });
+    expect(onChange.mock.calls[0][0][0]).toMatchObject({ qtd: 3, valor: 15 });
 
     fireEvent.click(screen.getByText('Adicionar linha'));
     expect(onChange.mock.calls[1][0]).toHaveLength(2);

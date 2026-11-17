@@ -4,6 +4,14 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.26.0 — 17/11/2026
+
+- **Coluna emprestada da relação** (`deRelacao: { relacao, campo }` no campo): mostra, ordena e busca na listagem um
+  campo do registro relacionado (ex.: o código do ativo numa lista de operações), sem gravar coluna nova nem
+  aparecer no formulário/importação
+- **Busca pela relação**: campo `relation` com `search: true` busca no nome e nos campos de busca do registro
+  relacionado
+
 ## 0.25.0 — 16/11/2026
 
 - Importação: relação também pelo **código** — `chavesImportacao` na entidade apontada (ex.: `['codigo']`) faz

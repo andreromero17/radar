@@ -304,3 +304,45 @@ describe('importação', () => {
     }
   });
 });
+
+describe('coluna emprestada da relação (deRelacao) e busca pela relação', () => {
+  it('mostra, ordena e busca pelo campo do registro relacionado; não vira coluna nem campo do formulário', async () => {
+    const ent = entities.demo_movimentos;
+    const original = ent.fields;
+    const rel = ent.fields.find((f) => f.name === 'categoria_id')!;
+    ent.fields = [
+      ...original.map((f) => (f.name === 'categoria_id' ? { ...f, search: true } : f)),
+      { name: 'categoria_cor', label: 'Cor', type: 'text', list: true, deRelacao: { relacao: rel.name, campo: 'cor' } },
+    ];
+    try {
+      const cat = (await ctx.db('demo_categorias').whereNotNull('cor').first()) as {
+        id: number;
+        nome: string;
+        cor: string;
+      };
+      const r = await ctx.admin.get(`/api/demo_movimentos?categoria_id=${cat.id}&pageSize=3`).expect(200);
+      expect(r.body.rows[0].categoria_cor).toBe(cat.cor);
+      // ordena pela coluna emprestada
+      await ctx.admin.get('/api/demo_movimentos?sort=categoria_cor&dir=desc&pageSize=3').expect(200);
+      // busca pelo nome da categoria (relação com search)
+      const b = await ctx.admin.get(`/api/demo_movimentos?q=${encodeURIComponent(cat.nome)}&pageSize=500`).expect(200);
+      expect(b.body.rows.length).toBeGreaterThan(0);
+      expect(
+        b.body.rows.every((x: { categoria_id__label: string; descricao: string }) =>
+          [x.categoria_id__label, x.descricao].some((t) => String(t).toLowerCase().includes(cat.nome.toLowerCase())),
+        ),
+      ).toBe(true);
+      // não é coluna da tabela
+      const diff = await computeDiff(ctx.db, { demo_movimentos: ent });
+      expect(diff.addColumns.map((c) => c.field.name)).not.toContain('categoria_cor');
+      // e não é gravada
+      const id = r.body.rows[0].id;
+      await ctx.admin
+        .put(`/api/demo_movimentos/${id}`)
+        .send({ ...r.body.rows[0], categoria_cor: 'x' })
+        .expect(200);
+    } finally {
+      ent.fields = original;
+    }
+  });
+});

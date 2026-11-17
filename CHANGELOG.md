@@ -4,6 +4,12 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.26.1 — 17/11/2026
+
+- Campo numérico aceita **vírgula decimal**: virou um campo de texto com teclado decimal no celular ("0,5", "0.5" e
+  "1.234,56"). O `type="number"` do navegador em português descartava a vírgula e "0,5" virava 5 — quantidades
+  menores que 1 (cotas, cripto) não entravam certas
+
 ## 0.26.0 — 17/11/2026
 
 - **Coluna emprestada da relação** (`deRelacao: { relacao, campo }` no campo): mostra, ordena e busca na listagem um

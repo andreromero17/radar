@@ -243,7 +243,7 @@ export default function CrudForm(props: Props) {
             <Form noValidate onSubmit={submit}>
               {sections(
                 ent.fields
-                  .filter((f) => !f.hidden && !(isNew && f.readonly) && !(!isNew && f.createOnly))
+                  .filter((f) => !f.hidden && !f.deRelacao && !(isNew && f.readonly) && !(!isNew && f.createOnly))
                   .filter((f) => !ocultos.has(f.name))
                   .filter((f) => !(readOnly && f.type === 'password')),
               ).map(([section, fields], i) => (

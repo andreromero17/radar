@@ -140,6 +140,9 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
   sempre um admin ativo, só admin gerencia admin, derrubar sessões).
 - **Campos especiais:** `password` nunca sai da API (removido em `present()` no CRUD), não é filtrável/ordenável,
   vai para o banco como hash e para o log só como "(alterada)". `permissions` é JSON normalizado.
+- **Coluna da relação (0.26.0):** campo com `deRelacao: { relacao, campo }` = coluna só de listagem vinda do registro
+  relacionado (não é gravada; fora do diff, do formulário e da importação). `relation` com `search: true` busca no
+  nome e nos campos de busca do relacionado.
 - **Motor de registros:** `server/src/services/records.ts` (listar com filtros/período/ordenação/totais, criar, editar,
   lixeira, restaurar, opções de relação) — `routes/crud.ts` só valida permissão e chama o serviço. Exportação em
   `services/export.ts`. Entidade com `lixeira: true` ganha a coluna `excluido_em` (via `tableFields` no diff).

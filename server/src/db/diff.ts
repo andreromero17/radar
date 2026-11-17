@@ -24,7 +24,11 @@ const SYSTEM_COLUMNS = new Set(['id', 'criado_em', 'atualizado_em']);
 const TRASH_FIELD: FieldDef = { name: 'excluido_em', label: 'Excluído em', type: 'datetime' };
 
 /** Colunas da tabela além das de sistema: campos da entidade (+ lixeira) */
-export const tableFields = (ent: EntityDef): FieldDef[] => (ent.lixeira ? [...ent.fields, TRASH_FIELD] : ent.fields);
+/** Colunas da tabela (as de `deRelacao` vêm da relação, não são gravadas) */
+export const tableFields = (ent: EntityDef): FieldDef[] => {
+  const proprias = ent.fields.filter((f) => !f.deRelacao);
+  return ent.lixeira ? [...proprias, TRASH_FIELD] : proprias;
+};
 /** Migrações geradas pelo diff são da aplicação (as do núcleo são escritas à mão em db/migrations) */
 const MIGRATIONS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../app/migrations');
 

@@ -10,7 +10,9 @@ const HIDDEN = new Set(['password', 'permissions']);
 
 /** Campos que aparecem no painel de filtros */
 export const filterableFields = (ent: EntityDef) =>
-  ent.fields.filter((f) => !HIDDEN.has(f.type) && !f.hidden && (f.filter ?? DEFAULT_FILTER_TYPES.has(f.type)));
+  ent.fields.filter(
+    (f) => !HIDDEN.has(f.type) && !f.hidden && !f.deRelacao && (f.filter ?? DEFAULT_FILTER_TYPES.has(f.type)),
+  );
 
 /** Campos que podem virar coluna na listagem, na ordem de `listOrder` (os citados primeiro) e depois na dos campos */
 export const listableFields = (ent: EntityDef) => {
@@ -27,7 +29,9 @@ const BULK_TYPES = new Set(['select', 'boolean', 'relation', 'multiselect', 'dat
 
 /** Campos que fazem sentido alterar em lote (categoria, status, situação...) */
 export const bulkEditableFields = (ent: EntityDef) =>
-  ent.fields.filter((f) => BULK_TYPES.has(f.type) && !f.readonly && !f.hidden && !f.createOnly && !f.dependsOn);
+  ent.fields.filter(
+    (f) => BULK_TYPES.has(f.type) && !f.readonly && !f.hidden && !f.deRelacao && !f.createOnly && !f.dependsOn,
+  );
 
 export const isRangeType = (f: FieldDef) => ['date', 'datetime', 'number', 'money', 'percent'].includes(f.type);
 
@@ -143,7 +147,7 @@ export const monthLabel = (year: number, month: number) => {
 export function presetDoFiltro(ent: EntityDef, params: URLSearchParams): string {
   const out = new URLSearchParams();
   for (const f of ent.fields) {
-    if (HIDDEN.has(f.type) || f.readonly || f.auto || f.compute || f.name === ent.periodField) continue;
+    if (HIDDEN.has(f.type) || f.readonly || f.deRelacao || f.auto || f.compute || f.name === ent.periodField) continue;
     const vals = params.getAll(f.name).filter(Boolean);
     if (vals.length !== 1 || vals[0].includes(',')) continue;
     out.set(f.name, vals[0]);

@@ -97,6 +97,9 @@ function selectWithLabels(db: Db, table: string, ent: EntityDef) {
       qb.leftJoin(`${f.entity} as j${i}`, `j${i}.id`, `${table}.${f.name}`).select(
         `j${i}.${rel.labelField} as ${f.name}__label`,
       );
+      // colunas emprestadas desta relação (deRelacao)
+      for (const v of ent.fields.filter((x) => x.deRelacao?.relacao === f.name))
+        qb.select(`j${i}.${v.deRelacao!.campo} as ${v.name}`);
     });
   return qb;
 }
@@ -121,9 +124,26 @@ export function applyFilters(db: Db, qb: Knex.QueryBuilder, table: string, ent: 
 
   const term = str(query.q);
   const searchable = fields.filter((f) => f.search);
-  if (term && searchable.length) qb.where((w) => searchable.forEach((f) => w.orWhere(col(f), like, `%${term}%`)));
+  if (term && searchable.length)
+    qb.where((w) =>
+      searchable.forEach((f) => {
+        // relação (ou coluna emprestada dela): busca no nome e nos campos de busca do registro relacionado
+        const relacao = f.deRelacao ? ent.fields.find((x) => x.name === f.deRelacao!.relacao) : f;
+        const rel = relacao?.type === 'relation' ? getEntity(relacao.entity) : undefined;
+        if (rel) {
+          const campos = [...new Set([rel.labelField, ...rel.fields.filter((x) => x.search).map((x) => x.name)])];
+          w.orWhereIn(
+            `${table}.${relacao!.name}`,
+            db(relacao!.entity!)
+              .select('id')
+              .where((s) => campos.forEach((c) => s.orWhere(c, like, `%${term}%`))),
+          );
+        } else w.orWhere(col(f), like, `%${term}%`);
+      }),
+    );
 
   for (const f of fields) {
+    if (f.deRelacao) continue; // não é coluna da tabela
     const eq = values(query[f.name]);
     if (eq.length) {
       if (f.type === 'boolean') qb.where(col(f), toDbValue(db, eq[0] === '1' || eq[0] === 'true'));
@@ -222,7 +242,8 @@ export async function listRecords(db: Db, table: string, ent: EntityDef, query: 
   const { sortField, dir } = ordenacao(ent, query);
   const sortDef = fields.find((f) => f.name === sortField);
   // relação ordena pelo nome do registro relacionado, não pelo id
-  const orderCol = sortDef?.type === 'relation' ? `${sortField}__label` : `${table}.${sortField}`;
+  const orderCol =
+    sortDef?.type === 'relation' ? `${sortField}__label` : sortDef?.deRelacao ? sortField : `${table}.${sortField}`;
 
   const escopo = <T extends Knex.QueryBuilder>(qb: T): T =>
     (opts.somenteIds ? qb.whereIn(`${table}.id`, opts.somenteIds) : qb) as T;

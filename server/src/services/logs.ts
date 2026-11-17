@@ -57,6 +57,7 @@ const SENHA = '••••••';
 export function diffRecord(ent: EntityDef, before: Row | null, after: Record<string, unknown> | null): Changes {
   const out: Changes = {};
   for (const f of ent.fields) {
+    if (f.deRelacao) continue; // vem da relação, não é deste registro
     const inBefore = before != null && f.name in before;
     const inAfter = after != null && f.name in after;
     if (!inBefore && !inAfter) continue;

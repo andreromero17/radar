@@ -87,6 +87,11 @@ export interface FieldDef {
   max?: number;
   /** money/number: valor negativo em vermelho e positivo em verde na listagem */
   signColors?: boolean;
+  /**
+   * Coluna "emprestada" de uma relação desta entidade, só para mostrar, ordenar e buscar na listagem: não é
+   * gravada, não vai para o formulário nem para a importação. Ex.: { relacao: 'ativo_id', campo: 'codigo' }
+   */
+  deRelacao?: { relacao: string; campo: string };
   /** Mostra a soma da coluna no rodapé da listagem (considera todos os filtros, não só a página) */
   total?: 'sum';
   /** Aparece no painel de filtros da listagem (padrão: campos select, multiselect, boolean, relation e data) */

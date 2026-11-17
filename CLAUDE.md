@@ -150,6 +150,7 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
 - **Anexos:** `services/anexos.ts` (tabela `anexos` + arquivos em `UPLOAD_DIR`, nome aleatório; tipo pelo nome do
   arquivo, nunca pelo navegador). Upload/importação chegam como `application/octet-stream` (`express.raw` na rota).
 - **Importação:** `services/import.ts` (CSV/XLSX → prévia → `createRecord` com `semLog` + um log de resumo).
+  Relação pelo nome (`labelField`; nome repetido = erro) ou pelos campos de `chavesImportacao` da entidade apontada.
   Texto de PDF em linhas: `services/pdf.ts` (`linhasPdf`, via `unpdf`).
 - **Telas plugáveis:** `web/src/lib/screens.ts` (`registerScreens`, `registerPage`), registradas em
   `web/src/app/screens.ts`; rotas em `pages/EntityRoutes.tsx`. `CrudList`/`CrudForm` aceitam `entity` e slots

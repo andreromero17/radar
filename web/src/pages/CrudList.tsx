@@ -24,6 +24,7 @@ import {
   paginacao,
 } from '../lib/listParams';
 import { useOrigem } from '../lib/voltar';
+import { usePreferencia } from '../lib/preferencias';
 import { periodoPadrao } from '../lib/periodoGlobal';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
@@ -192,6 +193,34 @@ export default function CrudList(props: Props) {
       ),
     [relOptions],
   );
+
+  // agrupamento (EntityDef.agrupar): títulos de grupo que abrem e fecham; fechados lembrados por usuário
+  const campoGrupo = ent?.agrupar ? ent.fields.find((f) => f.name === ent.agrupar) : undefined;
+  const [recolhidosPref, setRecolhidos] = usePreferencia<string[]>(ent?.agrupar ? `lista.${entity}.recolhidos` : null);
+  const recolhidos = useMemo(() => new Set(recolhidosPref ?? []), [recolhidosPref]);
+  const alternarGrupo = (g: string) => {
+    const n = new Set(recolhidos);
+    if (n.has(g)) n.delete(g);
+    else n.add(g);
+    void setRecolhidos([...n]);
+  };
+  const linhas = useMemo((): Row[] => {
+    if (!campoGrupo || trash || data.rows.some((r) => extraDe(r))) return data.rows;
+    const nomeGrupo = (r: Row) => {
+      const v = r[`${campoGrupo.name}__label`] ?? r[campoGrupo.name];
+      return v == null || v === '' ? '' : String(v);
+    };
+    const opcoes = (campoGrupo.options ?? []).map(String);
+    const ordem = (g: string) => (g === '' ? Infinity : opcoes.includes(g) ? opcoes.indexOf(g) : opcoes.length);
+    const grupos = new Map<string, Row[]>();
+    for (const r of data.rows) grupos.set(nomeGrupo(r), [...(grupos.get(nomeGrupo(r)) ?? []), r]);
+    return [...grupos]
+      .sort(([a], [b]) => ordem(a) - ordem(b) || a.localeCompare(b, 'pt-BR'))
+      .flatMap(([g, rs], k) => [
+        { id: -(k + 1), __grupo: g || `Sem ${campoGrupo.label.toLowerCase()}`, __chave: g, __n: rs.length },
+        ...(recolhidos.has(g) ? [] : rs),
+      ]);
+  }, [data.rows, campoGrupo, trash, recolhidos]);
 
   if (!ent) return <NotFound />;
   if (!allowed) return <Forbidden />;
@@ -614,7 +643,30 @@ export default function CrudList(props: Props) {
                 </tr>
               </thead>
               <tbody>
-                {data.rows.map((row) => {
+                {linhas.map((row) => {
+                  if ('__grupo' in row) {
+                    const aberto = !recolhidos.has(String(row.__chave));
+                    return (
+                      <tr
+                        key={`grupo-${String(row.__chave)}`}
+                        className="linha-grupo cursor-pointer"
+                        aria-expanded={aberto}
+                        onClick={() => alternarGrupo(String(row.__chave))}
+                      >
+                        <th colSpan={cols.length + (selectable ? 2 : 1)} scope="rowgroup" className="ps-4">
+                          <button
+                            type="button"
+                            className="btn-grupo"
+                            aria-label={`${aberto ? 'Recolher' : 'Expandir'} ${String(row.__grupo)}`}
+                          >
+                            <i className={`bi bi-chevron-${aberto ? 'down' : 'right'} me-2`} />
+                            {String(row.__grupo)}
+                          </button>
+                          <span className="text-muted fw-normal small ms-1">· {String(row.__n)}</span>
+                        </th>
+                      </tr>
+                    );
+                  }
                   const extra = extraDe(row);
                   if (extra?.separador)
                     return (

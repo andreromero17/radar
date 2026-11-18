@@ -2,13 +2,21 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from './api';
 
-/** [valor, gravar, carregado] — valor null enquanto não há preferência (ou ainda carregando) */
-export function usePreferencia<T>(chave: string): [T | null, (v: T | null) => Promise<void>, boolean] {
+/**
+ * [valor, gravar, carregado] — valor null enquanto não há preferência (ou ainda carregando).
+ * `chave` null: não usa preferência (nada é buscado nem gravado).
+ */
+export function usePreferencia<T>(chave: string | null): [T | null, (v: T | null) => Promise<void>, boolean] {
   const [valor, setValor] = useState<T | null>(null);
   const [carregado, setCarregado] = useState(false);
   useEffect(() => {
     let vivo = true;
     setCarregado(false);
+    if (chave == null) {
+      setValor(null);
+      setCarregado(true);
+      return;
+    }
     api
       .get<{ valor: T | null }>(`/preferencias/${encodeURIComponent(chave)}`)
       .then((r) => vivo && setValor(r.valor))
@@ -21,6 +29,7 @@ export function usePreferencia<T>(chave: string): [T | null, (v: T | null) => Pr
   const gravar = useCallback(
     async (v: T | null) => {
       setValor(v);
+      if (chave == null) return;
       await api.put(`/preferencias/${encodeURIComponent(chave)}`, { valor: v });
     },
     [chave],

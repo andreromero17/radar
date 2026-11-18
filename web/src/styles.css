@@ -1839,6 +1839,24 @@ a.bg-grad-yellow:hover {
   --bs-table-bg-state: transparent;
 }
 
+/* Título de grupo da listagem (EntityDef.agrupar): abre e fecha o grupo */
+.table-app tr.linha-grupo > th {
+  background: var(--surface-2);
+  font-weight: 600;
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+.btn-grupo {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+.btn-grupo .bi {
+  color: var(--text-muted);
+}
+
 /* ---------- painéis (widgets) ---------- */
 .ranking-trilho {
   height: 0.5rem;

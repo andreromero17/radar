@@ -4,6 +4,13 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.27.0 — 18/11/2026
+
+- **Listagem agrupada**: `EntityDef.agrupar` (ex.: `'classe'`) mostra um título por grupo, com a quantidade, que abre e
+  fecha com um clique; o que ficou fechado é lembrado por usuário (`lista.<entidade>.recolhidos`). Em `select`, os
+  grupos seguem a ordem das opções; vazio vai por último ("Sem <rótulo>")
+- `usePreferencia(null)`: não busca nem grava (para preferência condicional)
+
 ## 0.26.1 — 17/11/2026
 
 - Campo numérico aceita **vírgula decimal**: virou um campo de texto com teclado decimal no celular ("0,5", "0.5" e

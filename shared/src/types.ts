@@ -142,6 +142,11 @@ export interface EntityDef {
    * destes campos — use campos únicos, como um código (ex.: ['codigo'] → "PETR4" acha o ativo "Petrobras")
    */
   chavesImportacao?: string[];
+  /**
+   * Listagem agrupada por este campo (ex.: 'classe'): um título por grupo, com a quantidade, que abre e fecha (o que
+   * ficou fechado é lembrado por usuário). Em `select`, os grupos seguem a ordem das opções; vazio = "Sem <rótulo>".
+   */
+  agrupar?: string;
   fields: FieldDef[];
   /** Exclusão vai para a lixeira (coluna `excluido_em`), de onde dá para restaurar */
   lixeira?: boolean;

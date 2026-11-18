@@ -83,6 +83,11 @@ export function activeFilters(
     const contem = params.get(`${f.name}__contem`);
     if (contem) out.push({ keys: [`${f.name}__contem`], text: `${f.label} contém “${contem}”` });
   }
+  for (const x of ent.filtrosExtras ?? []) {
+    const v = params.get(x.name);
+    const o = v ? x.opcoes.find((op) => op.value === v) : undefined;
+    if (o) out.push({ keys: [x.name], text: `${x.label}: ${o.label}` });
+  }
   return out;
 }
 

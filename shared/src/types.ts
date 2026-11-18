@@ -126,6 +126,15 @@ export interface DetailDef {
   sum?: Record<string, string>;
 }
 
+export interface FiltroExtra {
+  name: string;
+  label: string;
+  /** Rótulo da opção vazia (o comportamento padrão), ex.: "Ocultar" */
+  padrao: string;
+  opcoes: { value: string; label: string }[];
+  help?: string;
+}
+
 export interface EntityDef {
   /** Nome no plural (menu, título da lista) */
   label: string;
@@ -147,6 +156,12 @@ export interface EntityDef {
    * ficou fechado é lembrado por usuário). Em `select`, os grupos seguem a ordem das opções; vazio = "Sem <rótulo>".
    */
   agrupar?: string;
+  /**
+   * Filtros que não são campo da entidade — para as linhas extras do sistema (`listExtras`): aparecem no painel de
+   * filtros e nos filtros ativos e vão na URL; a consulta dos registros os ignora, o hook decide o que fazer.
+   * Valor vazio = o padrão (rótulo em `padrao`).
+   */
+  filtrosExtras?: FiltroExtra[];
   fields: FieldDef[];
   /** Exclusão vai para a lixeira (coluna `excluido_em`), de onde dá para restaurar */
   lixeira?: boolean;

@@ -1,4 +1,9 @@
-# Sistema
+# Radar
 
-Documentação do sistema construído sobre o frame (o README da raiz é o do frame).
-Num sistema derivado, descreva aqui o que ele faz, como usar e o que é específico dele.
+Monitoramento comercial de contas-alvo, concorrentes e pessoas-chave no LinkedIn, construído sobre o frame-app.
+Contexto e regras em `docs/app/CLAUDE.md`; histórico em `docs/app/CHANGELOG.md`.
+
+## Rodar no Mac
+
+    npm run setup     # instala, cria server/.env, migra e carrega os dados do piloto
+    npm run dev       # abre em http://localhost:5173 — admin@sistema.com / admin123

@@ -4,6 +4,12 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.28.0 — 18/11/2026
+
+- **Filtros extras** (`EntityDef.filtrosExtras`): filtro que não é campo da entidade, para as linhas extras do sistema
+  (`listExtras`) — opção no painel de filtros (com o rótulo do padrão), chip nos filtros ativos e parâmetro na URL;
+  a consulta dos registros o ignora e o hook decide
+
 ## 0.27.0 — 18/11/2026
 
 - **Listagem agrupada**: `EntityDef.agrupar` (ex.: `'classe'`) mostra um título por grupo, com a quantidade, que abre e

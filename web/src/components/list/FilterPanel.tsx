@@ -36,6 +36,7 @@ export default function FilterPanel({ show, onHide, ent, params, onApply, relOpt
       if (['text', 'email', 'textarea', 'document', 'phone'].includes(f.type))
         d[`${f.name}__contem`] = params.get(`${f.name}__contem`) ?? '';
     }
+    for (const x of ent.filtrosExtras ?? []) d[x.name] = params.get(x.name) ?? '';
     setDraft(d);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show]);
@@ -97,7 +98,9 @@ export default function FilterPanel({ show, onHide, ent, params, onApply, relOpt
             apply();
           }}
         >
-          {fields.length === 0 && <p className="text-muted">Esta tela não tem filtros além da busca.</p>}
+          {fields.length === 0 && !ent.filtrosExtras?.length && (
+            <p className="text-muted">Esta tela não tem filtros além da busca.</p>
+          )}
           {fields.map((f) => (
             <Form.Group key={f.name} className="mb-3">
               <Form.Label className="fw-semibold small">{f.label}</Form.Label>
@@ -163,6 +166,26 @@ export default function FilterPanel({ show, onHide, ent, params, onApply, relOpt
                   onChange={(e) => set(`${f.name}__contem`, e.target.value)}
                 />
               )}
+            </Form.Group>
+          ))}
+          {(ent.filtrosExtras ?? []).map((x) => (
+            <Form.Group key={x.name} className="mb-3">
+              <Form.Label className="fw-semibold small" htmlFor={`filtro-${x.name}`}>
+                {x.label}
+              </Form.Label>
+              <Form.Select
+                id={`filtro-${x.name}`}
+                value={(draft[x.name] as string) ?? ''}
+                onChange={(e) => set(x.name, e.target.value)}
+              >
+                <option value="">{x.padrao}</option>
+                {x.opcoes.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </Form.Select>
+              {x.help && <Form.Text className="text-muted">{x.help}</Form.Text>}
             </Form.Group>
           ))}
           <button type="submit" hidden />

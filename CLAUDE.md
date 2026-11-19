@@ -140,6 +140,8 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
   sempre um admin ativo, só admin gerencia admin, derrubar sessões).
 - **Campos especiais:** `password` nunca sai da API (removido em `present()` no CRUD), não é filtrável/ordenável,
   vai para o banco como hash e para o log só como "(alterada)". `permissions` é JSON normalizado.
+- **Filtros extras (0.28.0):** `EntityDef.filtrosExtras` = filtro só de URL (painel e chips) para as linhas extras do
+  `listExtras`; os registros o ignoram.
 - **Listagem agrupada (0.27.0):** `EntityDef.agrupar` = campo (de preferência `select`) que agrupa a listagem em títulos
   que abrem e fecham (preferência `lista.<entidade>.recolhidos`); desligado na lixeira e com linhas extras.
 - **Coluna da relação (0.26.0):** campo com `deRelacao: { relacao, campo }` = coluna só de listagem vinda do registro

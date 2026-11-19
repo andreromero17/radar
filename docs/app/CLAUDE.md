@@ -41,6 +41,13 @@ PR no frame-app.
 
 ## Onde está cada coisa
 
+- Pipedrive (0.2.0): `server/src/app/pipedrive/` — `cliente.ts` (API v2 para organizações/pessoas, v1 para campos e
+  usuários; token só no cabeçalho `x-api-token`; contexto trocável nos testes com `definirContextoPipedrive`),
+  `sincronizar.ts` (regras de upsert; campos Segmento/Tier/LinkedIn achados pelo nome), `index.ts` (status em
+  memória, tarefa diária `radar.pipedrive` às 06:30). Rotas `GET /api/radar/pipedrive/status` e
+  `POST /api/radar/pipedrive/sincronizar` (`empresas`/`criar`). Botão em `web/src/app/components/SincronizarPipedrive.tsx`
+  na tela `web/src/app/pages/Empresas.tsx`. Configurações em `shared/src/app/settings.ts`. Testes `radar020.test.ts`.
+
 - Dados do piloto (19/11/2026): `server/src/app/dados/piloto.json`, carregados por `app/services/piloto.ts`
   (`importarPiloto`, idempotente) no seed e pelo script `server/src/app/scripts/importar-piloto.ts [--espaco N]`.
 - Testes: `server/test/radar*.test.ts`, `shared/test/radar.test.ts`.
@@ -48,7 +55,6 @@ PR no frame-app.
 
 ## Próximas entregas
 
-- 0.2.0 — Pipedrive: token no `.env`, sincronização de contas-alvo (filtro configurável) e pessoas com LinkedIn.
 - 0.3.0 — Coleta diária no Apify (`registrarTarefaDiaria`), com conferência de autoria, custos em `coletas` e
   alertas de troca de cargo/empresa.
 - 0.4.0 — Telas próprias do esboço: abas Contas-alvo/Concorrentes no topo, visão geral de cada universo, caixa de

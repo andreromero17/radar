@@ -1,5 +1,11 @@
 # Changelog do Radar
 
+## 0.4.2 — 20/11/2026
+
+- Comparativo de concorrentes com o mesmo indicador de ordenação das listas do frame (coluna ativa em destaque com
+  seta; nas outras, a seta aparece ao passar o mouse).
+- Cadastro da empresa mostra o logo em uso: o enviado ou, sem ele, o baixado da página do LinkedIn.
+
 ## 0.4.1 — 20/11/2026
 
 - **Assuntos** em todo post (13 assuntos: IA e agentes, Dados e analytics, Cloud, Segurança, ERP e plataformas,

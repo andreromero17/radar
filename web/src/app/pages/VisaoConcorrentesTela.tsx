@@ -112,28 +112,35 @@ export default function VisaoConcorrentesTela({ d }: { d: VisaoConcorrentes }) {
         <Card.Header className="d-flex justify-content-between align-items-center flex-wrap gap-2">
           <span className="fw-semibold">Comparativo</span>
           <span className="small text-muted">
-            Engajamento = interações por post ÷ seguidores · setas: período anterior
+            Clique no título da coluna para ordenar · na empresa, para ver tudo dela
           </span>
         </Card.Header>
         <div className="table-responsive">
-          <Table hover className="mb-0 radar-tabela">
+          <Table hover className="mb-0 radar-tabela table-app">
             <thead>
               <tr>
-                {COLUNAS.map((c) => (
-                  <th
-                    key={c.chave}
-                    className={c.chave === 'nome' ? undefined : 'text-end'}
-                    role="button"
-                    title={c.dica}
-                    aria-sort={ordem.chave === c.chave ? (ordem.desc ? 'descending' : 'ascending') : undefined}
-                    onClick={() => ordenar(c.chave)}
-                    style={{ cursor: 'pointer', userSelect: 'none' }}
-                  >
-                    {c.rotulo}
-                    {c.dica && <i className="bi bi-info-circle ms-1 opacity-50" />}
-                    {ordem.chave === c.chave && <i className={`bi bi-caret-${ordem.desc ? 'down' : 'up'}-fill ms-1`} />}
-                  </th>
-                ))}
+                {COLUNAS.map((c) => {
+                  const ativa = ordem.chave === c.chave;
+                  return (
+                    <th
+                      key={c.chave}
+                      className={`sortable${c.chave === 'nome' ? '' : ' text-end'}${ativa ? ' sorted' : ''}`}
+                      role="button"
+                      title={c.dica ? `${c.dica} · clique para ordenar` : 'Clique para ordenar'}
+                      aria-sort={ativa ? (ordem.desc ? 'descending' : 'ascending') : undefined}
+                      onClick={() => ordenar(c.chave)}
+                      style={{ cursor: 'pointer', userSelect: 'none' }}
+                    >
+                      {c.rotulo}
+                      {c.dica && <i className="bi bi-info-circle ms-1 opacity-50" />}
+                      {ativa ? (
+                        <i className={`bi bi-arrow-${ordem.desc ? 'down' : 'up'} ms-1`} />
+                      ) : (
+                        <i className="bi bi-arrow-down-up ms-1 sort-idle" />
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>

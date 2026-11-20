@@ -23,6 +23,48 @@ export const TIPOS_ALERTA = [
 ] as const;
 export const SITUACOES_ALERTA = ['Aberto', 'Resolvido', 'Ignorado'] as const;
 export const SITUACOES_COLETA = ['Rodando', 'Ok', 'Erro'] as const;
+/** Pessoas sugeridas pelo Apollo (0.5.0) */
+export const SITUACOES_SUGESTAO = ['Sugerida', 'Aprovada', 'Descartada'] as const;
+export const AREAS_PESSOA = ['Executivo', 'TI', 'Marketing', 'Comercial', 'RH'] as const;
+export type AreaPessoa = (typeof AREAS_PESSOA)[number];
+
+/**
+ * Área de um cargo (pessoas relevantes do Apollo): C-level/sócios = Executivo; diretoria e gerência só de TI,
+ * Marketing, Comercial e RH. Fora disso, null (não é sugerida). A ordem importa: "Desenvolvimento de negócios" é
+ * Comercial, não TI; "Product Marketing" é Marketing.
+ */
+export function areaDoCargo(cargo: string | null | undefined): AreaPessoa | null {
+  const c = ` ${(cargo ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')} `;
+  if (!c.trim()) return null;
+  if (
+    /\b(CHRO|CPO)\b/.test(c) ||
+    /\b(rh|recursos humanos|human|people|pessoas|talent|talentos|recrutamento|cultura)\b/i.test(c)
+  )
+    return 'RH';
+  if (/\bCMO\b/.test(c) || /\b(marketing|marca|brand|growth|comunicacao)\b/i.test(c)) return 'Marketing';
+  if (
+    /\b(CRO|CCO|CSO)\b/.test(c) ||
+    /\b(comercial|vendas|sales|negocios|business development|revenue|receita|clientes|customer|parcerias|aliancas|alliances|key account)\b/i.test(
+      c,
+    )
+  )
+    return 'Comercial';
+  if (
+    /\b(CIO|CTO|CDO|CISO|CTIO)\b/.test(c) ||
+    /\b(ti|it|tecnologia|technology|sistemas|systems|engenharia|engineering|software|infraestrutura|infrastructure|dados|data|digital|seguranca|security|arquitetura|desenvolvimento|development|produto|product|inovacao|innovation)\b/i.test(
+      c,
+    )
+  )
+    return 'TI';
+  if (
+    /\b(CEO|COO|CFO|CXO)\b/.test(c) ||
+    /\b(fundador|fundadora|founder|co-founder|cofounder|socio|socia|presidente|president|owner|managing partner|diretor geral|diretora geral|general manager|country manager|managing director)\b/i.test(
+      c,
+    )
+  )
+    return 'Executivo';
+  return null;
+}
 
 /** Tipos de sinal por universo: código usado pela classificação → rótulo das telas */
 export const SINAIS_POR_UNIVERSO: Record<Universo, Record<string, string>> = {
@@ -105,6 +147,10 @@ export interface LinhaComparativo extends EmpresaResumo {
   engajamento: number | null;
   /** Vagas publicadas no LinkedIn nos últimos 30 dias (última busca semanal) */
   vagas: number | null;
+  /** Colaboradores no LinkedIn (aba Pessoas da página, última medição semanal) */
+  colaboradores: number | null;
+  /** Variação de colaboradores no período (desde a medição do início dele ou a primeira que houver) */
+  colaboradores_var: number | null;
   movimentos: number;
   alta: number;
   ultimo_post: string | null;
@@ -175,6 +221,18 @@ export interface DetalheEmpresa {
     segmento: string | null;
     tier: string | null;
     uf: string | null;
+    /** Dados do Apollo (0.4.6); null = ainda não enriquecida */
+    apollo: {
+      funcionarios: number | null;
+      setor: string | null;
+      faturamento: string | null;
+      fundacao: number | null;
+      local: string | null;
+      investimento: string | null;
+      tecnologias: string | null;
+      descricao: string | null;
+      enriquecido_em: string;
+    } | null;
   };
   periodo: { de: string; ate: string; dias: number };
   kpis: {
@@ -187,6 +245,10 @@ export interface DetalheEmpresa {
     alta: number;
     seguidores_var: number | null;
     vagas: number | null;
+    colaboradores: number | null;
+    colaboradores_var: number | null;
+    /** Data da medição usada como base da variação */
+    colaboradores_desde: string | null;
   };
   seguidores: { data: string; seguidores: number }[];
   semanas: { inicio: string; n: number }[];

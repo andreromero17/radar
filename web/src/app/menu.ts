@@ -16,6 +16,12 @@ export const appMenu: MenuItem[] = [
         to: '/alertas_cadastro',
         perm: ['alertas_cadastro', 'ver'],
       },
+      {
+        label: 'Pessoas sugeridas',
+        icon: 'person-plus',
+        to: '/pessoas-sugeridas',
+        perm: ['pessoas', 'criar'],
+      },
       { label: 'Execuções', icon: 'clock-history', to: '/coletas', perm: ['coletas', 'ver'] },
     ],
   },

@@ -71,7 +71,7 @@ function ufDe(org: Org): string | null {
 export function nivelDoCargo(cargo: string | null | undefined): string | null {
   const c = cargo ?? '';
   if (!c.trim()) return null;
-  if (/\b(CIO|CTO|CDO|CEO|COO|CFO|CISO)\b/.test(c)) return 'C-level';
+  if (/\b(CIO|CTO|CDO|CEO|COO|CFO|CISO|CMO|CRO|CCO|CHRO|CPO|CSO)\b/.test(c)) return 'C-level';
   if (/diretor|director|superintend|head|vp\b|vice.?presid/i.test(c)) return 'Diretoria';
   if (/gerente|manager|gestor/i.test(c)) return 'Gerência';
   if (/coordenad|tech lead|l[ií]der/i.test(c)) return 'Coordenação';

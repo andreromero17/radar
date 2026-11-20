@@ -29,6 +29,7 @@ type Chave = keyof Pick<
   | 'comentarios_post'
   | 'compartilhamentos_post'
   | 'engajamento'
+  | 'colaboradores'
   | 'vagas'
   | 'movimentos'
   | 'alta'
@@ -50,6 +51,11 @@ const COLUNAS: { chave: Chave; rotulo: string; dica?: string }[] = [
     chave: 'engajamento',
     rotulo: 'Engajamento',
     dica: 'Interações (curtidas + comentários + compartilhamentos) por post ÷ seguidores',
+  },
+  {
+    chave: 'colaboradores',
+    rotulo: 'Colaboradores',
+    dica: 'Pessoas que trabalham lá segundo o LinkedIn (aba Pessoas); ao lado, a variação no período',
   },
   { chave: 'vagas', rotulo: 'Vagas', dica: 'Vagas publicadas no LinkedIn nos últimos 30 dias (busca semanal)' },
   {
@@ -195,6 +201,15 @@ export default function VisaoConcorrentesTela({ d }: { d: VisaoConcorrentes }) {
                   <td className="text-end">{num(l.comentarios_post)}</td>
                   <td className="text-end">{num(l.compartilhamentos_post)}</td>
                   <td className="text-end">{l.engajamento == null ? '—' : `${num(l.engajamento, 2)}%`}</td>
+                  <td className="text-end">
+                    {compacto(l.colaboradores)}
+                    {l.colaboradores_var != null && l.colaboradores_var !== 0 && (
+                      <span className={l.colaboradores_var > 0 ? 'radar-var-up ms-1' : 'radar-var-down ms-1'}>
+                        {l.colaboradores_var > 0 ? '+' : ''}
+                        {l.colaboradores_var}
+                      </span>
+                    )}
+                  </td>
                   <td className="text-end">{l.vagas ?? '—'}</td>
                   <td className="text-end">{l.movimentos || '—'}</td>
                   <td className="text-end">

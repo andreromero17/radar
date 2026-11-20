@@ -173,11 +173,12 @@ export async function visaoConcorrentes(db: Db, dias = 30): Promise<VisaoConcorr
   const metricas = (await db('metricas_empresas')
     .whereIn('empresa_id', ids)
     .orderBy('data', 'asc')
-    .select('empresa_id', 'data', 'seguidores', 'vagas')) as {
+    .select('empresa_id', 'data', 'seguidores', 'vagas', 'funcionarios')) as {
     empresa_id: number;
     data: string;
     seguidores: number | null;
     vagas: number | null;
+    funcionarios: number | null;
   }[];
 
   const noPeriodo = (x: Pub) => !!x.data_publicacao && x.data_publicacao >= p.de;
@@ -205,6 +206,13 @@ export async function visaoConcorrentes(db: Db, dias = 30): Promise<VisaoConcorr
       compartilhamentos_post: media(soma('compartilhamentos'), proprios.length),
       engajamento: porPost != null && e.seguidores ? Math.round((porPost / e.seguidores) * 10000) / 100 : null,
       vagas: metricas.filter((m) => m.empresa_id === e.id && m.vagas != null).at(-1)?.vagas ?? null,
+      ...(() => {
+        const c = colaboradoresNoPeriodo(
+          metricas.filter((m) => m.empresa_id === e.id),
+          p.de,
+        );
+        return { colaboradores: c.atual, colaboradores_var: c.variacao };
+      })(),
       movimentos: sinaisE.length,
       alta: sinaisE.filter((s) => s.severidade === 'Alta').length,
       ultimo_post:
@@ -380,6 +388,22 @@ export async function visaoContas(db: Db, dias = 30): Promise<VisaoContas> {
   };
 }
 
+/**
+ * Colaboradores no LinkedIn (aba Pessoas): a última medição e a variação no período — a base é a última medição
+ * até o início do período ou, sem ela, a primeira que houver (a coleta semanal começou depois).
+ */
+export function colaboradoresNoPeriodo(
+  metricas: { data: string; funcionarios: number | null }[],
+  de: string,
+): { atual: number | null; variacao: number | null; desde: string | null } {
+  const hist = metricas.filter((m) => m.funcionarios != null).sort((a, b) => a.data.localeCompare(b.data));
+  const ultima = hist.at(-1);
+  if (!ultima) return { atual: null, variacao: null, desde: null };
+  const base = hist.filter((m) => m.data <= de).at(-1) ?? hist[0];
+  if (base === ultima) return { atual: ultima.funcionarios, variacao: null, desde: null };
+  return { atual: ultima.funcionarios, variacao: ultima.funcionarios! - base.funcionarios!, desde: base.data };
+}
+
 /** Página da empresa: tudo do período (posts, assuntos, engajamento, seguidores, sinais e pessoas-chave) */
 export async function detalheEmpresa(db: Db, id: number, dias = 90): Promise<DetalheEmpresa | null> {
   await garantirAssuntos(db);
@@ -390,7 +414,7 @@ export async function detalheEmpresa(db: Db, id: number, dias = 90): Promise<Det
         segmento: string | null;
         tier: string | null;
         uf: string | null;
-      })
+      } & Record<string, unknown>)
     | undefined;
   if (!e) return null;
   const p = periodoDe(dias);
@@ -481,6 +505,13 @@ export async function detalheEmpresa(db: Db, id: number, dias = 90): Promise<Det
       sinal: s ? { id: s.id, tipo: s.tipo, severidade: s.severidade } : null,
     };
   };
+  const colab = colaboradoresNoPeriodo(
+    (await db('metricas_empresas').where('empresa_id', id).select('data', 'funcionarios')) as {
+      data: string;
+      funcionarios: number | null;
+    }[],
+    p.de,
+  );
   const vagasMetrica = (await db('metricas_empresas')
     .where('empresa_id', id)
     .whereNotNull('vagas')
@@ -503,6 +534,19 @@ export async function detalheEmpresa(db: Db, id: number, dias = 90): Promise<Det
       segmento: e.segmento,
       tier: e.tier,
       uf: e.uf,
+      apollo: e.apollo_enriquecido_em
+        ? {
+            funcionarios: (e.apollo_funcionarios as number | null) ?? null,
+            setor: (e.apollo_setor as string | null) ?? null,
+            faturamento: (e.apollo_faturamento as string | null) ?? null,
+            fundacao: (e.apollo_fundacao as number | null) ?? null,
+            local: (e.apollo_local as string | null) ?? null,
+            investimento: (e.apollo_investimento as string | null) ?? null,
+            tecnologias: (e.apollo_tecnologias as string | null) ?? null,
+            descricao: (e.apollo_descricao as string | null) ?? null,
+            enriquecido_em: String(e.apollo_enriquecido_em),
+          }
+        : null,
     },
     periodo: { de: p.de, ate: p.ate, dias },
     kpis: {
@@ -516,6 +560,9 @@ export async function detalheEmpresa(db: Db, id: number, dias = 90): Promise<Det
       alta: sinais.filter((s) => s.severidade === 'Alta').length,
       seguidores_var: base && ultima ? ultima.seguidores - base.seguidores : null,
       vagas: vagasMetrica?.vagas ?? null,
+      colaboradores: colab.atual,
+      colaboradores_var: colab.variacao,
+      colaboradores_desde: colab.desde,
     },
     seguidores: hist,
     semanas: porSemana(

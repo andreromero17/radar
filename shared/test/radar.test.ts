@@ -55,3 +55,26 @@ describe('assuntos', () => {
     expect(assuntosDoTexto(null)).toEqual([]);
   });
 });
+
+describe('areaDoCargo (pessoas relevantes do Apollo)', () => {
+  it('classifica pela área e deixa de fora o que não interessa', async () => {
+    const { areaDoCargo } = await import('../src/app/radar');
+    const casos: [string, string | null][] = [
+      ['CTO', 'TI'],
+      ['Diretora de Tecnologia', 'TI'],
+      ['Head of Engineering', 'TI'],
+      ['Gerente de Desenvolvimento de Negócios', 'Comercial'],
+      ['Sales Director', 'Comercial'],
+      ['Product Marketing Manager', 'Marketing'],
+      ['CMO', 'Marketing'],
+      ['Head of People', 'RH'],
+      ['Gerente de Recursos Humanos', 'RH'],
+      ['CEO & Founder', 'Executivo'],
+      ['Sócio-diretor', 'Executivo'],
+      ['Gerente Financeiro', null],
+      ['Gerente Jurídico', null],
+      ['', null],
+    ];
+    for (const [cargo, area] of casos) expect([cargo, areaDoCargo(cargo)]).toEqual([cargo, area]);
+  });
+});

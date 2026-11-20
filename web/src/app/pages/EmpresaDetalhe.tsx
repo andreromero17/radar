@@ -6,6 +6,7 @@ import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
 import { useAuth } from '../../context/AuthContext';
 import { api, errorMessage } from '../../lib/api';
+import ApolloEmpresa from '../components/ApolloEmpresa';
 import LogoEmpresa from '../components/LogoEmpresa';
 import { Barras } from '../components/Graficos';
 import { compacto, dataCurta } from '../lib/universo';
@@ -80,6 +81,7 @@ export default function EmpresaDetalhe() {
   const [erro, setErro] = useState<string | null>(null);
   const [severidade, setSeveridade] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [recarga, setRecarga] = useState(0);
   const { can } = useAuth();
 
   async function refazerHistorico() {
@@ -103,7 +105,7 @@ export default function EmpresaDetalhe() {
     return () => {
       vivo = false;
     };
-  }, [id, dias]);
+  }, [id, dias, recarga]);
 
   if (erro) return <Alert variant="danger">{erro}</Alert>;
   if (!d || String(d.empresa.id) !== id)
@@ -192,7 +194,7 @@ export default function EmpresaDetalhe() {
       </Card>
 
       <Row className="g-3 mb-3">
-        <Col sm={6} xl>
+        <Col sm={6} lg={3}>
           <StatCard
             label={
               k.seguidores_var
@@ -204,7 +206,7 @@ export default function EmpresaDetalhe() {
             color="teal"
           />
         </Col>
-        <Col sm={6} xl>
+        <Col sm={6} lg={3}>
           <StatCard
             label={`Posts próprios (antes: ${k.posts_anterior})`}
             value={k.posts}
@@ -212,10 +214,10 @@ export default function EmpresaDetalhe() {
             color="blue"
           />
         </Col>
-        <Col sm={6} xl>
+        <Col sm={6} lg={3}>
           <StatCard label="Interações por post" value={num(k.interacoes_post)} icon="hand-thumbs-up" color="purple" />
         </Col>
-        <Col sm={6} xl>
+        <Col sm={6} lg={3}>
           <StatCard
             label="Engajamento"
             value={k.engajamento == null ? '—' : `${num(k.engajamento, 2)}%`}
@@ -223,11 +225,26 @@ export default function EmpresaDetalhe() {
             color="amber"
           />
         </Col>
-        <Col sm={6} xl>
+        <Col sm={6} lg={3}>
           <StatCard label={`Sinais (${k.alta} alta)`} value={k.sinais} icon="lightning-charge" color="red" />
         </Col>
-        <Col sm={6} xl>
+        <Col sm={6} lg={3}>
+          <StatCard
+            label={
+              k.colaboradores_var
+                ? `Colaboradores (${k.colaboradores_var > 0 ? '+' : ''}${k.colaboradores_var} desde ${dataCurta(k.colaboradores_desde)})`
+                : 'Colaboradores no LinkedIn'
+            }
+            value={compacto(k.colaboradores)}
+            icon="person-badge"
+            color="blue"
+          />
+        </Col>
+        <Col sm={6} lg={3}>
           <StatCard label="Vagas (30 dias)" value={k.vagas ?? '—'} icon="briefcase" color="green" />
+        </Col>
+        <Col sm={6} lg={3}>
+          <StatCard label="Pessoas monitoradas" value={d.pessoas.length} icon="person-lines-fill" color="teal" />
         </Col>
       </Row>
 
@@ -341,6 +358,13 @@ export default function EmpresaDetalhe() {
           </Card>
         </Col>
       </Row>
+
+      <ApolloEmpresa
+        empresaId={e.id}
+        apollo={e.apollo}
+        temSite={!!e.site}
+        onEnriquecida={() => setRecarga((r) => r + 1)}
+      />
 
       {d.vagas.length > 0 && (
         <Card className="card-app mb-3">

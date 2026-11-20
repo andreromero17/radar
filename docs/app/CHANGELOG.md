@@ -1,5 +1,20 @@
 # Changelog do Radar
 
+## 0.4.6 — 20/11/2026
+
+- **Colaboradores no LinkedIn** (o número da aba Pessoas, já lido na coleta semanal das páginas): coluna no
+  comparativo dos concorrentes (ordenável, com a variação no período) e indicador na página da empresa, que passou a
+  ter 8 indicadores (novo: Pessoas monitoradas).
+- **Apollo** (chave mestra `APOLLO_API_KEY` no `.env`):
+  - **Enriquecer** empresa (1 crédito): funcionários estimados, setor, faturamento, fundação, sede, investimento,
+    tecnologias e descrição; completa o LinkedIn quando vazio. Por empresa (quadro "Apollo" na página dela) ou em lote
+    por universo (fora as enriquecidas nos últimos 90 dias).
+  - **Buscar pessoas** (sem custo): C-level e sócios, TI, Marketing, Comercial e RH (diretoria e gerência) viram
+    **pessoas sugeridas**; quem já foi sugerido ou descartado não volta.
+  - **Aprovar** (créditos por pessoa): traz o nome completo e o LinkedIn — nunca e-mail nem telefone — e cadastra
+    como pessoa monitorada do Radar (se o LinkedIn já existe, só liga). Nada vai para o Pipedrive.
+  - Tela **Coleta › Pessoas sugeridas** e quadro na página da empresa.
+
 ## 0.4.5 — 20/11/2026
 
 - Correção: empresas e pessoas cadastradas antes da 0.4.4 que já tinham passado por uma coleta com a janela curta

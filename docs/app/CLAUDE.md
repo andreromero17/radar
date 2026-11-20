@@ -38,7 +38,8 @@ PR no frame-app.
 - Empresa/pessoa na lixeira é decisão do usuário: a sincronização com o Pipedrive e a coleta não a recriam nem
   atualizam.
 - A coleta é idempotente: publicação pelo `id_externo`; rodar duas vezes não duplica.
-- Token do Apify, do Pipedrive e de LLM só no `.env` (frame: segredos nunca na tabela de configurações).
+- Apollo: nunca pedir e-mail nem telefone; pessoa só entra no Radar aprovada pelo usuário.
+- Token do Apify, do Pipedrive, do Apollo e de LLM só no `.env` (frame: segredos nunca na tabela de configurações).
 - Dados pessoais só de perfis públicos e só os campos do modelo.
 
 ## Onde está cada coisa
@@ -57,6 +58,13 @@ PR no frame-app.
 - Vagas (0.4.3): `coleta/vagas.ts` (`coletarVagas`, ator `piotrv1001/linkedin-company-jobs-scraper`, 30 dias, sem
   detalhe), roda depois de `coletarPaginas` no tipo 'paginas'; vagas = `publicacoes.tipo = 'Vaga'` (`id_externo`
   "vaga:<id>") e `metricas_empresas.vagas`. Toda conta de posts na visão geral filtra `tipo = 'Post'`.
+- Apollo (0.4.6): `server/src/app/apollo/` — `cliente.ts` (chave mestra `APOLLO_API_KEY` no cabeçalho `x-api-key`;
+  contexto trocável com `definirContextoApollo`), `index.ts` (enriquecer pelo domínio do site = 1 crédito, campos
+  `empresas.apollo_*`; buscar pessoas `mixed_people/api_search` = 0 crédito → `sugestoes_pessoas` filtradas por
+  `areaDoCargo` (shared); aprovar = `people/bulk_match` sem e-mail/telefone → `pessoas`). Nada do Apollo vai para o
+  Pipedrive. Rotas `/api/radar/apollo/*`; telas `pages/PessoasSugeridas.tsx`, `components/ApolloEmpresa.tsx`,
+  `components/SugestoesPessoas.tsx`. Testes `radar050.test.ts`. Colaboradores = `metricas_empresas.funcionarios`
+  (`colaboradoresNoPeriodo` em `services/visao.ts`).
 - 0.4.5: janela de 30 dias para fonte sem `historico_posts_em` (empresas/pessoas; marcada ao fim da coleta OK ou se
   já tem post com mais de 20 dias; `POST /api/radar/empresas/:id/refazer-historico` limpa). 0.4.4: `publicacoes.universo` copiado
   da empresa (`atualizarUniversoDasPublicacoes`: na visão geral, depois da coleta e no `afterSave` de empresas);
@@ -83,6 +91,6 @@ PR no frame-app.
 
 ## Próximas entregas
 
-- 0.4.6 — Caixa de sinais com avaliação, detalhe da empresa e da pessoa, lista de pessoas com "Precisa de atenção".
+- 0.4.7 — Caixa de sinais com avaliação, detalhe da empresa e da pessoa, lista de pessoas com "Precisa de atenção".
 - 0.5.0 — Classificação com LLM e envio de notas/atividades ao Pipedrive.
 - Depois: Driva, sites e portais de negócios, Instagram e Facebook (roadmap da proposta).

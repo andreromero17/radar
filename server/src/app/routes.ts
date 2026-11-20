@@ -17,6 +17,18 @@ import {
 import { sincronizarERegistrar, statusPipedrive } from './pipedrive';
 import { detalheEmpresa, visaoConcorrentes, visaoContas } from './services/visao';
 import { pipedriveConfigurado } from './pipedrive/cliente';
+import {
+  aEnriquecer,
+  apolloConfigurado,
+  aprovarSugestoes,
+  buscarPessoas,
+  buscarPessoasUniverso,
+  descartarSugestoes,
+  enriquecerEmpresa,
+  enriquecerUniverso,
+  ErroApollo,
+  listarSugestoes,
+} from './apollo';
 
 /**
  * Rotas próprias do Radar, montadas em /api depois do login e antes do CRUD.
@@ -28,6 +40,11 @@ import { pipedriveConfigurado } from './pipedrive/cliente';
  *   POST /api/radar/coleta/executar         dispara a coleta de posts em segundo plano → 202 { coleta_id }
  *        { tipo: 'posts' | 'paginas' | 'vagas' } posts (padrão), páginas (seguidores, logos, site + vagas) ou só vagas
  *        { run_apify }                         …ou retoma um run do Apify já iniciado (que passou do tempo ou foi interrompido)
+ *   GET  /api/radar/apollo/status?universo=  chave configurada?, sugestões pendentes, empresas a enriquecer (créditos)
+ *   POST /api/radar/apollo/empresas/:id/enriquecer · /pessoas   uma empresa (1 crédito) · buscar pessoas (sem custo)
+ *   POST /api/radar/apollo/enriquecer · /pessoas  { universo }   todas as empresas do universo
+ *   GET  /api/radar/apollo/sugestoes?empresa_id=   sugestões pendentes
+ *   POST /api/radar/apollo/sugestoes/aprovar · /descartar  { ids }   aprovar cadastra como pessoas (créditos)
  */
 export function appRouter(db: Db) {
   const router = Router();
@@ -71,6 +88,58 @@ export function appRouter(db: Db) {
     await db('empresas').where('id', id).update({ historico_posts_em: null });
     await db('pessoas').where('empresa_id', id).update({ historico_posts_em: null });
     res.json({ ok: true });
+  });
+
+  // ------------------------------------------------------------- Apollo (0.4.6)
+  const apollo = async <T>(fn: () => Promise<T>): Promise<T> => {
+    if (!apolloConfigurado())
+      throw new HttpError(400, 'A chave do Apollo (APOLLO_API_KEY) não está no .env do servidor.');
+    try {
+      return await fn();
+    } catch (e) {
+      if (e instanceof ErroApollo) throw new HttpError(502, e.message);
+      throw e;
+    }
+  };
+  const universoDe = (v: unknown) => (v === 'Conta-alvo' ? 'Conta-alvo' : 'Concorrente');
+  const idsDe = (v: unknown) =>
+    Array.isArray(v) ? v.map(Number).filter((n) => Number.isInteger(n) && n > 0) : ([] as number[]);
+
+  router.get('/radar/apollo/status', requirePermission('empresas', 'ver'), async (req, res) => {
+    const universo = universoDe(req.query.universo);
+    const pendentes = (await db('sugestoes_pessoas').where('situacao', 'Sugerida').count({ n: '*' }).first()) as {
+      n: number;
+    };
+    res.json({
+      configurado: apolloConfigurado(),
+      sugestoes: Number(pendentes?.n ?? 0),
+      a_enriquecer: await aEnriquecer(db, universo),
+    });
+  });
+  router.post('/radar/apollo/empresas/:id/enriquecer', requirePermission('empresas', 'editar'), async (req, res) => {
+    res.json(await apollo(() => enriquecerEmpresa(db, Number(req.params.id))));
+  });
+  router.post('/radar/apollo/empresas/:id/pessoas', requirePermission('pessoas', 'criar'), async (req, res) => {
+    res.json(await apollo(() => buscarPessoas(db, Number(req.params.id))));
+  });
+  router.post('/radar/apollo/enriquecer', requirePermission('empresas', 'editar'), async (req, res) => {
+    res.json(await apollo(() => enriquecerUniverso(db, universoDe(req.body?.universo))));
+  });
+  router.post('/radar/apollo/pessoas', requirePermission('pessoas', 'criar'), async (req, res) => {
+    res.json(await apollo(() => buscarPessoasUniverso(db, universoDe(req.body?.universo))));
+  });
+  router.get('/radar/apollo/sugestoes', requirePermission('pessoas', 'ver'), async (req, res) => {
+    res.json(await listarSugestoes(db, Number(req.query.empresa_id) || undefined));
+  });
+  router.post('/radar/apollo/sugestoes/aprovar', requirePermission('pessoas', 'criar'), async (req, res) => {
+    const ids = idsDe(req.body?.ids);
+    if (!ids.length) throw new HttpError(400, 'Escolha ao menos uma pessoa.');
+    res.json(await apollo(() => aprovarSugestoes(db, ids)));
+  });
+  router.post('/radar/apollo/sugestoes/descartar', requirePermission('pessoas', 'criar'), async (req, res) => {
+    const ids = idsDe(req.body?.ids);
+    if (!ids.length) throw new HttpError(400, 'Escolha ao menos uma pessoa.');
+    res.json(await descartarSugestoes(db, ids));
   });
 
   router.get('/radar/coleta/status', requirePermission('coletas', 'ver'), async (_req, res) => {

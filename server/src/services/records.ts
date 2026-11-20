@@ -149,7 +149,14 @@ export function applyFilters(db: Db, qb: Knex.QueryBuilder, table: string, ent: 
       if (f.type === 'boolean') qb.where(col(f), toDbValue(db, eq[0] === '1' || eq[0] === 'true'));
       else if (f.type === 'multiselect')
         qb.where((w) => eq.forEach((v) => w.orWhere(col(f), like, `%${JSON.stringify(v)}%`)));
-      else if (eq.length > 1) qb.whereIn(col(f), eq);
+      else if (f.filtraDetalhe) {
+        // o valor no próprio registro ou em alguma linha da sub-tabela (ex.: categoria de uma parte do rateio)
+        const d = ent.details?.find((x) => x.entity === f.filtraDetalhe!.entidade);
+        qb.where((w) => {
+          w.whereIn(col(f), eq);
+          if (d) w.orWhereIn(`${table}.id`, db(d.entity).select(d.field).whereIn(f.filtraDetalhe!.campo, eq));
+        });
+      } else if (eq.length > 1) qb.whereIn(col(f), eq);
       else qb.where(col(f), eq[0]);
     }
 

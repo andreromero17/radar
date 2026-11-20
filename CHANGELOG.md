@@ -4,6 +4,17 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.30.0 — 20/11/2026
+
+- **Sub-tabela desenhada pelo sistema** (CrudForm `detalhes`): `{ [entidade das linhas]: (ctx) => ReactNode }` troca
+  a tabela genérica do master-detail por uma própria, no mesmo lugar, com as linhas, `setRows`, os valores e o `set`
+  do registro pai, os erros e as opções de relação. A gravação continua a mesma (pai + linhas numa transação)
+- **Célula desenhada pelo sistema** (CrudList `celulas`): `{ [campo]: (linha, padrão) => ReactNode }` (ex.: um selo
+  ao lado do valor padrão)
+- **Filtro que casa na sub-tabela** (`FieldDef.filtraDetalhe: { entidade, campo }`): o filtro de igualdade do campo
+  também traz o registro quando uma linha da sub-tabela tem o valor (ex.: lançamento rateado aparece no filtro da
+  categoria de uma das partes)
+
 ## 0.29.0 — 19/11/2026
 
 - **Tokens de integração** (`server/src/auth/integracao.ts`): acesso sem navegador (atalho do celular, automação,

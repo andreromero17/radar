@@ -332,6 +332,7 @@ export const appEntities: Record<string, EntityDef> = {
       },
       { name: 'descricao', label: 'Descrição', type: 'text', list: true, readonly: true, maxLength: 200, col: 8 },
       { name: 'ator', label: 'Ator do Apify', type: 'text', readonly: true, maxLength: 120, col: 4 },
+      { name: 'run_apify', label: 'Run no Apify', type: 'text', readonly: true, maxLength: 40, col: 4 },
       { name: 'fontes', label: 'Fontes', type: 'number', list: true, readonly: true, col: 3 },
       { name: 'itens_encontrados', label: 'Itens encontrados', type: 'number', list: true, readonly: true, col: 3 },
       { name: 'itens_novos', label: 'Itens novos', type: 'number', list: true, readonly: true, col: 3 },

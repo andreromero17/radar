@@ -144,7 +144,10 @@ async function desdeQuando(db: Db, hoje: Date): Promise<string> {
  * Roda a coleta de posts do espaço do `db`. Grava a execução em `coletas` (Rodando → Ok/Erro) e devolve os números.
  * `coletaId` permite que a rota já tenha criado a linha "Rodando" e devolvido o id na hora.
  */
-export async function coletarPosts(db: Db, opcoes: { coletaId?: number; hoje?: Date } = {}): Promise<ResultadoColeta> {
+export async function coletarPosts(
+  db: Db,
+  opcoes: { coletaId?: number; hoje?: Date; runId?: string } = {},
+): Promise<ResultadoColeta> {
   const hoje = opcoes.hoje ?? new Date();
   const fontes = await fontesDoEspaco(db);
   const coletaId =
@@ -170,15 +173,24 @@ export async function coletarPosts(db: Db, opcoes: { coletaId?: number; hoje?: D
     if (!fontes.length) throw new Error('Nenhuma empresa ou pessoa monitorada com endereço do LinkedIn.');
     const desde = await desdeQuando(db, hoje);
     const maxPosts = Number(await getAppSetting(db, 'coleta_max_posts')) || 20;
-    const { itens, custoUsd } = await rodarAtor<ItemPost>(ATOR_POSTS, {
-      targetUrls: fontes.map((f) => f.url),
-      maxPosts,
-      postedLimitDate: desde,
-      includeReposts: true,
-      includeQuotePosts: true,
-      scrapeReactions: false,
-      scrapeComments: false,
-    });
+    const { itens, custoUsd } = await rodarAtor<ItemPost>(
+      ATOR_POSTS,
+      {
+        targetUrls: fontes.map((f) => f.url),
+        maxPosts,
+        postedLimitDate: desde,
+        includeReposts: true,
+        includeQuotePosts: true,
+        scrapeReactions: false,
+        scrapeComments: false,
+      },
+      {
+        runId: opcoes.runId,
+        aoIniciar: async (runId) => {
+          await db('coletas').where('id', coletaId).update({ run_apify: runId });
+        },
+      },
+    );
     r.custo_usd = custoUsd;
     r.encontrados = itens.length;
     const porUrl = new Map(fontes.map((f) => [f.url, f]));

@@ -7,6 +7,7 @@ import { useToast } from '../../context/ToastContext';
 interface Status {
   configurado: boolean;
   rodando: boolean;
+  ultima: { situacao: string; run_apify: string | null } | null;
 }
 
 /** Botão "Coletar agora" (lista de execuções): dispara a coleta em segundo plano e recarrega a lista */
@@ -44,10 +45,15 @@ export default function ColetarAgora({ onFeito }: { onFeito?: () => void }) {
   }, [pode]);
 
   if (!pode || !status) return null;
-  const coletar = async () => {
+  const retomavel = status.ultima?.situacao === 'Erro' ? status.ultima.run_apify : null;
+  const coletar = async (runApify?: string) => {
     try {
-      await api.post('/radar/coleta/executar', {});
-      toast.success('Coleta iniciada. Pode levar alguns minutos; a lista atualiza sozinha.');
+      await api.post('/radar/coleta/executar', runApify ? { run_apify: runApify } : {});
+      toast.success(
+        runApify
+          ? 'Retomando o run no Apify: os posts que ele já coletou entram sem custo novo.'
+          : 'Coleta iniciada. Pode levar alguns minutos; a lista atualiza sozinha.',
+      );
       rodava.current = true;
       setStatus({ ...status, rodando: true });
       onFeito?.();
@@ -56,19 +62,32 @@ export default function ColetarAgora({ onFeito }: { onFeito?: () => void }) {
     }
   };
   return (
-    <Button
-      variant="light"
-      className="border"
-      onClick={() => void coletar()}
-      disabled={!status.configurado || status.rodando}
-      title={
-        status.configurado
-          ? 'Busca agora os posts das empresas e pessoas monitoradas'
-          : 'Falta o APIFY_TOKEN no .env do servidor'
-      }
-    >
-      <i className={`bi ${status.rodando ? 'bi-hourglass-split' : 'bi-cloud-download'}`} />
-      <span className="d-none d-md-inline ms-1">{status.rodando ? 'Coletando…' : 'Coletar agora'}</span>
-    </Button>
+    <>
+      {retomavel && !status.rodando && (
+        <Button
+          variant="light"
+          className="border me-2"
+          onClick={() => void coletar(retomavel)}
+          title={`Aproveita o run ${retomavel} do Apify, que continuou rodando lá, sem disparar outro`}
+        >
+          <i className="bi bi-arrow-clockwise" />
+          <span className="d-none d-md-inline ms-1">Retomar coleta</span>
+        </Button>
+      )}
+      <Button
+        variant="light"
+        className="border"
+        onClick={() => void coletar()}
+        disabled={!status.configurado || status.rodando}
+        title={
+          status.configurado
+            ? 'Busca agora os posts das empresas e pessoas monitoradas'
+            : 'Falta o APIFY_TOKEN no .env do servidor'
+        }
+      >
+        <i className={`bi ${status.rodando ? 'bi-hourglass-split' : 'bi-cloud-download'}`} />
+        <span className="d-none d-md-inline ms-1">{status.rodando ? 'Coletando…' : 'Coletar agora'}</span>
+      </Button>
+    </>
   );
 }

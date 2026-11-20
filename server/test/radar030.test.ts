@@ -211,6 +211,40 @@ describe('coleta de posts', () => {
     expect(urls.some((u) => u.includes('fcamara'))).toBe(false);
   });
 
+  it('retoma um run do Apify que passou do tempo, sem disparar outro', async () => {
+    itensDoAtor = [
+      post({ id: 'ret1', fonte: 'https://www.linkedin.com/in/polidoro', autor: { publicIdentifier: 'polidoro' } }),
+    ];
+    usar({ APIFY_TOKEN: 'tok-apify' });
+    entradas = [];
+    const res = await ctx.admin.post('/api/radar/coleta/executar').send({ run_apify: 'run1' }).expect(202);
+    expect(entradas).toEqual([]); // nenhum run novo
+    const coleta = await ctx
+      .db('coletas')
+      .where('id', res.body.coleta_id)
+      .first('situacao', 'run_apify', 'itens_novos');
+    expect(coleta).toEqual({ situacao: 'Ok', run_apify: 'run1', itens_novos: 1 });
+  });
+
+  it('guarda o id do run assim que ele começa', async () => {
+    itensDoAtor = [];
+    usar({ APIFY_TOKEN: 'tok-apify' });
+    const r = await coletarPosts(ctx.db);
+    expect((await ctx.db('coletas').where('id', r.coleta_id).first('run_apify')).run_apify).toBe('run1');
+  });
+
+  it('coleta "Rodando" esquecida (servidor reiniciou) vira Erro ao consultar o status', async () => {
+    await ctx
+      .db('coletas')
+      .insert({ inicio: '2026-01-01 10:00:00', situacao: 'Rodando', descricao: 'antiga', run_apify: 'abcdefgh123' });
+    usar({ APIFY_TOKEN: 'tok-apify' });
+    const st = (await ctx.admin.get('/api/radar/coleta/status').expect(200)).body;
+    expect(st.rodando).toBe(false);
+    const antiga = await ctx.db('coletas').where('descricao', 'antiga').first('situacao', 'erro');
+    expect(antiga.situacao).toBe('Erro');
+    expect(antiga.erro).toContain('Interrompida');
+  });
+
   it('perfil só de leitura não dispara coleta', async () => {
     usar({ APIFY_TOKEN: 'tok-apify' });
     await ctx.leitura.post('/api/radar/coleta/executar').send({}).expect(403);

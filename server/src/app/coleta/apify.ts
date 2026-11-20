@@ -33,8 +33,21 @@ export interface ExecucaoApify<T> {
 const BASE = 'https://api.apify.com/v2';
 const FINAIS = new Set(['SUCCEEDED', 'FAILED', 'ABORTED', 'TIMED-OUT']);
 
-/** Roda o ator (ex.: 'harvestapi~linkedin-company-posts') com a entrada dada e devolve os itens do dataset */
-export async function rodarAtor<T>(ator: string, entrada: unknown, limiteMin = 30): Promise<ExecucaoApify<T>> {
+export interface OpcoesRun {
+  /** Tempo máximo esperando o run terminar (padrão 180 min; o ator segue rodando no Apify se passar disso) */
+  limiteMin?: number;
+  /** Retomar um run já iniciado (não dispara outro) */
+  runId?: string;
+  /** Chamado assim que o run existe, para guardar o id e poder retomar depois */
+  aoIniciar?: (runId: string) => Promise<void> | void;
+}
+
+/**
+ * Roda o ator (ex.: 'harvestapi~linkedin-company-posts') com a entrada dada — ou retoma o `runId` — e devolve os
+ * itens do dataset
+ */
+export async function rodarAtor<T>(ator: string, entrada: unknown, opcoes: OpcoesRun = {}): Promise<ExecucaoApify<T>> {
+  const limiteMin = opcoes.limiteMin ?? 180;
   const ctx = fabrica();
   const token = ctx.env.APIFY_TOKEN;
   if (!token) throw new ErroApify('APIFY_TOKEN não está no .env do servidor.');
@@ -46,19 +59,24 @@ export async function rodarAtor<T>(ator: string, entrada: unknown, limiteMin = 3
   };
   type Run = { id: string; status: string; defaultDatasetId: string; usageTotalUsd?: number | null };
 
-  let run = (
-    await json<{ data: Run }>(
-      await ctx.fetch(`${BASE}/acts/${ator}/runs?waitForFinish=60`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(entrada),
-      }),
-      'iniciar o ator',
-    )
-  ).data;
+  let run = opcoes.runId
+    ? (await json<{ data: Run }>(await ctx.fetch(`${BASE}/actor-runs/${opcoes.runId}`, { headers }), 'consultar o run'))
+        .data
+    : (
+        await json<{ data: Run }>(
+          await ctx.fetch(`${BASE}/acts/${ator}/runs`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(entrada),
+          }),
+          'iniciar o ator',
+        )
+      ).data;
+  await opcoes.aoIniciar?.(run.id);
   const prazo = Date.now() + limiteMin * 60_000;
   while (!FINAIS.has(run.status)) {
-    if (Date.now() > prazo) throw new ErroApify(`O ator não terminou em ${limiteMin} min (run ${run.id}).`);
+    if (Date.now() > prazo)
+      throw new ErroApify(`O ator não terminou em ${limiteMin} min. Ele segue no Apify: retome o run ${run.id}.`);
     await ctx.esperar(5_000);
     run = (
       await json<{ data: Run }>(

@@ -1,5 +1,12 @@
 # Changelog do Radar
 
+## 0.3.1 — 19/11/2026
+
+- A coleta espera o ator do Apify por até 3 horas (antes, 30 min — a primeira coleta, com ~500 fontes, passa disso).
+- O id do run no Apify fica gravado na execução. Se a espera passar do limite ou o servidor reiniciar no meio, o
+  botão "Retomar coleta" aproveita o mesmo run, sem disparar outro nem pagar de novo.
+- Execução que ficou "Rodando" sem estar rodando vira "Erro" (interrompida) ao abrir a tela de execuções.
+
 ## 0.3.0 — 19/11/2026
 
 - Coleta de posts do LinkedIn pelo Apify (`harvestapi/linkedin-company-posts`, sem login): páginas das empresas e

@@ -27,7 +27,18 @@ ChartJS.register(
 const serie = (i: number) => cssVar(`--serie-${(i % 8) + 1}`);
 
 /** Rosca com legenda ao lado (ex.: fatia de posts por concorrente) */
-export function Rosca({ rotulos, valores, altura = 14 }: { rotulos: string[]; valores: number[]; altura?: number }) {
+export function Rosca({
+  rotulos,
+  valores,
+  altura = 14,
+  onClick,
+}: {
+  rotulos: string[];
+  valores: number[];
+  altura?: number;
+  /** Clique numa fatia ou na legenda: índice do rótulo */
+  onClick?: (i: number) => void;
+}) {
   const v = useThemeVersion();
   const t = chartTheme();
   const total = valores.reduce((s, x) => s + x, 0) || 1;
@@ -48,12 +59,29 @@ export function Rosca({ rotulos, valores, altura = 14 }: { rotulos: string[]; va
               },
             ],
           }}
-          options={{ maintainAspectRatio: false, cutout: '62%', plugins: { legend: { display: false } } }}
+          options={{
+            maintainAspectRatio: false,
+            cutout: '62%',
+            plugins: { legend: { display: false } },
+            onClick: (_e, els) => {
+              if (onClick && els[0]) onClick(els[0].index);
+            },
+            onHover: (e, els) => {
+              const alvo = e.native?.target as HTMLElement | undefined;
+              if (alvo && onClick) alvo.style.cursor = els.length ? 'pointer' : 'default';
+            },
+          }}
         />
       </div>
       <ul className="list-unstyled mb-0 flex-grow-1 small" style={{ minWidth: '12rem' }}>
         {rotulos.map((r, i) => (
-          <li key={r} className="d-flex align-items-center gap-2 py-1">
+          <li
+            key={r}
+            className="d-flex align-items-center gap-2 py-1"
+            role={onClick ? 'button' : undefined}
+            onClick={onClick ? () => onClick(i) : undefined}
+            style={onClick ? { cursor: 'pointer' } : undefined}
+          >
             <span
               style={{ width: '0.7rem', height: '0.7rem', borderRadius: '50%', background: serie(i), flex: '0 0 auto' }}
             />
@@ -107,10 +135,13 @@ export function BarrasEmpilhadas({
   rotulos,
   series,
   altura,
+  onClick,
 }: {
   rotulos: string[];
   series: { nome: string; valores: number[] }[];
   altura?: number;
+  /** Clique num pedaço: série (dataset) e linha (rótulo) */
+  onClick?: (serie: number, linha: number) => void;
 }) {
   const v = useThemeVersion();
   const t = chartTheme();
@@ -132,10 +163,65 @@ export function BarrasEmpilhadas({
         options={{
           indexAxis: 'y',
           maintainAspectRatio: false,
+          onClick: (_e, els) => {
+            if (onClick && els[0]) onClick(els[0].datasetIndex, els[0].index);
+          },
+          onHover: (e, els) => {
+            const alvo = e.native?.target as HTMLElement | undefined;
+            if (alvo && onClick) alvo.style.cursor = els.length ? 'pointer' : 'default';
+          },
           plugins: { legend: { position: 'bottom', labels: { color: t.text, boxWidth: 10, font: { size: 11 } } } },
           scales: {
             x: { stacked: true, beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.text, precision: 0 } },
             y: { stacked: true, grid: { display: false }, ticks: { color: t.text } },
+          },
+        }}
+      />
+    </div>
+  );
+}
+
+/** Barras horizontais com valor (ex.: média de interações por assunto), ordenadas como vierem */
+export function BarrasHorizontais({
+  rotulos,
+  valores,
+  detalhe,
+  onClick,
+}: {
+  rotulos: string[];
+  valores: number[];
+  /** Texto extra no tooltip, por barra */
+  detalhe?: string[];
+  onClick?: (i: number) => void;
+}) {
+  const v = useThemeVersion();
+  const t = chartTheme();
+  return (
+    <div style={{ height: `${Math.max(9, rotulos.length * 2.1 + 2)}rem` }}>
+      <Chart
+        key={v}
+        type="bar"
+        data={{
+          labels: rotulos,
+          datasets: [{ data: valores, backgroundColor: t.brand, borderRadius: 4, maxBarThickness: 22 }],
+        }}
+        options={{
+          indexAxis: 'y',
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { afterLabel: (c) => detalhe?.[c.dataIndex] ?? '' } },
+          },
+          scales: {
+            x: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.text } },
+            y: { grid: { display: false }, ticks: { color: t.text } },
+          },
+          onClick: (_e, els) => {
+            if (onClick && els[0]) onClick(els[0].index);
+          },
+          onHover: (e, els) => {
+            const alvo = e.native?.target as HTMLElement | undefined;
+            if (alvo && onClick) alvo.style.cursor = els.length ? 'pointer' : 'default';
           },
         }}
       />

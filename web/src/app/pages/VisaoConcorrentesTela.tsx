@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Card, Col, Row, Table } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { LinhaComparativo, VisaoConcorrentes } from '@frame/shared';
 import StatCard from '../../components/StatCard';
 import LogoEmpresa from '../components/LogoEmpresa';
-import { Barras, BarrasEmpilhadas, Rosca } from '../components/Graficos';
+import { Barras, BarrasEmpilhadas, BarrasHorizontais, Rosca } from '../components/Graficos';
 import { compacto, dataCurta } from '../lib/universo';
 
 const num = (n: number | null, casas = 1) =>
@@ -79,6 +79,25 @@ export default function VisaoConcorrentesTela({ d }: { d: VisaoConcorrentes }) {
       });
     return [...d.linhas.filter((l) => l.nos), ...resto]; // "Nós" fica sempre no topo, como referência
   }, [d.linhas, ordem]);
+  const navigate = useNavigate();
+  /** Lista de publicações filtrada: posts dos concorrentes no período, no assunto (e empresa) clicado */
+  const verPosts = (assunto: string | undefined, extra: { empresaId?: number; maisEngajados?: boolean } = {}) => {
+    if (!assunto) return; // "Demais assuntos" não é um assunto só
+    const q = new URLSearchParams({
+      tipo: 'Post',
+      post_proprio: '1',
+      assuntos__contem: assunto,
+      data_publicacao__de: d.periodo.de,
+      data_publicacao__ate: d.periodo.ate,
+    });
+    if (extra.empresaId) q.set('empresa_id', String(extra.empresaId));
+    else q.set('universo', 'Concorrente');
+    if (extra.maisEngajados) {
+      q.set('sort', 'curtidas');
+      q.set('dir', 'desc');
+    }
+    navigate(`/publicacoes?${q}`);
+  };
   const ordenar = (chave: Chave) =>
     setOrdem((o) => (o.chave === chave ? { chave, desc: !o.desc } : { chave, desc: chave !== 'nome' }));
   const topo = d.assuntos.slice(0, 8);
@@ -190,15 +209,19 @@ export default function VisaoConcorrentesTela({ d }: { d: VisaoConcorrentes }) {
       </Card>
 
       <Row className="g-3 mb-3">
-        <Col lg={5}>
+        <Col lg={6}>
           <Card className="card-app h-100">
-            <Card.Header className="fw-semibold">Assuntos mais abordados</Card.Header>
+            <Card.Header className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <span className="fw-semibold">Assuntos mais abordados</span>
+              <span className="small text-muted">Clique para ver os posts</span>
+            </Card.Header>
             <Card.Body>
               {topo.length ? (
                 <Rosca
                   rotulos={[...topo.map((a) => a.assunto), ...(outros ? ['Demais assuntos'] : [])]}
                   valores={[...topo.map((a) => a.posts), ...(outros ? [outros] : [])]}
                   altura={11}
+                  onClick={(i) => verPosts(topo[i]?.assunto)}
                 />
               ) : (
                 <p className="text-muted mb-0">Sem posts no período.</p>
@@ -210,25 +233,7 @@ export default function VisaoConcorrentesTela({ d }: { d: VisaoConcorrentes }) {
             </Card.Body>
           </Card>
         </Col>
-        <Col lg={7}>
-          <Card className="card-app h-100">
-            <Card.Header className="fw-semibold">Assuntos por concorrente</Card.Header>
-            <Card.Body>
-              {d.assuntos_por_empresa.empresas.length ? (
-                <BarrasEmpilhadas
-                  rotulos={d.assuntos_por_empresa.empresas.map((e) => e.nome)}
-                  series={seriesAssuntos}
-                />
-              ) : (
-                <p className="text-muted mb-0">Sem posts no período.</p>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-
-      <Row className="g-3">
-        <Col lg={7}>
+        <Col lg={6}>
           <Card className="card-app h-100">
             <Card.Header className="d-flex justify-content-between align-items-center flex-wrap gap-2">
               <span className="fw-semibold">O que mais engaja</span>
@@ -236,11 +241,62 @@ export default function VisaoConcorrentesTela({ d }: { d: VisaoConcorrentes }) {
             </Card.Header>
             <Card.Body>
               {d.engaja.length ? (
+                <BarrasHorizontais
+                  rotulos={d.engaja.map((e) => e.assunto)}
+                  valores={d.engaja.map((e) => e.media)}
+                  detalhe={d.engaja.map((e) => `${e.posts} post(s) no período`)}
+                  onClick={(i) => verPosts(d.engaja[i].assunto, { maisEngajados: true })}
+                />
+              ) : (
+                <p className="text-muted mb-0">Sem posts suficientes no período.</p>
+              )}
+              <p className="small text-muted mt-2 mb-0">
+                Curtidas + comentários + compartilhamentos por post, em assuntos com 2 posts ou mais. Clique para ver os
+                posts, dos que mais engajaram para os que menos.
+              </p>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      <Card className="card-app mb-3">
+        <Card.Header className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span className="fw-semibold">Assuntos por concorrente</span>
+          <span className="small text-muted">Clique para ver os posts do concorrente naquele assunto</span>
+        </Card.Header>
+        <Card.Body>
+          {ape.empresas.length ? (
+            <BarrasEmpilhadas
+              rotulos={ape.empresas.map((e) => e.nome)}
+              series={seriesAssuntos}
+              onClick={(serie, linha) => verPosts(principais[serie], { empresaId: ape.empresas[linha].id })}
+            />
+          ) : (
+            <p className="text-muted mb-0">Sem posts no período.</p>
+          )}
+        </Card.Body>
+      </Card>
+
+      <Row className="g-3">
+        <Col lg={7}>
+          <Card className="card-app h-100">
+            <Card.Header className="fw-semibold">Posts de destaque por assunto</Card.Header>
+            <Card.Body>
+              {d.engaja.length ? (
                 <ul className="radar-lista">
                   {d.engaja.map((e) => (
                     <li key={e.assunto} className="flex-column">
                       <div className="d-flex justify-content-between gap-2">
-                        <span className="fw-semibold">{e.assunto}</span>
+                        <a
+                          href="#posts"
+                          className="fw-semibold text-reset"
+                          onClick={(ev) => {
+                            ev.preventDefault();
+                            verPosts(e.assunto, { maisEngajados: true });
+                          }}
+                        >
+                          {e.assunto}
+                        </a>
                         <span className="small text-muted">
                           {num(e.media)} interações/post · {e.posts} post(s)
                         </span>
@@ -267,9 +323,6 @@ export default function VisaoConcorrentesTela({ d }: { d: VisaoConcorrentes }) {
               ) : (
                 <p className="text-muted mb-0">Sem posts suficientes no período.</p>
               )}
-              <p className="small text-muted mt-2 mb-0">
-                Assuntos com 2 posts ou mais, ordenados pela média de curtidas + comentários + compartilhamentos.
-              </p>
             </Card.Body>
           </Card>
         </Col>

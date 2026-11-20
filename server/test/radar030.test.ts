@@ -186,6 +186,47 @@ describe('coleta de posts', () => {
     expect((entradas[0] as { postedLimitDate: string }).postedLimitDate < hoje).toBe(true);
   });
 
+  it('empresa cadastrada depois da última coleta ganha 30 dias num run à parte; as demais, só desde a última', async () => {
+    await ctx.db('empresas').insert({
+      universo: 'Nós',
+      nome: 'Lighthouse',
+      linkedin_url: 'https://www.linkedin.com/company/lighthouse-nova',
+      monitorar: true,
+      criado_em: '2999-01-01 00:00:00',
+    });
+    itensDoAtor = [];
+    usar({ APIFY_TOKEN: 'tok-apify' });
+    entradas = [];
+    await coletarPosts(ctx.db);
+    expect(entradas).toHaveLength(2);
+    const [novas, antigas] = entradas as { targetUrls: string[]; postedLimitDate: string }[];
+    expect(novas.targetUrls).toEqual(['https://www.linkedin.com/company/lighthouse-nova']);
+    expect(antigas.targetUrls).not.toContain('https://www.linkedin.com/company/lighthouse-nova');
+    expect(novas.postedLimitDate < antigas.postedLimitDate).toBe(true);
+    const trinta = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
+    expect(novas.postedLimitDate).toBe(trinta);
+  });
+
+  it('coletas de páginas e vagas não contam como "última coleta de posts"', async () => {
+    await ctx
+      .db('empresas')
+      .where('linkedin_url', 'https://www.linkedin.com/company/lighthouse-nova')
+      .update({ criado_em: '2026-01-01 00:00:00' });
+    await ctx.db('coletas').insert({
+      inicio: '2999-01-01 00:00:00',
+      situacao: 'Ok',
+      ator: 'harvestapi/linkedin-company',
+      descricao: 'páginas',
+    });
+    itensDoAtor = [];
+    usar({ APIFY_TOKEN: 'tok-apify' });
+    entradas = [];
+    await coletarPosts(ctx.db);
+    expect(entradas).toHaveLength(1);
+    expect((entradas[0] as { postedLimitDate: string }).postedLimitDate < '2999-01-01').toBe(true);
+    await ctx.db('coletas').where('descricao', 'páginas').del();
+  });
+
   it('falha do ator fica gravada na execução', async () => {
     itensDoAtor = [];
     usar({ APIFY_TOKEN: 'tok-apify' }, { statusFinal: 'FAILED' });

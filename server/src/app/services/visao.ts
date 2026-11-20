@@ -72,7 +72,10 @@ const resumo = (e: Empresa): EmpresaResumo => ({
 const interacoes = (p: Pub) => (p.curtidas ?? 0) + (p.comentarios ?? 0) + (p.compartilhamentos ?? 0);
 const media = (soma: number, n: number) => (n ? Math.round((soma / n) * 10) / 10 : null);
 
-/** Publicações ainda sem assunto (coletadas antes da 0.4.1) ganham a classificação por palavras-chave */
+/**
+ * Campos derivados das publicações: assunto (posts coletados antes da 0.4.1) e universo da empresa (0.4.4; o
+ * filtro "concorrentes" da lista de publicações usa ele). Barato quando não há nada a fazer.
+ */
 export async function garantirAssuntos(db: Db) {
   const sem = (await db('publicacoes').whereNull('assuntos').select('id', 'texto', 'titulo').limit(5000)) as {
     id: number;
@@ -83,7 +86,18 @@ export async function garantirAssuntos(db: Db) {
     await db('publicacoes')
       .where('id', p.id)
       .update({ assuntos: classificarAssuntos(p.texto || p.titulo).join('; ') });
+  await atualizarUniversoDasPublicacoes(db);
   return sem.length;
+}
+
+/** Copia o universo da empresa para as publicações dela (todas, ou só as de uma empresa) */
+export async function atualizarUniversoDasPublicacoes(db: Db, empresaId?: number) {
+  const q = db('publicacoes').whereNotNull('empresa_id');
+  if (empresaId) q.where('empresa_id', empresaId);
+  else q.whereNull('universo');
+  await q.update({
+    universo: db('empresas').select('universo').whereRaw('empresas.id = publicacoes.empresa_id'),
+  });
 }
 
 /** Conta posts e soma interações por assunto (um post conta em cada assunto dele) */

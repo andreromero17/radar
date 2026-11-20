@@ -57,6 +57,10 @@ PR no frame-app.
 - Vagas (0.4.3): `coleta/vagas.ts` (`coletarVagas`, ator `piotrv1001/linkedin-company-jobs-scraper`, 30 dias, sem
   detalhe), roda depois de `coletarPaginas` no tipo 'paginas'; vagas = `publicacoes.tipo = 'Vaga'` (`id_externo`
   "vaga:<id>") e `metricas_empresas.vagas`. Toda conta de posts na visão geral filtra `tipo = 'Post'`.
+- 0.4.4: janela de 30 dias para fontes novas (`criado_em` > última coleta de posts); `publicacoes.universo` copiado
+  da empresa (`atualizarUniversoDasPublicacoes`: na visão geral, depois da coleta e no `afterSave` de empresas);
+  links dos gráficos para `/publicacoes?tipo=Post&post_proprio=1&universo=…&assuntos__contem=…&data_publicacao__de/ate`;
+  `pages/Sinais.tsx` com `AbasUniverso` sobre o filtro `universo`.
 - Pipedrive em mão dupla (0.4.3): `pipedrive_completar`; `api.put` (v1) só com campos vazios no Pipedrive.
 - Coleta (0.3.0): `server/src/app/coleta/` — `apify.ts` (dispara o ator, acompanha o run, lê o dataset; custo de
   `usageTotalUsd`; contexto trocável com `definirContextoApify`), `posts.ts` (`coletarPosts`: fontes, janela,
@@ -78,6 +82,6 @@ PR no frame-app.
 
 ## Próximas entregas
 
-- 0.4.4 — Caixa de sinais com avaliação, detalhe da empresa e da pessoa, lista de pessoas com "Precisa de atenção".
+- 0.4.5 — Caixa de sinais com avaliação, detalhe da empresa e da pessoa, lista de pessoas com "Precisa de atenção".
 - 0.5.0 — Classificação com LLM e envio de notas/atividades ao Pipedrive.
 - Depois: Driva, sites e portais de negócios, Instagram e Facebook (roadmap da proposta).

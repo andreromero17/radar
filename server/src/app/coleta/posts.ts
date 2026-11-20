@@ -2,7 +2,8 @@
 // Coleta de posts do LinkedIn (0.3.0): páginas das empresas e perfis das pessoas monitoradas, num só run do ator
 // `harvestapi/linkedin-company-posts` (sem login). Regras (docs/app/CLAUDE.md):
 //   • só empresas/pessoas com "monitorar", fora da lixeira e com o endereço do LinkedIn;
-//   • desde a última coleta bem-sucedida menos 1 dia (primeira vez: 30 dias); até `coleta_max_posts` por fonte;
+//   • desde a última coleta de posts bem-sucedida menos 1 dia (primeira vez: 30 dias); até `coleta_max_posts` por
+//     fonte. Empresa/pessoa cadastrada DEPOIS da última coleta é "nova" e ganha os 30 dias num run à parte (0.4.4);
 //   • conferência de autoria: post do próprio dono da fonte = post próprio; de outro autor COM cabeçalho de repost
 //     = repost (post_proprio falso); de outro autor sem cabeçalho = descartado (contado em `coletas.descartados`);
 //   • idempotente: publicação pelo `id_externo` (id do post); de novo = só atualiza curtidas/comentários;
@@ -14,6 +15,7 @@ import type { Db } from '../../db/knex';
 import { inserir } from '../../db/knex';
 import { getAppSetting } from '../../services/settings';
 import { nowLocal } from '../../utils/time';
+import { atualizarUniversoDasPublicacoes } from '../services/visao';
 import { rodarAtor } from './apify';
 
 export const ATOR_POSTS = 'harvestapi~linkedin-company-posts';
@@ -46,6 +48,7 @@ interface Fonte {
   empresa_id: number | null;
   titulo_linkedin?: string | null;
   nome: string;
+  criado_em?: string | null;
 }
 
 export interface ResultadoColeta {
@@ -97,17 +100,23 @@ async function fontesDoEspaco(db: Db): Promise<Fonte[]> {
     .whereIn('monitorar', [1, true])
     .whereNull('excluido_em')
     .whereNotNull('linkedin_url')
-    .select('id', 'linkedin_url', 'nome')) as { id: number; linkedin_url: string; nome: string }[];
+    .select('id', 'linkedin_url', 'nome', 'criado_em')) as {
+    id: number;
+    linkedin_url: string;
+    nome: string;
+    criado_em: string | null;
+  }[];
   const pessoas = (await db('pessoas')
     .whereIn('monitorar', [1, true])
     .whereNull('excluido_em')
     .whereNotNull('linkedin_url')
-    .select('id', 'linkedin_url', 'empresa_id', 'titulo_linkedin', 'nome')) as {
+    .select('id', 'linkedin_url', 'empresa_id', 'titulo_linkedin', 'nome', 'criado_em')) as {
     id: number;
     linkedin_url: string;
     empresa_id: number | null;
     titulo_linkedin: string | null;
     nome: string;
+    criado_em: string | null;
   }[];
   return [
     ...empresas.map((e) => ({
@@ -117,6 +126,7 @@ async function fontesDoEspaco(db: Db): Promise<Fonte[]> {
       slug: slugDe(e.linkedin_url),
       empresa_id: e.id,
       nome: e.nome,
+      criado_em: e.criado_em,
     })),
     ...pessoas.map((p) => ({
       tipo: 'pessoa' as const,
@@ -126,19 +136,22 @@ async function fontesDoEspaco(db: Db): Promise<Fonte[]> {
       empresa_id: p.empresa_id,
       titulo_linkedin: p.titulo_linkedin,
       nome: p.nome,
+      criado_em: p.criado_em,
     })),
   ];
 }
 
 /** Data a partir da qual buscar: última coleta OK menos 1 dia; sem nenhuma, 30 dias atrás */
-async function desdeQuando(db: Db, hoje: Date): Promise<string> {
-  const ultima = (await db('coletas').where('situacao', 'Ok').orderBy('inicio', 'desc').first('inicio')) as
-    { inicio: string } | undefined;
-  const base = ultima
-    ? new Date(`${ultima.inicio.slice(0, 10)}T00:00:00Z`)
-    : new Date(hoje.getTime() - 29 * 86_400_000);
-  return new Date(base.getTime() - 86_400_000).toISOString().slice(0, 10);
+/** Início da última coleta de POSTS bem-sucedida (as de páginas e vagas não contam) */
+async function ultimaColetaOk(db: Db): Promise<string | null> {
+  const ultima = (await db('coletas')
+    .where('situacao', 'Ok')
+    .where('ator', ATOR_POSTS.replace('~', '/'))
+    .orderBy('inicio', 'desc')
+    .first('inicio')) as { inicio: string } | undefined;
+  return ultima?.inicio ?? null;
 }
+const diaMenos = (base: Date, dias: number) => new Date(base.getTime() - dias * 86_400_000).toISOString().slice(0, 10);
 
 /**
  * Roda a coleta de posts do espaço do `db`. Grava a execução em `coletas` (Rodando → Ok/Erro) e devolve os números.
@@ -171,27 +184,41 @@ export async function coletarPosts(
   };
   try {
     if (!fontes.length) throw new Error('Nenhuma empresa ou pessoa monitorada com endereço do LinkedIn.');
-    const desde = await desdeQuando(db, hoje);
     const maxPosts = Number(await getAppSetting(db, 'coleta_max_posts')) || 20;
-    const { itens, custoUsd } = await rodarAtor<ItemPost>(
-      ATOR_POSTS,
-      {
-        targetUrls: fontes.map((f) => f.url),
-        maxPosts,
-        postedLimitDate: desde,
-        includeReposts: true,
-        includeQuotePosts: true,
-        scrapeReactions: false,
-        scrapeComments: false,
-      },
-      {
-        runId: opcoes.runId,
-        aoIniciar: async (runId) => {
-          await db('coletas').where('id', coletaId).update({ run_apify: runId });
+    const ultima = await ultimaColetaOk(db);
+    const trintaDias = diaMenos(hoje, 30);
+    // novas = cadastradas depois da última coleta: 30 dias; as outras, desde a última coleta (com 1 dia de folga)
+    const novas = fontes.filter((f) => !ultima || (f.criado_em ?? '') > ultima);
+    const antigas = fontes.filter((f) => !novas.includes(f));
+    const grupos = opcoes.runId
+      ? [{ fontes, desde: trintaDias }]
+      : [
+          { fontes: novas, desde: trintaDias },
+          { fontes: antigas, desde: ultima ? diaMenos(new Date(`${ultima.slice(0, 10)}T00:00:00Z`), 1) : trintaDias },
+        ].filter((g) => g.fontes.length);
+    const itens: ItemPost[] = [];
+    for (const g of grupos) {
+      const run = await rodarAtor<ItemPost>(
+        ATOR_POSTS,
+        {
+          targetUrls: g.fontes.map((f) => f.url),
+          maxPosts,
+          postedLimitDate: g.desde,
+          includeReposts: true,
+          includeQuotePosts: true,
+          scrapeReactions: false,
+          scrapeComments: false,
         },
-      },
-    );
-    r.custo_usd = custoUsd;
+        {
+          runId: opcoes.runId,
+          aoIniciar: async (runId) => {
+            await db('coletas').where('id', coletaId).update({ run_apify: runId });
+          },
+        },
+      );
+      itens.push(...run.itens);
+      if (run.custoUsd != null) r.custo_usd = (r.custo_usd ?? 0) + run.custoUsd;
+    }
     r.encontrados = itens.length;
     const porUrl = new Map(fontes.map((f) => [f.url, f]));
     const agora = nowLocal();
@@ -247,6 +274,7 @@ export async function coletarPosts(
       r.novos++;
     }
 
+    await atualizarUniversoDasPublicacoes(db);
     for (const [empresaId, url] of logos) await db('empresas').where('id', empresaId).update({ logo_linkedin: url });
     for (const [pessoaId, titulo] of titulos) {
       const f = fontes.find((x) => x.tipo === 'pessoa' && x.id === pessoaId)!;

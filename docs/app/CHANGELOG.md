@@ -1,5 +1,19 @@
 # Changelog do Radar
 
+## 0.4.4 — 20/11/2026
+
+- Coleta de posts: empresa ou pessoa cadastrada depois da última coleta ganha os últimos 30 dias num run à parte
+  (antes, recebia só os posts desde a última coleta). A "última coleta" passou a ser só a de posts (as de páginas e
+  vagas confundiam a janela).
+- Concorrentes: ao lado de "Assuntos mais abordados", o gráfico de barras **O que mais engaja** (média de
+  interações por post, por assunto). "Assuntos por concorrente" ocupa a largura toda; a lista com exemplos virou
+  "Posts de destaque por assunto".
+- Clicar num assunto (rosca, barras ou lista) abre **Publicações** já filtrada: posts próprios dos concorrentes, no
+  período e no assunto; nas barras por concorrente, também na empresa; em "O que mais engaja", dos mais curtidos.
+- Publicações ganham o **universo** da empresa (filtro), atualizado quando a empresa muda de universo; o campo
+  Assuntos entra no painel de filtros.
+- **Sinais** com as abas Contas-alvo | Concorrentes no topo (lembra a última usada, como o dashboard).
+
 ## 0.4.3 — 20/11/2026
 
 - Cadastro da empresa com o logo em destaque (grande), mostrando o que está em uso (enviado ou do LinkedIn), com

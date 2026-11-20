@@ -2,6 +2,7 @@
 import { normalizarLinkedin } from '@frame/shared';
 import type { EntityHooks } from '../../hooks/types';
 import { badRequest, conflict } from '../../utils/http';
+import { atualizarUniversoDasPublicacoes } from '../services/visao';
 
 function chaveLinkedin(tabela: 'empresas' | 'pessoas', rotulo: string): EntityHooks {
   return {
@@ -34,5 +35,12 @@ function chaveLinkedin(tabela: 'empresas' | 'pessoas', rotulo: string): EntityHo
   };
 }
 
-export const empresasHooks = chaveLinkedin('empresas', 'Página no LinkedIn');
+export const empresasHooks: EntityHooks = {
+  ...chaveLinkedin('empresas', 'Página no LinkedIn'),
+  // o universo é copiado para as publicações (filtro da lista de publicações)
+  async afterSave(row, data, { db }) {
+    if (!('universo' in data)) return;
+    await atualizarUniversoDasPublicacoes(db, Number(row.id));
+  },
+};
 export const pessoasHooks = chaveLinkedin('pessoas', 'Perfil no LinkedIn');

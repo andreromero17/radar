@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 
 export type UniversoTela = 'Conta-alvo' | 'Concorrente';
 const CHAVE = 'radar.universo';
-const lerGuardado = (): UniversoTela => {
+export const lerUniversoGuardado = (): UniversoTela => {
   try {
     return localStorage.getItem(CHAVE) === 'Concorrente' ? 'Concorrente' : 'Conta-alvo';
   } catch {
@@ -12,18 +12,22 @@ const lerGuardado = (): UniversoTela => {
   }
 };
 
+export function guardarUniverso(u: UniversoTela) {
+  try {
+    localStorage.setItem(CHAVE, u);
+  } catch {
+    /* sem armazenamento: só a URL */
+  }
+}
+
 export function useUniverso(): [UniversoTela, (u: UniversoTela) => void] {
   const [params, setParams] = useSearchParams();
   const daUrl = params.get('u');
   const universo: UniversoTela =
-    daUrl === 'concorrentes' ? 'Concorrente' : daUrl === 'contas' ? 'Conta-alvo' : lerGuardado();
+    daUrl === 'concorrentes' ? 'Concorrente' : daUrl === 'contas' ? 'Conta-alvo' : lerUniversoGuardado();
   const mudar = useCallback(
     (u: UniversoTela) => {
-      try {
-        localStorage.setItem(CHAVE, u);
-      } catch {
-        /* sem armazenamento: só a URL */
-      }
+      guardarUniverso(u);
       setParams(
         (p) => {
           const n = new URLSearchParams(p);

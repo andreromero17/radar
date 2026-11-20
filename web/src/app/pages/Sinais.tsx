@@ -1,4 +1,7 @@
+import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import AbasUniverso from '../components/AbasUniverso';
+import { guardarUniverso, lerUniversoGuardado, type UniversoTela } from '../lib/universo';
 import CrudList from '../../pages/CrudList';
 
 const NIVEIS = ['Todos', 'Alta', 'Média', 'Baixa'] as const;
@@ -25,25 +28,43 @@ export function FiltroSeveridade({ valor, onChange }: { valor: string | null; on
   );
 }
 
+/** Caixa de sinais: abas Contas-alvo | Concorrentes (filtro "universo" da lista) + filtro rápido de severidade */
 export default function Sinais() {
   const [params, setParams] = useSearchParams();
+  const universo = params.get('universo') as UniversoTela | null;
   const valor = params.get('severidade');
+  const mudar = (chave: string, v: string | null) =>
+    setParams(
+      (p) => {
+        const n = new URLSearchParams(p);
+        if (v) n.set(chave, v);
+        else n.delete(chave);
+        n.delete('page');
+        return n;
+      },
+      { replace: chave === 'universo' && !universo },
+    );
+  // sem universo na URL: abre na última aba usada (a mesma lembrança do dashboard)
+  useEffect(() => {
+    if (!universo) mudar('universo', lerUniversoGuardado());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [universo]);
+  if (!universo) return null;
   return (
     <CrudList
+      key={universo}
       entity="sinais"
       before={
-        <FiltroSeveridade
-          valor={valor}
-          onChange={(v) =>
-            setParams((p) => {
-              const n = new URLSearchParams(p);
-              if (v) n.set('severidade', v);
-              else n.delete('severidade');
-              n.delete('page');
-              return n;
-            })
-          }
-        />
+        <>
+          <AbasUniverso
+            universo={universo}
+            onChange={(u) => {
+              guardarUniverso(u);
+              mudar('universo', u);
+            }}
+          />
+          <FiltroSeveridade valor={valor} onChange={(v) => mudar('severidade', v)} />
+        </>
       }
     />
   );

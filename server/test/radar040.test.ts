@@ -192,6 +192,36 @@ describe('visão geral', () => {
     await ctx.admin.get('/api/radar/empresas/999999/detalhe').expect(404);
   });
 
+  it('publicações ganham o universo da empresa e filtram por assunto (link dos gráficos)', async () => {
+    await ctx.admin.get('/api/radar/visao?universo=Concorrente&dias=90').expect(200); // completa os derivados
+    expect(await ctx.db('publicacoes').whereNotNull('empresa_id').whereNull('universo').count({ n: '*' })).toEqual([
+      { n: 0 },
+    ]);
+    const res = await ctx.admin
+      .get(
+        '/api/publicacoes?tipo=Post&universo=Concorrente&post_proprio=1&assuntos__contem=Prêmios e certificações&pageSize=200',
+      )
+      .expect(200);
+    const linhas = (res.body.rows ?? res.body.data) as { assuntos: string; universo: string }[];
+    expect(linhas.length).toBeGreaterThan(0);
+    expect(linhas.every((l) => l.universo === 'Concorrente' && l.assuntos.includes('Prêmios e certificações'))).toBe(
+      true,
+    );
+    // mudar o universo da empresa atualiza as publicações dela
+    const taking = await ctx.db('empresas').where('linkedin_url', 'https://www.linkedin.com/company/taking').first();
+    await ctx.admin
+      .put(`/api/empresas/${taking.id}`)
+      .send({ ...taking, universo: 'Conta-alvo', logo: null })
+      .expect(200);
+    expect(await ctx.db('publicacoes').where('empresa_id', taking.id).distinct('universo')).toEqual([
+      { universo: 'Conta-alvo' },
+    ]);
+    await ctx.admin
+      .put(`/api/empresas/${taking.id}`)
+      .send({ ...taking, universo: 'Concorrente', logo: null })
+      .expect(200);
+  });
+
   it('contas-alvo: indicadores, ações e destaque ordenado pelo Score Radar', async () => {
     const d = (await ctx.admin.get('/api/radar/visao?universo=Conta-alvo&dias=90').expect(200)).body as VisaoContas;
     expect(d.kpis.contas).toBe(37);

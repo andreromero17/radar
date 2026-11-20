@@ -10,6 +10,7 @@ import { classificarAssuntos, normalizarLinkedin } from '@frame/shared';
 import type { Db } from '../../db/knex';
 import { inserir } from '../../db/knex';
 import { nowLocal } from '../../utils/time';
+import { atualizarUniversoDasPublicacoes } from '../services/visao';
 import { rodarAtor } from './apify';
 
 export const ATOR_VAGAS = 'piotrv1001~linkedin-company-jobs-scraper';
@@ -99,6 +100,7 @@ export async function coletarVagas(
       });
       r.novas++;
     }
+    await atualizarUniversoDasPublicacoes(db);
     const hoje = agora.slice(0, 10);
     for (const [empresaId, n] of contagem) {
       const existe = await db('metricas_empresas').where({ empresa_id: empresaId, data: hoje }).first('id');

@@ -4,6 +4,17 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.29.0 — 19/11/2026
+
+- **Tokens de integração** (`server/src/auth/integracao.ts`): acesso sem navegador (atalho do celular, automação,
+  outro sistema) com `Authorization: Bearer fi_...`. O sistema registra o que cada tipo pode fazer com
+  `registerEscopoIntegracao({ escopo, nome, descricao, rotas: ['POST /api/...'] })`; o token só abre essas rotas
+  (o resto dá 403), vale num espaço só (o da sessão em que foi criado, enquanto o usuário for membro), segue as
+  permissões e o papel do usuário, é guardado só como hash (tabela `tokens_integracao` na plataforma), registra o
+  último uso, é revogável e limitado a 60 requisições por minuto. Não gerencia tokens nem acessa `/api/auth`
+- Meu perfil → **Integrações** (`components/IntegracoesCard.tsx`): gerar (o token aparece uma vez), listar e revogar;
+  só aparece quando há escopo registrado
+
 ## 0.28.0 — 18/11/2026
 
 - **Filtros extras** (`EntityDef.filtrosExtras`): filtro que não é campo da entidade, para as linhas extras do sistema

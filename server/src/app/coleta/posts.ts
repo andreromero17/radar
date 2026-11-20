@@ -9,7 +9,7 @@
 //   • empresa ganha o logo do LinkedIn (`logo_linkedin`); pessoa ganha o título do perfil (`titulo_linkedin`) e,
 //     se o título mudou desde a última coleta, um alerta "Troca de cargo".
 // =============================================================================
-import { normalizarLinkedin } from '@frame/shared';
+import { classificarAssuntos, normalizarLinkedin } from '@frame/shared';
 import type { Db } from '../../db/knex';
 import { inserir } from '../../db/knex';
 import { getAppSetting } from '../../services/settings';
@@ -240,6 +240,7 @@ export async function coletarPosts(
         post_proprio: proprio,
         ...engajamento,
         triagem: 'Pendente',
+        assuntos: classificarAssuntos(texto).join('; '),
         id_externo: idExterno,
         criado_em: agora,
       });

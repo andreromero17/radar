@@ -68,7 +68,7 @@ export default function VisaoContasTela({ d }: { d: VisaoContas }) {
                         <div className="d-flex flex-wrap align-items-center gap-2">
                           {s.empresa && (
                             <Link
-                              to={`/empresas/${s.empresa.id}`}
+                              to={`/empresa/${s.empresa.id}`}
                               className="fw-semibold text-reset text-decoration-none"
                             >
                               {s.empresa.nome}
@@ -146,7 +146,7 @@ export default function VisaoContasTela({ d }: { d: VisaoContas }) {
                 <tr key={e.id}>
                   <td>
                     <Link
-                      to={`/empresas/${e.id}`}
+                      to={`/empresa/${e.id}`}
                       className="d-flex align-items-center gap-2 text-reset text-decoration-none"
                     >
                       <LogoEmpresa nome={e.nome} logo={e.logo} tamanho={1.75} />

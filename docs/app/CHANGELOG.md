@@ -1,5 +1,19 @@
 # Changelog do Radar
 
+## 0.4.1 — 20/11/2026
+
+- **Assuntos** em todo post (13 assuntos: IA e agentes, Dados e analytics, Cloud, Segurança, ERP e plataformas,
+  Parcerias, Cases e clientes, Prêmios e certificações, Vagas e talentos, Eventos e conteúdo, Cultura e pessoas,
+  Lançamentos e ofertas, Expansão e negócios; sem nenhum, "Outros"), por palavras-chave, na coleta e na importação;
+  os posts antigos são classificados na primeira abertura da visão geral.
+- Concorrentes: "Fatia da conversa" virou **Assuntos mais abordados** (todos os concorrentes juntos);
+  "Movimentos por concorrente" virou **Assuntos por concorrente**; **O que mais engaja** agora é por assunto, com
+  todos os posts (não só os que viraram sinal).
+- Comparativo **ordenável** clicando no título da coluna ("Nós" fica sempre no topo); dicas nos títulos.
+- Clicar na empresa abre a **página da empresa** (`/empresa/:id`): seguidores, posts, interações e engajamento,
+  posts por semana, assuntos e engajamento, posts que mais engajaram, sinais, pessoas-chave e todas as
+  publicações do período (página e pessoas). "Editar cadastro" leva ao formulário.
+
 ## 0.4.0 — 20/11/2026
 
 - Dashboard próprio do Radar com abas **Contas-alvo | Concorrentes** no topo (lembradas na URL e no navegador) e

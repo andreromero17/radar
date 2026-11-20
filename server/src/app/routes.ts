@@ -15,7 +15,7 @@ import {
   type TipoColeta,
 } from './coleta';
 import { sincronizarERegistrar, statusPipedrive } from './pipedrive';
-import { visaoConcorrentes, visaoContas } from './services/visao';
+import { detalheEmpresa, visaoConcorrentes, visaoContas } from './services/visao';
 import { pipedriveConfigurado } from './pipedrive/cliente';
 
 /**
@@ -23,6 +23,7 @@ import { pipedriveConfigurado } from './pipedrive/cliente';
  *   GET  /api/radar/pipedrive/status        token configurado?, filtros e a última sincronização do espaço
  *   POST /api/radar/pipedrive/sincronizar   busca agora as contas-alvo, concorrentes e pessoas do Pipedrive
  *   GET  /api/radar/visao?universo=Conta-alvo|Concorrente&dias=30   visão geral do universo (telas do Radar)
+ *   GET  /api/radar/empresas/:id/detalhe?dias=90                    página da empresa (posts, assuntos, engajamento…)
  *   GET  /api/radar/coleta/status           token do Apify configurado?, coleta rodando?, última execução
  *   POST /api/radar/coleta/executar         dispara a coleta de posts em segundo plano → 202 { coleta_id }
  *        { tipo: 'posts' | 'paginas' }         posts (padrão) ou dados das páginas (seguidores, logos)
@@ -54,6 +55,13 @@ export function appRouter(db: Db) {
   router.get('/radar/visao', requirePermission('sinais', 'ver'), async (req, res) => {
     const dias = Math.min(365, Math.max(7, Number(req.query.dias) || 30));
     res.json(req.query.universo === 'Concorrente' ? await visaoConcorrentes(db, dias) : await visaoContas(db, dias));
+  });
+
+  router.get('/radar/empresas/:id/detalhe', requirePermission('empresas', 'ver'), async (req, res) => {
+    const dias = Math.min(365, Math.max(7, Number(req.query.dias) || 90));
+    const d = await detalheEmpresa(db, Number(req.params.id), dias);
+    if (!d) throw new HttpError(404, 'Empresa não encontrada.');
+    res.json(d);
   });
 
   router.get('/radar/coleta/status', requirePermission('coletas', 'ver'), async (_req, res) => {

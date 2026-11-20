@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import type { VisaoConcorrentes, VisaoContas } from '@frame/shared';
+import type { DetalheEmpresa, VisaoConcorrentes, VisaoContas } from '@frame/shared';
 import { scoreRadar } from '@frame/shared';
 import { coletarPaginas, definirContextoApify } from '../src/app/coleta';
 import { makeTestApp, type TestCtx } from './helpers';
@@ -96,6 +96,32 @@ describe('visão geral', () => {
     expect(taking.posts).toBeGreaterThan(0);
     expect(d.engaja.length).toBeGreaterThan(0);
     expect(d.engaja[0].media).toBeGreaterThanOrEqual(d.engaja.at(-1)!.media);
+  });
+
+  it('concorrentes: assuntos mais abordados, por concorrente e o que mais engaja', async () => {
+    const d = (await ctx.admin.get('/api/radar/visao?universo=Concorrente&dias=90').expect(200))
+      .body as VisaoConcorrentes;
+    expect(d.assuntos.length).toBeGreaterThan(3);
+    expect(d.assuntos[0].posts).toBeGreaterThanOrEqual(d.assuntos.at(-1)!.posts);
+    const somaTaking = d.assuntos_por_empresa.empresas
+      .find((e) => e.nome === 'Grupo Taking')!
+      .valores.reduce((s, v) => s + v, 0);
+    expect(somaTaking).toBeGreaterThanOrEqual(d.linhas.find((l) => l.nome === 'Grupo Taking')!.posts);
+    expect(d.engaja.every((e) => e.posts >= 2 && e.assunto !== 'Outros')).toBe(true);
+    // toda publicação ganhou assunto
+    expect(await ctx.db('publicacoes').whereNull('assuntos').count({ n: '*' })).toEqual([{ n: 0 }]);
+  });
+
+  it('página da empresa: números, assuntos, melhores posts e pessoas', async () => {
+    const parana = await ctx.db('empresas').where('pipedrive_org_id', 3556).first('id');
+    const d = (await ctx.admin.get(`/api/radar/empresas/${parana.id}/detalhe?dias=90`).expect(200))
+      .body as DetalheEmpresa;
+    expect(d.empresa.nome).toBe('Paraná Banco');
+    expect(d.kpis.sinais).toBeGreaterThan(0);
+    expect(d.pessoas.some((p) => p.nome === 'Adriano Polidoro')).toBe(true);
+    expect(d.melhores.map((p) => p.interacoes)).toEqual([...d.melhores.map((p) => p.interacoes)].sort((a, b) => b - a));
+    expect(d.posts.some((p) => p.autor === 'Adriano Polidoro')).toBe(true);
+    await ctx.admin.get('/api/radar/empresas/999999/detalhe').expect(404);
   });
 
   it('contas-alvo: indicadores, ações e destaque ordenado pelo Score Radar', async () => {

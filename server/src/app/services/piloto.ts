@@ -6,6 +6,7 @@
 // =============================================================================
 import type { Db } from '../../db/knex';
 import { inserir } from '../../db/knex';
+import { classificarAssuntos } from '@frame/shared';
 import { nowLocal } from '../../utils/time';
 import dados from '../dados/piloto.json';
 
@@ -75,6 +76,7 @@ export async function importarPiloto(db: Db): Promise<Resultado> {
     const id = await inserir(db('publicacoes'), {
       ...campos,
       tipo: 'Post',
+      assuntos: classificarAssuntos(campos.texto as string).join('; '),
       data_publicacao: data,
       id_externo: chave,
       empresa_id: empresa ? (empresaPorChave.get(empresa as string) ?? null) : null,

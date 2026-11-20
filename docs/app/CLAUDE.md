@@ -49,6 +49,10 @@ PR no frame-app.
   `VisaoConcorrentesTela.tsx`, gráficos em `components/Graficos.tsx`, logo em `components/LogoEmpresa.tsx`, CSS em
   `app/styles.css` (só tokens). Universo "Nós" só em empresas (`UNIVERSOS_EMPRESA`). Dados das páginas em
   `coleta/paginas.ts` (semanal; `baixarImagem` guarda o logo como data URL). Testes `radar040.test.ts`.
+- Assuntos (0.4.1): `shared/src/app/assuntos.ts` (`ASSUNTOS` com termos sem acento, `classificarAssuntos` até 3,
+  "Outros"); gravados em `publicacoes.assuntos` ("A; B") na coleta e no piloto; `garantirAssuntos` classifica os
+  que faltam. Página da empresa: `detalheEmpresa` em `services/visao.ts`, rota `GET /api/radar/empresas/:id/detalhe`,
+  tela `web/src/app/pages/EmpresaDetalhe.tsx` registrada em `empresa/:id`.
 - Coleta (0.3.0): `server/src/app/coleta/` — `apify.ts` (dispara o ator, acompanha o run, lê o dataset; custo de
   `usageTotalUsd`; contexto trocável com `definirContextoApify`), `posts.ts` (`coletarPosts`: fontes, janela,
   autoria, upsert, logo/título/alerta, linha em `coletas`), `index.ts` (uma coleta por espaço por vez, tarefa diária
@@ -69,7 +73,6 @@ PR no frame-app.
 
 ## Próximas entregas
 
-- 0.4.1 — Classificação de assunto e tipo de movimento em cada post coletado (alimenta "o que mais engaja").
 - 0.4.2 — Caixa de sinais com avaliação, detalhe da empresa e da pessoa, lista de pessoas com "Precisa de atenção".
 - 0.5.0 — Classificação com LLM e envio de notas/atividades ao Pipedrive.
 - Depois: Driva, sites e portais de negócios, Instagram e Facebook (roadmap da proposta).

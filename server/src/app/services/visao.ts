@@ -5,7 +5,11 @@
 //   Contas-alvo: indicadores, "Agir esta semana", sinais por semana, contas em destaque (Score Radar).
 // =============================================================================
 import {
+  assuntosDoTexto,
+  classificarAssuntos,
   scoreRadar,
+  type DetalheEmpresa,
+  type PostDetalhe,
   type EmpresaResumo,
   type LinhaComparativo,
   type PostExemplo,
@@ -37,6 +41,8 @@ type Pub = {
   compartilhamentos: number | null;
   titulo: string | null;
   url: string | null;
+  assuntos?: string | null;
+  autor?: string | null;
 };
 type Sinal = {
   id: number;
@@ -66,6 +72,27 @@ const resumo = (e: Empresa): EmpresaResumo => ({
 const interacoes = (p: Pub) => (p.curtidas ?? 0) + (p.comentarios ?? 0) + (p.compartilhamentos ?? 0);
 const media = (soma: number, n: number) => (n ? Math.round((soma / n) * 10) / 10 : null);
 
+/** Publicações ainda sem assunto (coletadas antes da 0.4.1) ganham a classificação por palavras-chave */
+export async function garantirAssuntos(db: Db) {
+  const sem = (await db('publicacoes').whereNull('assuntos').select('id', 'texto', 'titulo').limit(5000)) as {
+    id: number;
+    texto: string | null;
+    titulo: string | null;
+  }[];
+  for (const p of sem)
+    await db('publicacoes')
+      .where('id', p.id)
+      .update({ assuntos: classificarAssuntos(p.texto || p.titulo).join('; ') });
+  return sem.length;
+}
+
+/** Conta posts e soma interações por assunto (um post conta em cada assunto dele) */
+function porAssunto(posts: Pub[]) {
+  const m = new Map<string, Pub[]>();
+  for (const x of posts) for (const a of assuntosDoTexto(x.assuntos)) m.set(a, [...(m.get(a) ?? []), x]);
+  return m;
+}
+
 /** Semanas (segunda a domingo) que cobrem o período, com a contagem de datas em cada uma */
 function porSemana(datas: (string | null)[], de: string, ate: string) {
   const inicio = new Date(`${de}T12:00:00Z`);
@@ -90,6 +117,7 @@ async function empresasDe(db: Db, universos: string[]) {
 }
 
 export async function visaoConcorrentes(db: Db, dias = 30): Promise<VisaoConcorrentes> {
+  await garantirAssuntos(db);
   const p = periodoDe(dias);
   const empresas = await empresasDe(db, ['Concorrente', 'Nós']);
   const ids = empresas.map((e) => e.id);
@@ -109,6 +137,7 @@ export async function visaoConcorrentes(db: Db, dias = 30): Promise<VisaoConcorr
       'compartilhamentos',
       'titulo',
       'url',
+      'assuntos',
     )) as Pub[];
   const sinais = (await db('sinais')
     .whereIn('empresa_id', ids)
@@ -168,33 +197,36 @@ export async function visaoConcorrentes(db: Db, dias = 30): Promise<VisaoConcorr
   const conc = linhas.filter((l) => !l.nos);
   const sinaisConc = sinais.filter((s) => conc.some((l) => l.id === s.empresa_id));
 
-  // tipos de movimento por concorrente
-  const tiposOrdem = [...new Set(sinaisConc.map((s) => s.tipo))].sort(
-    (a, b) => sinaisConc.filter((s) => s.tipo === b).length - sinaisConc.filter((s) => s.tipo === a).length,
-  );
-  const tipos = {
-    tipos: tiposOrdem,
+  // assuntos: posts próprios dos concorrentes no período
+  const idsConc = new Set(conc.map((l) => l.id));
+  const nomePorId = new Map(linhas.map((l) => [l.id, l.nome]));
+  const postsConc = pubs.filter((x) => noPeriodo(x) && !!x.post_proprio && idsConc.has(x.empresa_id!));
+  const grupos = porAssunto(postsConc);
+  const assuntos = [...grupos.entries()]
+    .map(([assunto, ps]) => ({ assunto, posts: ps.length }))
+    .sort((a, b) => b.posts - a.posts);
+  const ordem = assuntos.map((a) => a.assunto);
+  const assuntos_por_empresa = {
+    assuntos: ordem,
     empresas: conc
-      .filter((l) => l.movimentos)
+      .filter((l) => l.posts)
       .map((l) => ({
+        id: l.id,
         nome: l.nome,
-        valores: tiposOrdem.map((t) => sinaisConc.filter((s) => s.empresa_id === l.id && s.tipo === t).length),
+        valores: ordem.map((a) => (grupos.get(a) ?? []).filter((x) => x.empresa_id === l.id).length),
       })),
   };
-
-  // o que mais engaja: média de interações dos posts que geraram cada tipo de movimento
-  const pubPorId = new Map(pubs.map((x) => [x.id, x]));
-  const nomePorId = new Map(linhas.map((l) => [l.id, l.nome]));
-  const engaja = tiposOrdem
-    .map((tipo) => {
-      const posts = [
-        ...new Map(
-          sinaisConc
-            .filter((s) => s.tipo === tipo && s.publicacao_id && pubPorId.has(s.publicacao_id))
-            .map((s) => [s.publicacao_id!, pubPorId.get(s.publicacao_id!)!]),
-        ).values(),
-      ];
-      const exemplos: PostExemplo[] = posts
+  const engaja = [...grupos.entries()]
+    .filter(([assunto, ps]) => ps.length >= 2 && assunto !== 'Outros')
+    .map(([assunto, ps]) => ({
+      assunto,
+      posts: ps.length,
+      media:
+        media(
+          ps.reduce((s, x) => s + interacoes(x), 0),
+          ps.length,
+        ) ?? 0,
+      exemplos: ps
         .map((x) => ({
           id: x.id,
           titulo: x.titulo ?? '',
@@ -203,19 +235,8 @@ export async function visaoConcorrentes(db: Db, dias = 30): Promise<VisaoConcorr
           interacoes: interacoes(x),
         }))
         .sort((a, b) => b.interacoes - a.interacoes)
-        .slice(0, 3);
-      return {
-        tipo,
-        posts: posts.length,
-        media:
-          media(
-            posts.reduce((s, x) => s + interacoes(x), 0),
-            posts.length,
-          ) ?? 0,
-        exemplos,
-      };
-    })
-    .filter((t) => t.posts)
+        .slice(0, 3) as PostExemplo[],
+    }))
     .sort((a, b) => b.media - a.media);
 
   const maisAtivo = [...conc].sort((a, b) => b.movimentos - a.movimentos || b.posts - a.posts)[0];
@@ -229,7 +250,8 @@ export async function visaoConcorrentes(db: Db, dias = 30): Promise<VisaoConcorr
       mais_ativo: maisAtivo && (maisAtivo.movimentos || maisAtivo.posts) ? maisAtivo.nome : null,
     },
     linhas,
-    tipos,
+    assuntos,
+    assuntos_por_empresa,
     engaja,
     semanas: porSemana(
       sinaisConc.map((s) => s.data),
@@ -333,5 +355,176 @@ export async function visaoContas(db: Db, dias = 30): Promise<VisaoContas> {
     ),
     destaque,
     tipos,
+  };
+}
+
+/** Página da empresa: tudo do período (posts, assuntos, engajamento, seguidores, sinais e pessoas-chave) */
+export async function detalheEmpresa(db: Db, id: number, dias = 90): Promise<DetalheEmpresa | null> {
+  await garantirAssuntos(db);
+  const e = (await db('empresas').where('id', id).first()) as
+    | (Empresa & {
+        site: string | null;
+        linkedin_url: string | null;
+        segmento: string | null;
+        tier: string | null;
+        uf: string | null;
+      })
+    | undefined;
+  if (!e) return null;
+  const p = periodoDe(dias);
+  const pubs = (await db('publicacoes')
+    .where('empresa_id', id)
+    .where('data_publicacao', '>=', p.deAnterior)
+    .where('data_publicacao', '<=', p.ate)
+    .orderBy('data_publicacao', 'desc')
+    .select(
+      'id',
+      'empresa_id',
+      'pessoa_id',
+      'data_publicacao',
+      'post_proprio',
+      'curtidas',
+      'comentarios',
+      'compartilhamentos',
+      'titulo',
+      'url',
+      'assuntos',
+      'autor',
+    )) as Pub[];
+  const sinais = (await db('sinais')
+    .where('empresa_id', id)
+    .where('data', '>=', p.de)
+    .orderBy('data', 'desc')
+    .select(
+      'id',
+      'empresa_id',
+      'pessoa_id',
+      'publicacao_id',
+      'data',
+      'severidade',
+      'tipo',
+      'titulo',
+      'gancho',
+      'situacao',
+    )) as Sinal[];
+  const pessoas = (await db('pessoas')
+    .where('empresa_id', id)
+    .whereNull('excluido_em')
+    .select('id', 'nome', 'cargo', 'prioridade')) as {
+    id: number;
+    nome: string;
+    cargo: string | null;
+    prioridade: string | null;
+  }[];
+  const hist = (await db('metricas_empresas')
+    .where('empresa_id', id)
+    .whereNotNull('seguidores')
+    .orderBy('data', 'asc')
+    .select('data', 'seguidores')) as { data: string; seguidores: number }[];
+
+  const daPagina = pubs.filter((x) => !x.pessoa_id);
+  const atuais = daPagina.filter((x) => !!x.data_publicacao && x.data_publicacao >= p.de);
+  const proprios = atuais.filter((x) => !!x.post_proprio);
+  const porPost = proprios.length ? proprios.reduce((s, x) => s + interacoes(x), 0) / proprios.length : null;
+  const sinalPorPub = new Map(sinais.filter((s) => s.publicacao_id).map((s) => [s.publicacao_id!, s]));
+  const nomePessoa = new Map(pessoas.map((x) => [x.id, x.nome]));
+  const nome = e.nome_curto || e.nome;
+  const detalhe = (x: Pub): PostDetalhe => {
+    const s = sinalPorPub.get(x.id);
+    return {
+      id: x.id,
+      titulo: x.titulo ?? '',
+      url: x.url,
+      empresa: nome,
+      interacoes: interacoes(x),
+      data: x.data_publicacao,
+      autor: x.pessoa_id ? (nomePessoa.get(x.pessoa_id) ?? x.autor ?? null) : (x.autor ?? null),
+      proprio: !!x.post_proprio,
+      curtidas: x.curtidas,
+      comentarios: x.comentarios,
+      compartilhamentos: x.compartilhamentos,
+      assuntos: assuntosDoTexto(x.assuntos),
+      sinal: s ? { id: s.id, tipo: s.tipo, severidade: s.severidade } : null,
+    };
+  };
+  const ultima = hist.at(-1);
+  const corte = ultima ? dia(new Date(new Date(`${ultima.data}T12:00:00Z`).getTime() - 7 * 86_400_000)) : null;
+  const base = corte ? hist.filter((m) => m.data <= corte).at(-1) : undefined;
+  const postsPessoas = pubs.filter((x) => x.pessoa_id && !!x.data_publicacao && x.data_publicacao >= p.de);
+
+  return {
+    empresa: {
+      ...resumo(e),
+      nome_completo: e.nome,
+      universo: e.universo,
+      seguidores: e.seguidores,
+      site: e.site,
+      linkedin_url: e.linkedin_url,
+      dono: e.dono,
+      segmento: e.segmento,
+      tier: e.tier,
+      uf: e.uf,
+    },
+    periodo: { de: p.de, ate: p.ate, dias },
+    kpis: {
+      posts: proprios.length,
+      posts_anterior: daPagina.filter((x) => !!x.post_proprio && !!x.data_publicacao && x.data_publicacao < p.de)
+        .length,
+      reposts: atuais.length - proprios.length,
+      interacoes_post: porPost == null ? null : Math.round(porPost * 10) / 10,
+      engajamento: porPost != null && e.seguidores ? Math.round((porPost / e.seguidores) * 10000) / 100 : null,
+      sinais: sinais.length,
+      alta: sinais.filter((s) => s.severidade === 'Alta').length,
+      seguidores_var: base && ultima ? ultima.seguidores - base.seguidores : null,
+    },
+    seguidores: hist,
+    semanas: porSemana(
+      proprios.map((x) => x.data_publicacao),
+      p.de,
+      p.ate,
+    ),
+    assuntos: [...porAssunto(proprios).entries()]
+      .map(([assunto, ps]) => ({
+        assunto,
+        posts: ps.length,
+        media:
+          media(
+            ps.reduce((s, x) => s + interacoes(x), 0),
+            ps.length,
+          ) ?? 0,
+      }))
+      .sort((a, b) => b.posts - a.posts),
+    melhores: [...proprios]
+      .sort((a, b) => interacoes(b) - interacoes(a))
+      .slice(0, 5)
+      .map(detalhe),
+    posts: [...atuais, ...postsPessoas]
+      .sort((a, b) => String(b.data_publicacao).localeCompare(String(a.data_publicacao)))
+      .slice(0, 60)
+      .map(detalhe),
+    sinais: sinais.map((s) => ({
+      id: s.id,
+      data: s.data,
+      severidade: s.severidade,
+      tipo: s.tipo,
+      titulo: s.titulo,
+      gancho: s.gancho,
+      empresa: resumo(e),
+      pessoa: s.pessoa_id ? (nomePessoa.get(s.pessoa_id) ?? null) : null,
+    })),
+    pessoas: pessoas
+      .map((x) => {
+        const ps = postsPessoas.filter((y) => y.pessoa_id === x.id);
+        return {
+          ...x,
+          posts: ps.length,
+          ultimo:
+            ps
+              .map((y) => y.data_publicacao!)
+              .sort()
+              .at(-1) ?? null,
+        };
+      })
+      .sort((a, b) => b.posts - a.posts || a.nome.localeCompare(b.nome)),
   };
 }

@@ -118,10 +118,12 @@ export interface VisaoConcorrentes {
   periodo: { de: string; ate: string; dias: number };
   kpis: { movimentos: number; alta: number; posts: number; audiencia: number; mais_ativo: string | null };
   linhas: LinhaComparativo[];
-  /** Tipos de movimento por concorrente (barras empilhadas) */
-  tipos: { tipos: string[]; empresas: { nome: string; valores: number[] }[] };
-  /** O que mais engaja: tipo de movimento × média de interações por post, com exemplos */
-  engaja: { tipo: string; posts: number; media: number; exemplos: PostExemplo[] }[];
+  /** Assuntos mais abordados nos posts próprios dos concorrentes (todos juntos) */
+  assuntos: { assunto: string; posts: number }[];
+  /** Assuntos por concorrente (barras empilhadas) */
+  assuntos_por_empresa: { assuntos: string[]; empresas: { id: number; nome: string; valores: number[] }[] };
+  /** O que mais engaja: assunto × média de interações por post (mín. 2 posts), com exemplos */
+  engaja: { assunto: string; posts: number; media: number; exemplos: PostExemplo[] }[];
   semanas: { inicio: string; n: number }[];
 }
 export interface SinalResumo {
@@ -148,4 +150,53 @@ export interface VisaoContas {
   semanas: { inicio: string; n: number }[];
   destaque: (EmpresaResumo & { dono: string | null; sinais: number; alta: number; score: number })[];
   tipos: { tipo: string; n: number }[];
+}
+
+export interface PostDetalhe extends PostExemplo {
+  data: string | null;
+  autor: string | null;
+  proprio: boolean;
+  curtidas: number | null;
+  comentarios: number | null;
+  compartilhamentos: number | null;
+  assuntos: string[];
+  sinal: { id: number; tipo: string; severidade: string } | null;
+}
+export interface DetalheEmpresa {
+  empresa: EmpresaResumo & {
+    nome_completo: string;
+    universo: string;
+    seguidores: number | null;
+    site: string | null;
+    linkedin_url: string | null;
+    dono: string | null;
+    segmento: string | null;
+    tier: string | null;
+    uf: string | null;
+  };
+  periodo: { de: string; ate: string; dias: number };
+  kpis: {
+    posts: number;
+    posts_anterior: number;
+    reposts: number;
+    interacoes_post: number | null;
+    engajamento: number | null;
+    sinais: number;
+    alta: number;
+    seguidores_var: number | null;
+  };
+  seguidores: { data: string; seguidores: number }[];
+  semanas: { inicio: string; n: number }[];
+  assuntos: { assunto: string; posts: number; media: number }[];
+  melhores: PostDetalhe[];
+  posts: PostDetalhe[];
+  sinais: SinalResumo[];
+  pessoas: {
+    id: number;
+    nome: string;
+    cargo: string | null;
+    prioridade: string | null;
+    posts: number;
+    ultimo: string | null;
+  }[];
 }

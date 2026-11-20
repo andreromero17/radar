@@ -1,6 +1,7 @@
+import { useMemo, useState } from 'react';
 import { Card, Col, Row, Table } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import type { VisaoConcorrentes } from '@frame/shared';
+import type { LinhaComparativo, VisaoConcorrentes } from '@frame/shared';
 import StatCard from '../../components/StatCard';
 import LogoEmpresa from '../components/LogoEmpresa';
 import { Barras, BarrasEmpilhadas, Rosca } from '../components/Graficos';
@@ -18,11 +19,78 @@ function Variacao({ atual, anterior }: { atual: number; anterior: number }) {
   );
 }
 
-/** Visão geral dos concorrentes: comparativo, fatia da conversa, tipos de movimento e o que mais engaja */
+type Chave = keyof Pick<
+  LinhaComparativo,
+  | 'nome'
+  | 'seguidores'
+  | 'posts'
+  | 'reposts'
+  | 'curtidas_post'
+  | 'comentarios_post'
+  | 'compartilhamentos_post'
+  | 'engajamento'
+  | 'movimentos'
+  | 'alta'
+  | 'ultimo_post'
+>;
+const COLUNAS: { chave: Chave; rotulo: string; dica?: string }[] = [
+  { chave: 'nome', rotulo: 'Empresa' },
+  { chave: 'seguidores', rotulo: 'Seguidores', dica: 'Seguidores da página; ao lado, a variação na última semana' },
+  {
+    chave: 'posts',
+    rotulo: 'Posts',
+    dica: 'Posts próprios da página no período; a seta compara com o período anterior',
+  },
+  { chave: 'reposts', rotulo: 'Reposts' },
+  { chave: 'curtidas_post', rotulo: 'Curtidas/post' },
+  { chave: 'comentarios_post', rotulo: 'Coment./post' },
+  { chave: 'compartilhamentos_post', rotulo: 'Compart./post' },
+  {
+    chave: 'engajamento',
+    rotulo: 'Engajamento',
+    dica: 'Interações (curtidas + comentários + compartilhamentos) por post ÷ seguidores',
+  },
+  {
+    chave: 'movimentos',
+    rotulo: 'Movimentos',
+    dica: 'Posts que viraram sinal comercial: oferta nova, cliente novo, parceria, contratação, troca de executivo…',
+  },
+  { chave: 'alta', rotulo: 'Alta', dica: 'Movimentos de severidade alta' },
+  { chave: 'ultimo_post', rotulo: 'Último post' },
+];
+
+/** Visão geral dos concorrentes: comparativo, assuntos, assuntos por concorrente e o que mais engaja */
 export default function VisaoConcorrentesTela({ d }: { d: VisaoConcorrentes }) {
-  const conc = d.linhas.filter((l) => !l.nos);
-  const comPosts = conc.filter((l) => l.posts > 0);
+  const [ordem, setOrdem] = useState<{ chave: Chave; desc: boolean }>({ chave: 'movimentos', desc: true });
+  const linhas = useMemo(() => {
+    const valor = (l: LinhaComparativo) => l[ordem.chave];
+    const resto = d.linhas
+      .filter((l) => !l.nos)
+      .sort((a, b) => {
+        const va = valor(a);
+        const vb = valor(b);
+        if (va == null && vb == null) return 0;
+        if (va == null) return 1; // vazios sempre no fim
+        if (vb == null) return -1;
+        const c = typeof va === 'string' ? va.localeCompare(String(vb), 'pt-BR') : Number(va) - Number(vb);
+        return ordem.desc ? -c : c;
+      });
+    return [...d.linhas.filter((l) => l.nos), ...resto]; // "Nós" fica sempre no topo, como referência
+  }, [d.linhas, ordem]);
+  const ordenar = (chave: Chave) =>
+    setOrdem((o) => (o.chave === chave ? { chave, desc: !o.desc } : { chave, desc: chave !== 'nome' }));
+  const topo = d.assuntos.slice(0, 8);
+  const outros = d.assuntos.slice(8).reduce((s, a) => s + a.posts, 0);
   const maxEngaja = Math.max(1, ...d.engaja.map((e) => e.media));
+  // até 7 assuntos com cor própria; o resto vira "Demais assuntos" (cores não se repetem)
+  const ape = d.assuntos_por_empresa;
+  const principais = ape.assuntos.slice(0, 7);
+  const seriesAssuntos = [
+    ...principais.map((a, i) => ({ nome: a, valores: ape.empresas.map((e) => e.valores[i]) })),
+    ...(ape.assuntos.length > 7
+      ? [{ nome: 'Demais assuntos', valores: ape.empresas.map((e) => e.valores.slice(7).reduce((s, v) => s + v, 0)) }]
+      : []),
+  ];
   return (
     <>
       <Row className="g-3 mb-3">
@@ -51,25 +119,29 @@ export default function VisaoConcorrentesTela({ d }: { d: VisaoConcorrentes }) {
           <Table hover className="mb-0 radar-tabela">
             <thead>
               <tr>
-                <th>Empresa</th>
-                <th className="text-end">Seguidores</th>
-                <th className="text-end">Posts</th>
-                <th className="text-end">Reposts</th>
-                <th className="text-end">Curtidas/post</th>
-                <th className="text-end">Coment./post</th>
-                <th className="text-end">Compart./post</th>
-                <th className="text-end">Engajamento</th>
-                <th className="text-end">Movimentos</th>
-                <th className="text-end">Alta</th>
-                <th className="text-end">Último post</th>
+                {COLUNAS.map((c) => (
+                  <th
+                    key={c.chave}
+                    className={c.chave === 'nome' ? undefined : 'text-end'}
+                    role="button"
+                    title={c.dica}
+                    aria-sort={ordem.chave === c.chave ? (ordem.desc ? 'descending' : 'ascending') : undefined}
+                    onClick={() => ordenar(c.chave)}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    {c.rotulo}
+                    {c.dica && <i className="bi bi-info-circle ms-1 opacity-50" />}
+                    {ordem.chave === c.chave && <i className={`bi bi-caret-${ordem.desc ? 'down' : 'up'}-fill ms-1`} />}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {d.linhas.map((l) => (
+              {linhas.map((l) => (
                 <tr key={l.id} className={l.nos ? 'radar-nos' : undefined}>
                   <td>
                     <Link
-                      to={`/empresas/${l.id}`}
+                      to={`/empresa/${l.id}`}
                       className="d-flex align-items-center gap-2 text-reset text-decoration-none"
                     >
                       <LogoEmpresa nome={l.nome} logo={l.logo} tamanho={1.75} />
@@ -110,33 +182,35 @@ export default function VisaoConcorrentesTela({ d }: { d: VisaoConcorrentes }) {
       <Row className="g-3 mb-3">
         <Col lg={5}>
           <Card className="card-app h-100">
-            <Card.Header className="fw-semibold">Fatia da conversa</Card.Header>
+            <Card.Header className="fw-semibold">Assuntos mais abordados</Card.Header>
             <Card.Body>
-              {comPosts.length ? (
-                <Rosca rotulos={comPosts.map((l) => l.nome)} valores={comPosts.map((l) => l.posts)} altura={11} />
+              {topo.length ? (
+                <Rosca
+                  rotulos={[...topo.map((a) => a.assunto), ...(outros ? ['Demais assuntos'] : [])]}
+                  valores={[...topo.map((a) => a.posts), ...(outros ? [outros] : [])]}
+                  altura={11}
+                />
               ) : (
                 <p className="text-muted mb-0">Sem posts no período.</p>
               )}
               <p className="small text-muted mt-2 mb-0">
-                Participação de cada concorrente nos posts próprios do período.
+                Todos os concorrentes juntos: % dos posts próprios do período em cada assunto (um post pode ter mais de
+                um).
               </p>
             </Card.Body>
           </Card>
         </Col>
         <Col lg={7}>
           <Card className="card-app h-100">
-            <Card.Header className="fw-semibold">Movimentos por concorrente</Card.Header>
+            <Card.Header className="fw-semibold">Assuntos por concorrente</Card.Header>
             <Card.Body>
-              {d.tipos.empresas.length ? (
+              {d.assuntos_por_empresa.empresas.length ? (
                 <BarrasEmpilhadas
-                  rotulos={d.tipos.empresas.map((e) => e.nome)}
-                  series={d.tipos.tipos.map((t, i) => ({
-                    nome: t,
-                    valores: d.tipos.empresas.map((e) => e.valores[i]),
-                  }))}
+                  rotulos={d.assuntos_por_empresa.empresas.map((e) => e.nome)}
+                  series={seriesAssuntos}
                 />
               ) : (
-                <p className="text-muted mb-0">Sem movimentos classificados no período.</p>
+                <p className="text-muted mb-0">Sem posts no período.</p>
               )}
             </Card.Body>
           </Card>
@@ -154,9 +228,9 @@ export default function VisaoConcorrentesTela({ d }: { d: VisaoConcorrentes }) {
               {d.engaja.length ? (
                 <ul className="radar-lista">
                   {d.engaja.map((e) => (
-                    <li key={e.tipo} className="flex-column">
+                    <li key={e.assunto} className="flex-column">
                       <div className="d-flex justify-content-between gap-2">
-                        <span className="fw-semibold">{e.tipo}</span>
+                        <span className="fw-semibold">{e.assunto}</span>
                         <span className="small text-muted">
                           {num(e.media)} interações/post · {e.posts} post(s)
                         </span>
@@ -181,11 +255,10 @@ export default function VisaoConcorrentesTela({ d }: { d: VisaoConcorrentes }) {
                   ))}
                 </ul>
               ) : (
-                <p className="text-muted mb-0">Ainda sem posts classificados no período.</p>
+                <p className="text-muted mb-0">Sem posts suficientes no período.</p>
               )}
               <p className="small text-muted mt-2 mb-0">
-                Por tipo de movimento até a classificação por assunto (próxima entrega) chegar a todos os posts
-                coletados.
+                Assuntos com 2 posts ou mais, ordenados pela média de curtidas + comentários + compartilhamentos.
               </p>
             </Card.Body>
           </Card>

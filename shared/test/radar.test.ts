@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalizarLinkedin, rotuloSinal, TIPOS_SINAL } from '../src/app/radar';
+import { assuntosDoTexto, classificarAssuntos } from '../src/app/assuntos';
 
 describe('normalizarLinkedin', () => {
   it('padroniza esquema, www, maiúsculas, barra final e querystring', () => {
@@ -33,5 +34,24 @@ describe('tipos de sinal', () => {
 
   it('não repete rótulos entre os universos', () => {
     expect(new Set(TIPOS_SINAL).size).toBe(TIPOS_SINAL.length);
+  });
+});
+
+describe('assuntos', () => {
+  it('acha os assuntos pelas palavras, sem acento nem maiúscula, até 3', () => {
+    expect(classificarAssuntos('Lançamos o AI Symphony, plataforma de IA multimodelo')).toEqual([
+      'IA e agentes',
+      'Lançamentos e ofertas',
+    ]);
+    expect(classificarAssuntos('Somos GPTW de novo! #GreatPlaceToWork')).toEqual(['Prêmios e certificações']);
+    expect(classificarAssuntos('Estamos contratando: vagas em engenharia de dados')).toContain('Vagas e talentos');
+    expect(classificarAssuntos('a data do evento é sexta')).not.toContain('Dados e analytics'); // "data" = dia
+    expect(classificarAssuntos('Bom dia')).toEqual(['Outros']);
+    expect(classificarAssuntos('ia dados cloud parceria case gptw vaga').length).toBe(3);
+  });
+
+  it('lê a lista gravada', () => {
+    expect(assuntosDoTexto('IA e agentes; Parcerias')).toEqual(['IA e agentes', 'Parcerias']);
+    expect(assuntosDoTexto(null)).toEqual([]);
   });
 });

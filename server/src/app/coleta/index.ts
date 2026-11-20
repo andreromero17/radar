@@ -1,6 +1,7 @@
 // Coleta: execução sob demanda (rota, em segundo plano) e diária (tarefa), por espaço.
 //   tipo 'posts'   → posts das páginas e perfis (todo dia)
-//   tipo 'paginas' → seguidores, funcionários e logos das páginas (uma vez por semana)
+//   tipo 'paginas' → seguidores, funcionários, logos e site das páginas E, em seguida, as vagas (uma vez por semana)
+//   tipo 'vagas'   → só as vagas (para retomar um run do ator de vagas)
 import type { Db } from '../../db/knex';
 import { comEspaco, idsEspacosAtivos } from '../../espacos';
 import { getAppSetting } from '../../services/settings';
@@ -8,15 +9,19 @@ import { daysAgo, nowLocal } from '../../utils/time';
 import { apifyConfigurado } from './apify';
 import { ATOR_PAGINAS, coletarPaginas, type ResultadoPaginas } from './paginas';
 import { ATOR_POSTS, coletarPosts, type ResultadoColeta } from './posts';
+import { ATOR_VAGAS, coletarVagas, type ResultadoVagas } from './vagas';
 
 export { apifyConfigurado, baixarImagem, definirContextoApify, ErroApify } from './apify';
 export { ATOR_PAGINAS, coletarPaginas } from './paginas';
 export { ATOR_POSTS, autorEhDaFonte, coletarPosts, idDoPost } from './posts';
+export { ATOR_VAGAS, coletarVagas } from './vagas';
 
-export type TipoColeta = 'posts' | 'paginas';
-export const ATORES: Record<TipoColeta, string> = { posts: ATOR_POSTS, paginas: ATOR_PAGINAS };
-export const tipoDoAtor = (ator: string | null | undefined): TipoColeta =>
-  (ator ?? '').replace('/', '~') === ATOR_PAGINAS ? 'paginas' : 'posts';
+export type TipoColeta = 'posts' | 'paginas' | 'vagas';
+export const ATORES: Record<TipoColeta, string> = { posts: ATOR_POSTS, paginas: ATOR_PAGINAS, vagas: ATOR_VAGAS };
+export const tipoDoAtor = (ator: string | null | undefined): TipoColeta => {
+  const a = (ator ?? '').replace('/', '~');
+  return a === ATOR_PAGINAS ? 'paginas' : a === ATOR_VAGAS ? 'vagas' : 'posts';
+};
 
 /** Espaços com coleta rodando agora (evita duas ao mesmo tempo) */
 export const coletasEmAndamento = new Set<number>();
@@ -41,11 +46,13 @@ export async function coletarEspaco(
   if (coletasEmAndamento.has(espacoId)) return null;
   coletasEmAndamento.add(espacoId);
   try {
-    return await comEspaco<ResultadoPaginas | ResultadoColeta>(espacoId, (db) =>
-      opcoes.tipo === 'paginas'
-        ? coletarPaginas(db, { coletaId: opcoes.coletaId, runId: opcoes.runId })
-        : coletarPosts(db, { coletaId: opcoes.coletaId, runId: opcoes.runId }),
-    );
+    return await comEspaco<ResultadoPaginas | ResultadoColeta | ResultadoVagas>(espacoId, async (db) => {
+      if (opcoes.tipo === 'vagas') return coletarVagas(db, { coletaId: opcoes.coletaId, runId: opcoes.runId });
+      if (opcoes.tipo !== 'paginas') return coletarPosts(db, { coletaId: opcoes.coletaId, runId: opcoes.runId });
+      const r = await coletarPaginas(db, { coletaId: opcoes.coletaId, runId: opcoes.runId });
+      if (!opcoes.runId) await coletarVagas(db).catch(() => undefined); // o erro fica gravado na linha das vagas
+      return r;
+    });
   } finally {
     coletasEmAndamento.delete(espacoId);
   }

@@ -1,5 +1,21 @@
 # Changelog do Radar
 
+## 0.4.3 — 20/11/2026
+
+- Cadastro da empresa com o logo em destaque (grande), mostrando o que está em uso (enviado ou do LinkedIn), com
+  "Substituir logo" e "Voltar ao do LinkedIn"; sem o quadro vazio quando já há logo.
+- Página da empresa com logo maior, indicador de vagas e a lista de vagas publicadas nos últimos 30 dias.
+- Sinais: filtro rápido de severidade (Todos, Alta, Média, Baixa) no topo da lista e na página da empresa.
+- Listas do Radar com 100 registros por página (opções 50, 100, 150, 200).
+- Cores das etiquetas de universo, severidade e situação da coleta (não apareciam nas listas).
+- Pipedrive em mão dupla: o que o Radar tem e o Pipedrive deixou vazio é gravado lá (organização: site,
+  LinkedIn, segmento, tier; pessoa: cargo, LinkedIn). Quando os dois têm valor, vale o do Pipedrive. Configuração
+  "Completar no Pipedrive…" (ligada por padrão). O resumo da sincronização mostra quantos registros foram completados.
+- Vagas: ator `piotrv1001/linkedin-company-jobs-scraper` (o do piloto) roda junto com "Logos e seguidores" (semanal):
+  vagas dos últimos 30 dias viram publicações do tipo "Vaga" e a contagem entra na coluna **Vagas** do comparativo.
+- Site da empresa vem da página do LinkedIn quando o Radar não tem site (e daí segue para o Pipedrive, se lá estiver
+  vazio).
+
 ## 0.4.2 — 20/11/2026
 
 - Comparativo de concorrentes com o mesmo indicador de ordenação das listas do frame (coluna ativa em destaque com

@@ -122,6 +122,7 @@ export async function visaoConcorrentes(db: Db, dias = 30): Promise<VisaoConcorr
   const empresas = await empresasDe(db, ['Concorrente', 'Nós']);
   const ids = empresas.map((e) => e.id);
   const pubs = (await db('publicacoes')
+    .where('tipo', 'Post')
     .whereIn('empresa_id', ids)
     .whereNull('pessoa_id')
     .where('data_publicacao', '>=', p.deAnterior)
@@ -158,7 +159,12 @@ export async function visaoConcorrentes(db: Db, dias = 30): Promise<VisaoConcorr
   const metricas = (await db('metricas_empresas')
     .whereIn('empresa_id', ids)
     .orderBy('data', 'asc')
-    .select('empresa_id', 'data', 'seguidores')) as { empresa_id: number; data: string; seguidores: number | null }[];
+    .select('empresa_id', 'data', 'seguidores', 'vagas')) as {
+    empresa_id: number;
+    data: string;
+    seguidores: number | null;
+    vagas: number | null;
+  }[];
 
   const noPeriodo = (x: Pub) => !!x.data_publicacao && x.data_publicacao >= p.de;
   const linhas: LinhaComparativo[] = empresas.map((e) => {
@@ -184,6 +190,7 @@ export async function visaoConcorrentes(db: Db, dias = 30): Promise<VisaoConcorr
       comentarios_post: media(soma('comentarios'), proprios.length),
       compartilhamentos_post: media(soma('compartilhamentos'), proprios.length),
       engajamento: porPost != null && e.seguidores ? Math.round((porPost / e.seguidores) * 10000) / 100 : null,
+      vagas: metricas.filter((m) => m.empresa_id === e.id && m.vagas != null).at(-1)?.vagas ?? null,
       movimentos: sinaisE.length,
       alta: sinaisE.filter((s) => s.severidade === 'Alta').length,
       ultimo_post:
@@ -288,6 +295,7 @@ export async function visaoContas(db: Db, dias = 30): Promise<VisaoContas> {
     .whereIn('monitorar', [1, true])
     .select('id', 'nome', 'empresa_id')) as { id: number; nome: string; empresa_id: number }[];
   const ativas = (await db('publicacoes')
+    .where('tipo', 'Post')
     .whereIn(
       'pessoa_id',
       pessoas.map((x) => x.id),
@@ -372,8 +380,20 @@ export async function detalheEmpresa(db: Db, id: number, dias = 90): Promise<Det
     | undefined;
   if (!e) return null;
   const p = periodoDe(dias);
+  const vagasRows = (await db('publicacoes')
+    .where({ empresa_id: id, tipo: 'Vaga' })
+    .where('data_publicacao', '>=', periodoDe(30).de)
+    .orderBy('data_publicacao', 'desc')
+    .select('id', 'titulo', 'url', 'data_publicacao', 'texto')) as {
+    id: number;
+    titulo: string | null;
+    url: string | null;
+    data_publicacao: string | null;
+    texto: string | null;
+  }[];
   const pubs = (await db('publicacoes')
     .where('empresa_id', id)
+    .where('tipo', 'Post')
     .where('data_publicacao', '>=', p.deAnterior)
     .where('data_publicacao', '<=', p.ate)
     .orderBy('data_publicacao', 'desc')
@@ -447,6 +467,11 @@ export async function detalheEmpresa(db: Db, id: number, dias = 90): Promise<Det
       sinal: s ? { id: s.id, tipo: s.tipo, severidade: s.severidade } : null,
     };
   };
+  const vagasMetrica = (await db('metricas_empresas')
+    .where('empresa_id', id)
+    .whereNotNull('vagas')
+    .orderBy('data', 'desc')
+    .first('vagas')) as { vagas: number } | undefined;
   const ultima = hist.at(-1);
   const corte = ultima ? dia(new Date(new Date(`${ultima.data}T12:00:00Z`).getTime() - 7 * 86_400_000)) : null;
   const base = corte ? hist.filter((m) => m.data <= corte).at(-1) : undefined;
@@ -476,6 +501,7 @@ export async function detalheEmpresa(db: Db, id: number, dias = 90): Promise<Det
       sinais: sinais.length,
       alta: sinais.filter((s) => s.severidade === 'Alta').length,
       seguidores_var: base && ultima ? ultima.seguidores - base.seguidores : null,
+      vagas: vagasMetrica?.vagas ?? null,
     },
     seguidores: hist,
     semanas: porSemana(
@@ -494,6 +520,13 @@ export async function detalheEmpresa(db: Db, id: number, dias = 90): Promise<Det
           ) ?? 0,
       }))
       .sort((a, b) => b.posts - a.posts),
+    vagas: vagasRows.map((v) => ({
+      id: v.id,
+      titulo: v.titulo ?? 'Vaga',
+      url: v.url,
+      data: v.data_publicacao,
+      local: v.texto?.split(' · ').slice(1).join(' · ') || null,
+    })),
     melhores: [...proprios]
       .sort((a, b) => interacoes(b) - interacoes(a))
       .slice(0, 5)

@@ -65,5 +65,16 @@ export function clientePipedrive() {
     return out;
   }
 
-  return { get, todosV2 };
+  /** Atualiza um registro (v1 aceita campos padrão e personalizados pela chave) */
+  async function put(caminho: string, corpo: Record<string, unknown>): Promise<void> {
+    const res = await ctx.fetch(`${base}${caminho}`, {
+      method: 'PUT',
+      headers: { 'x-api-token': token!, accept: 'application/json', 'content-type': 'application/json' },
+      body: JSON.stringify(corpo),
+    });
+    if (res.status === 401) throw new ErroPipedrive('O Pipedrive recusou o token (PIPEDRIVE_API_TOKEN).');
+    if (!res.ok) throw new ErroPipedrive(`Pipedrive respondeu ${res.status} ao gravar ${caminho}.`);
+  }
+
+  return { get, todosV2, put };
 }

@@ -26,7 +26,7 @@ import { pipedriveConfigurado } from './pipedrive/cliente';
  *   GET  /api/radar/empresas/:id/detalhe?dias=90                    página da empresa (posts, assuntos, engajamento…)
  *   GET  /api/radar/coleta/status           token do Apify configurado?, coleta rodando?, última execução
  *   POST /api/radar/coleta/executar         dispara a coleta de posts em segundo plano → 202 { coleta_id }
- *        { tipo: 'posts' | 'paginas' }         posts (padrão) ou dados das páginas (seguidores, logos)
+ *        { tipo: 'posts' | 'paginas' | 'vagas' } posts (padrão), páginas (seguidores, logos, site + vagas) ou só vagas
  *        { run_apify }                         …ou retoma um run do Apify já iniciado (que passou do tempo ou foi interrompido)
  */
 export function appRouter(db: Db) {
@@ -84,7 +84,7 @@ export function appRouter(db: Db) {
     if (!espaco) throw new HttpError(400, 'Sem espaço na sessão.');
     if (coletasEmAndamento.has(espaco)) throw new HttpError(409, 'Já há uma coleta em andamento.');
     // retomada: o tipo vem da execução que tinha esse run (ou do texto do erro, na 0.3.0)
-    let tipo: TipoColeta = req.body?.tipo === 'paginas' ? 'paginas' : 'posts';
+    let tipo: TipoColeta = req.body?.tipo === 'paginas' ? 'paginas' : req.body?.tipo === 'vagas' ? 'vagas' : 'posts';
     if (runApify) {
       const origem = (await db('coletas')
         .where('run_apify', runApify)
@@ -93,7 +93,11 @@ export function appRouter(db: Db) {
         .first('ator')) as { ator: string | null } | undefined;
       if (origem) tipo = tipoDoAtor(origem.ator);
     }
-    const nomes = { posts: 'Posts do LinkedIn', paginas: 'Dados das páginas (seguidores e logos)' };
+    const nomes = {
+      posts: 'Posts do LinkedIn',
+      paginas: 'Dados das páginas (seguidores, logos e sites)',
+      vagas: 'Vagas publicadas (30 dias)',
+    };
     const coletaId = await inserir(db('coletas'), {
       inicio: nowLocal(),
       situacao: 'Rodando',

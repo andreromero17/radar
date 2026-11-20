@@ -7,6 +7,7 @@ import { makeTestApp, type TestCtx } from './helpers';
 // Radar 0.4.0: dados das páginas (seguidores, logos) e a visão geral por universo.
 let ctx: TestCtx;
 let entrada: { companies?: string[] } = {};
+let entradaVagas: { companies?: string[]; postedWithin?: string } = {};
 const PNG = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex');
 
 function apifyFalso() {
@@ -21,6 +22,28 @@ function apifyFalso() {
       entrada = JSON.parse(String(init?.body));
       return json({ data: { id: 'runp', status: 'SUCCEEDED', defaultDatasetId: 'dsp', usageTotalUsd: 0.15 } });
     }
+    if (url.pathname === '/v2/acts/piotrv1001~linkedin-company-jobs-scraper/runs') {
+      entradaVagas = JSON.parse(String(init?.body));
+      return json({ data: { id: 'runv', status: 'SUCCEEDED', defaultDatasetId: 'dsv', usageTotalUsd: 0.05 } });
+    }
+    if (url.pathname === '/v2/datasets/dsv/items')
+      return json([
+        {
+          jobId: '111',
+          jobUrl: 'https://www.linkedin.com/jobs/view/111',
+          title: 'Engenheiro de Dados Sênior',
+          location: 'Porto Alegre',
+          postedDate: '2026-11-15',
+          companySlug: 'taking',
+        },
+        {
+          jobId: '112',
+          title: 'Analista de Cloud',
+          postedDate: '2026-11-10',
+          companyUrl: 'https://www.linkedin.com/company/taking/',
+        },
+        { jobId: '999', title: 'Outra', companySlug: 'nao-monitorada' },
+      ]);
     if (url.pathname === '/v2/datasets/dsp/items')
       return json([
         {
@@ -29,6 +52,7 @@ function apifyFalso() {
           followerCount: 57000,
           employeeCount: 900,
           logo: 'https://media.licdn.com/logo-taking.png',
+          website: 'https://www.taking.com.br/?utm_source=li',
         },
         { universalName: 'grupofcamara', followerCount: 155000, logo: 'https://media.licdn.com/quebrado.png' },
         { universalName: 'desconhecida', followerCount: 1 },
@@ -55,6 +79,7 @@ describe('dados das páginas', () => {
     expect(entrada.companies?.every((c) => c.includes('/company/'))).toBe(true);
     const taking = await ctx.db('empresas').where('linkedin_url', 'https://www.linkedin.com/company/taking').first();
     expect(taking.seguidores).toBe(57000);
+    expect(taking.site).toBe('taking.com.br'); // estava vazio: veio do LinkedIn, limpo
     expect(taking.logo_linkedin).toMatch(/^data:image\/png;base64,/);
     expect(
       await ctx.db('metricas_empresas').where('empresa_id', taking.id).first('seguidores', 'funcionarios'),
@@ -67,7 +92,19 @@ describe('dados das páginas', () => {
     expect(await ctx.db('metricas_empresas').where('empresa_id', taking.id).count({ n: '*' })).toEqual([{ n: 1 }]);
   });
 
-  it('pela rota, com tipo "paginas"', async () => {
+  it('site já preenchido no Radar não é trocado pelo do LinkedIn', async () => {
+    const url = 'https://www.linkedin.com/company/taking';
+    await ctx.db('empresas').where('linkedin_url', url).update({ site: 'meu-site.com' });
+    definirContextoApify(() => ({
+      fetch: apifyFalso() as typeof fetch,
+      env: { APIFY_TOKEN: 't' },
+      esperar: async () => {},
+    }));
+    await coletarPaginas(ctx.db);
+    expect((await ctx.db('empresas').where('linkedin_url', url).first('site')).site).toBe('meu-site.com');
+  });
+
+  it('pela rota, "paginas" também busca as vagas: viram publicações e contagem por empresa', async () => {
     definirContextoApify(() => ({
       fetch: apifyFalso() as typeof fetch,
       env: { APIFY_TOKEN: 't' },
@@ -76,6 +113,22 @@ describe('dados das páginas', () => {
     const res = await ctx.admin.post('/api/radar/coleta/executar').send({ tipo: 'paginas' }).expect(202);
     const c = await ctx.db('coletas').where('id', res.body.coleta_id).first('situacao', 'ator');
     expect(c).toEqual({ situacao: 'Ok', ator: 'harvestapi/linkedin-company' });
+    const v = await ctx
+      .db('coletas')
+      .where('ator', 'piotrv1001/linkedin-company-jobs-scraper')
+      .orderBy('id', 'desc')
+      .first('situacao', 'itens_novos');
+    expect(v).toEqual({ situacao: 'Ok', itens_novos: 2 });
+    expect(entradaVagas.postedWithin).toBe('r2592000');
+    const taking = await ctx
+      .db('empresas')
+      .where('linkedin_url', 'https://www.linkedin.com/company/taking')
+      .first('id');
+    const m = await ctx.db('metricas_empresas').where('empresa_id', taking.id).orderBy('data', 'desc').first('vagas');
+    expect(m.vagas).toBe(2);
+    const vaga = await ctx.db('publicacoes').where('id_externo', 'vaga:111').first('tipo', 'titulo', 'assuntos');
+    expect(vaga).toMatchObject({ tipo: 'Vaga', titulo: 'Engenheiro de Dados Sênior' });
+    expect(vaga.assuntos).toContain('Dados e analytics');
   });
 });
 
@@ -93,6 +146,20 @@ describe('visão geral', () => {
     const taking = d.linhas.find((l) => l.nome === 'Grupo Taking')!;
     expect(taking.seguidores).toBe(57000);
     expect(taking.logo).toMatch(/^data:image/);
+    expect(taking.vagas).toBe(2);
+    // vagas não contam como posts
+    const postsTaking = Number(
+      (
+        await ctx
+          .db('publicacoes')
+          .where({ empresa_id: taking.id, tipo: 'Post' })
+          .whereNull('pessoa_id')
+          .where('data_publicacao', '>=', d.periodo.de)
+          .whereIn('post_proprio', [1, true])
+          .count({ n: '*' })
+      )[0].n,
+    );
+    expect(taking.posts).toBe(postsTaking);
     expect(taking.posts).toBeGreaterThan(0);
     expect(d.engaja.length).toBeGreaterThan(0);
     expect(d.engaja[0].media).toBeGreaterThanOrEqual(d.engaja.at(-1)!.media);
@@ -121,6 +188,7 @@ describe('visão geral', () => {
     expect(d.pessoas.some((p) => p.nome === 'Adriano Polidoro')).toBe(true);
     expect(d.melhores.map((p) => p.interacoes)).toEqual([...d.melhores.map((p) => p.interacoes)].sort((a, b) => b - a));
     expect(d.posts.some((p) => p.autor === 'Adriano Polidoro')).toBe(true);
+    expect(d.vagas).toEqual([]);
     await ctx.admin.get('/api/radar/empresas/999999/detalhe').expect(404);
   });
 

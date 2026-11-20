@@ -20,8 +20,9 @@ import {
 } from './radar';
 
 const GRUPO = 'Radar';
-const COR_UNIVERSO = { 'Conta-alvo': 'success', Concorrente: 'primary', Nós: 'warning' };
-const COR_SEVERIDADE = { Alta: 'danger', Média: 'warning', Baixa: 'secondary' };
+const PAGINACAO = [50, 100, 150, 200];
+const COR_UNIVERSO = { 'Conta-alvo': '#2b8a5a', Concorrente: '#1d4ed8', Nós: '#b7791f' };
+const COR_SEVERIDADE = { Alta: '#e03e3e', Média: '#d97706', Baixa: '#868e96' };
 
 export const appEntities: Record<string, EntityDef> = {
   empresas: {
@@ -31,6 +32,8 @@ export const appEntities: Record<string, EntityDef> = {
     icon: 'building',
     labelField: 'nome',
     group: GRUPO,
+    pageSizes: PAGINACAO,
+    pageSize: 100,
     activeField: 'monitorar',
     lixeira: true,
     defaultSort: { field: 'nome', dir: 'asc' },
@@ -111,6 +114,8 @@ export const appEntities: Record<string, EntityDef> = {
     icon: 'people',
     labelField: 'nome',
     group: GRUPO,
+    pageSizes: PAGINACAO,
+    pageSize: 100,
     activeField: 'monitorar',
     lixeira: true,
     defaultSort: { field: 'nome', dir: 'asc' },
@@ -167,6 +172,8 @@ export const appEntities: Record<string, EntityDef> = {
     icon: 'file-text',
     labelField: 'titulo',
     group: GRUPO,
+    pageSizes: PAGINACAO,
+    pageSize: 100,
     periodField: 'data_publicacao',
     defaultSort: { field: 'data_publicacao', dir: 'desc' },
     importar: false,
@@ -221,6 +228,8 @@ export const appEntities: Record<string, EntityDef> = {
     icon: 'lightning-charge',
     labelField: 'titulo',
     group: GRUPO,
+    pageSizes: PAGINACAO,
+    pageSize: 100,
     periodField: 'data',
     defaultSort: { field: 'data', dir: 'desc' },
     importar: false,
@@ -292,6 +301,8 @@ export const appEntities: Record<string, EntityDef> = {
     icon: 'exclamation-triangle',
     labelField: 'detalhe',
     group: GRUPO,
+    pageSizes: PAGINACAO,
+    pageSize: 100,
     defaultSort: { field: 'id', dir: 'desc' },
     importar: false,
     fields: [
@@ -328,6 +339,8 @@ export const appEntities: Record<string, EntityDef> = {
     icon: 'graph-up',
     labelField: 'data',
     group: GRUPO,
+    pageSizes: PAGINACAO,
+    pageSize: 100,
     defaultSort: { field: 'data', dir: 'desc' },
     importar: false,
     fields: [
@@ -343,6 +356,7 @@ export const appEntities: Record<string, EntityDef> = {
       },
       { name: 'seguidores', label: 'Seguidores', type: 'number', list: true, readonly: true, col: 6 },
       { name: 'funcionarios', label: 'Funcionários no LinkedIn', type: 'number', list: true, readonly: true, col: 6 },
+      { name: 'vagas', label: 'Vagas publicadas (30 dias)', type: 'number', list: true, readonly: true, col: 6 },
     ],
   },
 
@@ -353,6 +367,8 @@ export const appEntities: Record<string, EntityDef> = {
     icon: 'cloud-download',
     labelField: 'descricao',
     group: GRUPO,
+    pageSizes: PAGINACAO,
+    pageSize: 100,
     defaultSort: { field: 'id', dir: 'desc' },
     importar: false,
     fields: [
@@ -366,7 +382,7 @@ export const appEntities: Record<string, EntityDef> = {
         list: true,
         readonly: true,
         col: 4,
-        colors: { Rodando: 'info', Ok: 'success', Erro: 'danger' },
+        colors: { Rodando: '#1d4ed8', Ok: '#2b8a5a', Erro: '#e03e3e' },
       },
       { name: 'descricao', label: 'Descrição', type: 'text', list: true, readonly: true, maxLength: 200, col: 8 },
       { name: 'ator', label: 'Ator do Apify', type: 'text', readonly: true, maxLength: 120, col: 4 },

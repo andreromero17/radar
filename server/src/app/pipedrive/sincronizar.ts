@@ -8,6 +8,9 @@
 //   • empresa ou pessoa que o usuário mandou para a LIXEIRA do Radar não volta nem é atualizada (fica "ignorada");
 //     restaurar da lixeira volta a sincronizar.
 // Campos personalizados (Segmento, Tier, LinkedIn da pessoa) são achados pelo NOME no Pipedrive.
+// Mão dupla (0.4.3, configuração `pipedrive_completar`): o que o Radar tem e o Pipedrive deixou VAZIO vai para o
+// Pipedrive (organização: site, LinkedIn, segmento, tier; pessoa: cargo e LinkedIn). Campo preenchido nos dois
+// lados: vale o do Pipedrive (ele é a fonte do CRM), que desce para o Radar como antes.
 // Rodar de novo não duplica nada.
 // =============================================================================
 import { normalizarLinkedin, type Universo } from '@frame/shared';
@@ -43,6 +46,8 @@ export interface ResultadoSincronizacao {
   empresas: { novas: number; atualizadas: number; ignoradas: number };
   pessoas: { novas: number; atualizadas: number; sem_linkedin: number; ignoradas: number };
   alertas: number;
+  /** Registros do Pipedrive que receberam dados do Radar */
+  enviados: { organizacoes: number; pessoas: number };
   avisos: string[];
 }
 
@@ -78,6 +83,7 @@ export async function sincronizarPipedrive(db: Db): Promise<ResultadoSincronizac
     empresas: { novas: 0, atualizadas: 0, ignoradas: 0 },
     pessoas: { novas: 0, atualizadas: 0, sem_linkedin: 0, ignoradas: 0 },
     alertas: 0,
+    enviados: { organizacoes: 0, pessoas: 0 },
     avisos: [],
   };
   const filtros: [Universo, number][] = [
@@ -90,6 +96,7 @@ export async function sincronizarPipedrive(db: Db): Promise<ResultadoSincronizac
   }
 
   const api = clientePipedrive();
+  const completar = !!(await getAppSetting<boolean>(db, 'pipedrive_completar'));
   const camposOrg = (await api.get<{ data: Campo[] }>('/v1/organizationFields', { limit: 500 })).data ?? [];
   const camposPessoa = (await api.get<{ data: Campo[] }>('/v1/personFields', { limit: 500 })).data ?? [];
   const usuarios = (await api.get<{ data: { id: number; name: string }[] }>('/v1/users')).data ?? [];
@@ -153,6 +160,24 @@ export async function sincronizarPipedrive(db: Db): Promise<ResultadoSincronizac
         empresaDaOrg.set(org.id, id);
         r.empresas.novas++;
       }
+      if (completar) {
+        const radar = (await db('empresas')
+          .where('id', empresaDaOrg.get(org.id)!)
+          .first('site', 'linkedin_url', 'segmento', 'tier')) as Record<string, string | null>;
+        const envio: Record<string, unknown> = {};
+        if (radar.site && !org.website) envio.website = radar.site;
+        if (radar.linkedin_url && !org.linkedin) envio.linkedin = radar.linkedin_url;
+        if (campoSegmento && radar.segmento && !org.custom_fields?.[campoSegmento.key])
+          envio[campoSegmento.key] = radar.segmento;
+        const opcaoTier = campoTier?.options?.find(
+          (o) => radar.tier && o.label.toUpperCase().startsWith(`${radar.tier} `),
+        );
+        if (campoTier && opcaoTier && !org.custom_fields?.[campoTier.key]) envio[campoTier.key] = opcaoTier.id;
+        if (Object.keys(envio).length) {
+          await api.put(`/v1/organizations/${org.id}`, envio);
+          r.enviados.organizacoes++;
+        }
+      }
     }
   }
 
@@ -161,7 +186,22 @@ export async function sincronizarPipedrive(db: Db): Promise<ResultadoSincronizac
   for (const [orgId, empresaId] of empresaDaOrg) {
     const pessoas = await api.todosV2<Pessoa>('/api/v2/persons', { org_id: orgId });
     for (const p of pessoas) {
-      const linkedin = normalizarLinkedin(p.custom_fields?.[campoLinkedinPessoa.key] as string | null);
+      const linkedinPipe = normalizarLinkedin(p.custom_fields?.[campoLinkedinPessoa.key] as string | null);
+      // pessoa que o Radar já conhece (pelo id do Pipedrive): completa no Pipedrive o que lá está vazio
+      if (completar) {
+        const radar = (await db('pessoas')
+          .where('pipedrive_person_id', p.id)
+          .whereNull('excluido_em')
+          .first('cargo', 'linkedin_url')) as { cargo: string | null; linkedin_url: string | null } | undefined;
+        const envio: Record<string, unknown> = {};
+        if (radar?.linkedin_url && !linkedinPipe) envio[campoLinkedinPessoa.key] = radar.linkedin_url;
+        if (radar?.cargo && !p.job_title?.trim()) envio.job_title = radar.cargo;
+        if (Object.keys(envio).length) {
+          await api.put(`/v1/persons/${p.id}`, envio);
+          r.enviados.pessoas++;
+        }
+      }
+      const linkedin = linkedinPipe;
       if (!linkedin) {
         r.pessoas.sem_linkedin++;
         continue;

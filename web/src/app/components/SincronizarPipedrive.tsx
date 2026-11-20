@@ -8,6 +8,7 @@ interface Resultado {
   empresas: { novas: number; atualizadas: number; ignoradas: number };
   pessoas: { novas: number; atualizadas: number; sem_linkedin: number; ignoradas: number };
   alertas: number;
+  enviados?: { organizacoes: number; pessoas: number };
   avisos: string[];
 }
 interface Status {
@@ -21,7 +22,10 @@ const resumo = (r: Resultado) =>
   `Empresas: ${r.empresas.novas} novas, ${r.empresas.atualizadas} atualizadas · ` +
   `Pessoas: ${r.pessoas.novas} novas, ${r.pessoas.atualizadas} atualizadas` +
   (r.empresas.ignoradas ? ` · ${r.empresas.ignoradas} empresa(s) da lixeira ignoradas` : '') +
-  (r.alertas ? ` · ${r.alertas} alerta(s) de cadastro` : '');
+  (r.alertas ? ` · ${r.alertas} alerta(s) de cadastro` : '') +
+  (r.enviados && r.enviados.organizacoes + r.enviados.pessoas
+    ? ` · completados no Pipedrive: ${r.enviados.organizacoes} organização(ões), ${r.enviados.pessoas} pessoa(s)`
+    : '');
 
 /** Botão "Sincronizar com Pipedrive" (listagem de empresas). Só aparece com permissão de criar empresas. */
 export default function SincronizarPipedrive({ onFeito }: { onFeito?: () => void }) {

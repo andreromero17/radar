@@ -7,6 +7,7 @@ import * as m20261119210141 from './20261119210141_lixeira_empresas_pessoas';
 import * as m20261119220717 from './20261119220717_run_apify_nas_coletas';
 import * as m20261120111113 from './20261120111113_metricas_e_universo_nos';
 import * as m20261120132936 from './20261120132936_assuntos_das_publicacoes';
+import * as m20261120153021 from './20261120153021_vagas_nas_metricas';
 // @diff:imports
 
 export const appMigrations: Migration[] = [
@@ -15,5 +16,6 @@ export const appMigrations: Migration[] = [
   m20261119220717,
   m20261120111113,
   m20261120132936,
+  m20261120153021,
   // @diff:list
 ];

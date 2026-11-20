@@ -71,12 +71,17 @@ const pessoasPorOrg: Record<string, unknown[]> = {
 };
 
 let chamadas: string[] = [];
+let gravacoes: { caminho: string; corpo: Record<string, unknown> }[] = [];
 function fetchFalso(token = 'tok-secreto') {
   return async (entrada: string | URL | Request, init?: RequestInit) => {
     const url = new URL(String(entrada));
     chamadas.push(url.pathname + url.search);
     const headers = new Headers(init?.headers);
     if (headers.get('x-api-token') !== token) return new Response('{}', { status: 401 });
+    if (init?.method === 'PUT') {
+      gravacoes.push({ caminho: url.pathname, corpo: JSON.parse(String(init.body)) });
+      return new Response(JSON.stringify({ success: true, data: {} }), { status: 200 });
+    }
     const json = (data: unknown, extra: Record<string, unknown> = {}) =>
       new Response(JSON.stringify({ success: true, data, ...extra }), { status: 200 });
     switch (url.pathname) {
@@ -253,6 +258,45 @@ describe('sincronização com o Pipedrive', () => {
     await ctx.admin.post('/api/radar/pipedrive/sincronizar').send({}).expect(200);
     expect(hosts[0]).toBe('naoexiste.pipedrive.com');
     expect(hosts.at(-1)).toBe('api.pipedrive.com');
+  });
+
+  it('completa no Pipedrive o que lá está vazio e o Radar tem (e não mexe no que o Pipedrive já tem)', async () => {
+    // Accenture: Pipedrive sem site, segmento e tier; o Radar tem os três (restaurada da lixeira para sincronizar)
+    await ctx
+      .db('empresas')
+      .where('pipedrive_org_id', 77)
+      .update({ excluido_em: null, site: 'accenture.com', segmento: 'Consultoria', tier: 'A' });
+    // Joao Antunes (sem LinkedIn no Pipedrive): o Radar conhece pelo id e tem o perfil
+    await ctx.db('pessoas').insert({
+      nome: 'Joao Antunes',
+      pipedrive_person_id: 4249,
+      linkedin_url: 'https://www.linkedin.com/in/joao-antunes',
+      cargo: 'Gerente de Dados',
+      monitorar: true,
+    });
+    usar({ PIPEDRIVE_API_TOKEN: 'tok-secreto' });
+    gravacoes = [];
+    const r = (await ctx.admin.post('/api/radar/pipedrive/sincronizar').send({}).expect(200)).body.resultado;
+    const org = gravacoes.find((g) => g.caminho === '/v1/organizations/77')!;
+    expect(org.corpo).toEqual({ website: 'accenture.com', [SEGMENTO]: 'Consultoria', [TIER]: 92 });
+    // Paraná: Pipedrive já tem tudo → nada enviado
+    expect(gravacoes.some((g) => g.caminho === '/v1/organizations/3556')).toBe(false);
+    const pessoa = gravacoes.find((g) => g.caminho === '/v1/persons/4249')!;
+    expect(pessoa.corpo).toEqual({
+      [LI_PESSOA]: 'https://www.linkedin.com/in/joao-antunes',
+      job_title: 'Gerente de Dados',
+    });
+    expect(r.enviados.organizacoes).toBeGreaterThanOrEqual(1);
+    expect(r.enviados.pessoas).toBe(1);
+  });
+
+  it('com a opção desligada, não grava nada no Pipedrive', async () => {
+    await saveAppSettings(ctx.db, { pipedrive_completar: false });
+    usar({ PIPEDRIVE_API_TOKEN: 'tok-secreto' });
+    gravacoes = [];
+    await ctx.admin.post('/api/radar/pipedrive/sincronizar').send({}).expect(200);
+    expect(gravacoes).toEqual([]);
+    await saveAppSettings(ctx.db, { pipedrive_completar: true });
   });
 
   it('perfil só de leitura não sincroniza', async () => {

@@ -126,3 +126,31 @@
   height: 100%;
   background: var(--brand-1);
 }
+
+/* Filtro rápido (chips) — severidade dos sinais */
+.radar-filtro {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+}
+.radar-filtro:hover {
+  color: var(--text);
+}
+.radar-filtro.on {
+  background: var(--brand-1);
+  border-color: var(--brand-1);
+  color: var(--brand-contrast);
+}
+.radar-filtro-alta.on {
+  background: var(--negative);
+  border-color: var(--negative);
+}
+.radar-filtro-media.on {
+  background: rgba(var(--bs-warning-rgb), 1);
+  border-color: rgba(var(--bs-warning-rgb), 1);
+  color: var(--text);
+}

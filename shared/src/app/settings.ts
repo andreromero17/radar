@@ -24,6 +24,15 @@ export const appSettings: AppSettingDef[] = [
     help: 'Zero = concorrentes cadastrados só no Radar.',
   },
   {
+    chave: 'pipedrive_completar',
+    label: 'Completar no Pipedrive os campos vazios com dados do Radar',
+    type: 'boolean',
+    default: true,
+    help:
+      'Organização: site, LinkedIn, segmento e tier; pessoa: cargo e LinkedIn. Só preenche o que está vazio no ' +
+      'Pipedrive; quando os dois lados têm valor, vale o do Pipedrive.',
+  },
+  {
     chave: 'pipedrive_sincronizar_diario',
     label: 'Sincronizar com o Pipedrive todo dia (06:30)',
     type: 'boolean',

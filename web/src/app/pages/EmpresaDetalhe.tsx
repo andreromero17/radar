@@ -9,6 +9,7 @@ import LogoEmpresa from '../components/LogoEmpresa';
 import { Barras } from '../components/Graficos';
 import { compacto, dataCurta } from '../lib/universo';
 import { ChipSeveridade } from './VisaoContasTela';
+import { FiltroSeveridade } from './Sinais';
 
 const num = (n: number | null | undefined, casas = 1) =>
   n == null ? '—' : n.toLocaleString('pt-BR', { maximumFractionDigits: casas });
@@ -76,6 +77,7 @@ export default function EmpresaDetalhe() {
   const [dias, setDias] = useState(90);
   const [d, setD] = useState<DetalheEmpresa | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [severidade, setSeveridade] = useState<string | null>(null);
 
   useEffect(() => {
     let vivo = true;
@@ -100,6 +102,7 @@ export default function EmpresaDetalhe() {
   const k = d.kpis;
   const maxAssunto = Math.max(1, ...d.assuntos.map((a) => a.media));
   const posts = d.posts;
+  const sinais = severidade ? d.sinais.filter((s) => s.severidade === severidade) : d.sinais;
 
   return (
     <>
@@ -125,9 +128,9 @@ export default function EmpresaDetalhe() {
 
       <Card className="card-app mb-3">
         <Card.Body className="d-flex flex-wrap align-items-center gap-3">
-          <LogoEmpresa nome={e.nome} logo={e.logo} tamanho={4} />
+          <LogoEmpresa nome={e.nome} logo={e.logo} tamanho={6.5} />
           <div className="flex-grow-1">
-            <div className="fw-semibold fs-5">{e.nome_completo}</div>
+            <div className="fw-semibold fs-4">{e.nome_completo}</div>
             <div className="d-flex flex-wrap gap-2 mt-1 align-items-center">
               <span className="radar-chip">{e.universo}</span>
               {e.tier && <span className="radar-chip">Tier {e.tier}</span>}
@@ -193,6 +196,9 @@ export default function EmpresaDetalhe() {
         <Col sm={6} xl>
           <StatCard label={`Sinais (${k.alta} alta)`} value={k.sinais} icon="lightning-charge" color="red" />
         </Col>
+        <Col sm={6} xl>
+          <StatCard label="Vagas (30 dias)" value={k.vagas ?? '—'} icon="briefcase" color="green" />
+        </Col>
       </Row>
 
       <Row className="g-3 mb-3">
@@ -252,9 +258,10 @@ export default function EmpresaDetalhe() {
           <Card className="card-app h-100">
             <Card.Header className="fw-semibold">Sinais</Card.Header>
             <Card.Body>
-              {d.sinais.length ? (
+              <FiltroSeveridade valor={severidade} onChange={setSeveridade} />
+              {sinais.length ? (
                 <ul className="radar-lista">
-                  {d.sinais.map((s) => (
+                  {sinais.map((s) => (
                     <li key={s.id} className="flex-column">
                       <div className="d-flex flex-wrap gap-2 align-items-center">
                         <ChipSeveridade s={s.severidade} />
@@ -270,7 +277,9 @@ export default function EmpresaDetalhe() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-muted mb-0">Nenhum sinal no período.</p>
+                <p className="text-muted mb-0">
+                  Nenhum sinal {severidade ? `de severidade ${severidade.toLowerCase()} ` : ''}no período.
+                </p>
               )}
             </Card.Body>
           </Card>
@@ -302,6 +311,34 @@ export default function EmpresaDetalhe() {
           </Card>
         </Col>
       </Row>
+
+      {d.vagas.length > 0 && (
+        <Card className="card-app mb-3">
+          <Card.Header className="d-flex justify-content-between align-items-center">
+            <span className="fw-semibold">Vagas publicadas no LinkedIn</span>
+            <span className="small text-muted">Últimos 30 dias · {d.vagas.length} vaga(s)</span>
+          </Card.Header>
+          <div className="table-responsive">
+            <Table className="mb-0 radar-tabela">
+              <tbody>
+                {d.vagas.map((v) => (
+                  <tr key={v.id}>
+                    <td className="text-muted" style={{ width: '5rem' }}>
+                      {dataCurta(v.data)}
+                    </td>
+                    <td>
+                      <a href={v.url ?? undefined} target="_blank" rel="noreferrer" className="text-reset">
+                        {v.titulo}
+                      </a>
+                    </td>
+                    <td className="text-muted">{v.local ?? ''}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        </Card>
+      )}
 
       <Card className="card-app">
         <Card.Header className="d-flex justify-content-between align-items-center">

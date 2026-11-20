@@ -103,6 +103,8 @@ export interface LinhaComparativo extends EmpresaResumo {
   compartilhamentos_post: number | null;
   /** Interações por post ÷ seguidores, em % */
   engajamento: number | null;
+  /** Vagas publicadas no LinkedIn nos últimos 30 dias (última busca semanal) */
+  vagas: number | null;
   movimentos: number;
   alta: number;
   ultimo_post: string | null;
@@ -184,11 +186,13 @@ export interface DetalheEmpresa {
     sinais: number;
     alta: number;
     seguidores_var: number | null;
+    vagas: number | null;
   };
   seguidores: { data: string; seguidores: number }[];
   semanas: { inicio: string; n: number }[];
   assuntos: { assunto: string; posts: number; media: number }[];
   melhores: PostDetalhe[];
+  vagas: { id: number; titulo: string; url: string | null; data: string | null; local: string | null }[];
   posts: PostDetalhe[];
   sinais: SinalResumo[];
   pessoas: {

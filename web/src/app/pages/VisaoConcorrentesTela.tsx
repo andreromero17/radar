@@ -29,6 +29,7 @@ type Chave = keyof Pick<
   | 'comentarios_post'
   | 'compartilhamentos_post'
   | 'engajamento'
+  | 'vagas'
   | 'movimentos'
   | 'alta'
   | 'ultimo_post'
@@ -50,6 +51,7 @@ const COLUNAS: { chave: Chave; rotulo: string; dica?: string }[] = [
     rotulo: 'Engajamento',
     dica: 'Interações (curtidas + comentários + compartilhamentos) por post ÷ seguidores',
   },
+  { chave: 'vagas', rotulo: 'Vagas', dica: 'Vagas publicadas no LinkedIn nos últimos 30 dias (busca semanal)' },
   {
     chave: 'movimentos',
     rotulo: 'Movimentos',
@@ -174,6 +176,7 @@ export default function VisaoConcorrentesTela({ d }: { d: VisaoConcorrentes }) {
                   <td className="text-end">{num(l.comentarios_post)}</td>
                   <td className="text-end">{num(l.compartilhamentos_post)}</td>
                   <td className="text-end">{l.engajamento == null ? '—' : `${num(l.engajamento, 2)}%`}</td>
+                  <td className="text-end">{l.vagas ?? '—'}</td>
                   <td className="text-end">{l.movimentos || '—'}</td>
                   <td className="text-end">
                     {l.alta ? <span className="radar-chip radar-sev-alta">{l.alta}</span> : '—'}

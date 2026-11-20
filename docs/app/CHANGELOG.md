@@ -1,5 +1,10 @@
 # Changelog do Radar
 
+## 0.2.1 — 19/11/2026
+
+- Empresas e pessoas ganham lixeira. O que foi mandado para a lixeira não volta na sincronização com o Pipedrive
+  (aparece como "ignoradas" no resumo); restaurar da lixeira volta a sincronizar.
+
 ## 0.2.0 — 19/11/2026
 
 - Sincronização com o Pipedrive (botão "Sincronizar com Pipedrive" na lista de empresas e todo dia às 06:30):

@@ -31,6 +31,7 @@ export const appEntities: Record<string, EntityDef> = {
     labelField: 'nome',
     group: GRUPO,
     activeField: 'monitorar',
+    lixeira: true,
     defaultSort: { field: 'nome', dir: 'asc' },
     agrupar: 'universo',
     fields: [
@@ -109,6 +110,7 @@ export const appEntities: Record<string, EntityDef> = {
     labelField: 'nome',
     group: GRUPO,
     activeField: 'monitorar',
+    lixeira: true,
     defaultSort: { field: 'nome', dir: 'asc' },
     fields: [
       { name: 'nome', label: 'Nome', type: 'text', required: true, list: true, search: true, maxLength: 120, col: 6 },

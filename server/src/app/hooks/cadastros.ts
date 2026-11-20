@@ -23,8 +23,13 @@ function chaveLinkedin(tabela: 'empresas' | 'pessoas', rotulo: string): EntityHo
         .modify((q) => {
           if (current?.id) q.whereNot('id', current.id);
         })
-        .first('id', 'nome')) as { id: number; nome: string } | undefined;
-      if (outro) throw conflict(`Esse endereço do LinkedIn já está cadastrado em "${outro.nome}".`);
+        .first('id', 'nome', 'excluido_em')) as { id: number; nome: string; excluido_em: string | null } | undefined;
+      if (outro)
+        throw conflict(
+          outro.excluido_em
+            ? `Esse endereço do LinkedIn é de "${outro.nome}", que está na lixeira: restaure de lá.`
+            : `Esse endereço do LinkedIn já está cadastrado em "${outro.nome}".`,
+        );
     },
   };
 }

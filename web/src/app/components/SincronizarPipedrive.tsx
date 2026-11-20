@@ -5,8 +5,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
 interface Resultado {
-  empresas: { novas: number; atualizadas: number };
-  pessoas: { novas: number; atualizadas: number; sem_linkedin: number };
+  empresas: { novas: number; atualizadas: number; ignoradas: number };
+  pessoas: { novas: number; atualizadas: number; sem_linkedin: number; ignoradas: number };
   alertas: number;
   avisos: string[];
 }
@@ -20,6 +20,7 @@ interface Status {
 const resumo = (r: Resultado) =>
   `Empresas: ${r.empresas.novas} novas, ${r.empresas.atualizadas} atualizadas · ` +
   `Pessoas: ${r.pessoas.novas} novas, ${r.pessoas.atualizadas} atualizadas` +
+  (r.empresas.ignoradas ? ` · ${r.empresas.ignoradas} empresa(s) da lixeira ignoradas` : '') +
   (r.alertas ? ` · ${r.alertas} alerta(s) de cadastro` : '');
 
 /** Botão "Sincronizar com Pipedrive" (listagem de empresas). Só aparece com permissão de criar empresas. */

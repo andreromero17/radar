@@ -152,7 +152,7 @@ describe('sincronização com o Pipedrive', () => {
     const antes = Number((await ctx.db('empresas').count({ n: '*' }))[0].n);
     const res = await ctx.admin.post('/api/radar/pipedrive/sincronizar').send({}).expect(200);
     const r = res.body.resultado;
-    expect(r.empresas).toEqual({ novas: 2, atualizadas: 1 });
+    expect(r.empresas).toEqual({ novas: 2, atualizadas: 1, ignoradas: 0 });
     expect(Number((await ctx.db('empresas').count({ n: '*' }))[0].n)).toBe(antes + 2);
 
     const parana = await ctx.db('empresas').where('pipedrive_org_id', 3556).first();
@@ -214,6 +214,21 @@ describe('sincronização com o Pipedrive', () => {
     expect(e.nome_curto).toBe('Nova');
     expect(!!e.monitorar).toBe(false);
     expect(e.logo).toBe('data:image/png;base64,AAA');
+  });
+
+  it('empresa mandada para a lixeira não volta na sincronização', async () => {
+    const accenture = await ctx.db('empresas').where('pipedrive_org_id', 77).first('id');
+    await ctx.admin.delete(`/api/empresas/${accenture.id}`).expect(200);
+    const nova = await ctx.db('empresas').where('pipedrive_org_id', 9001).first('id');
+    await ctx.admin.delete(`/api/empresas/${nova.id}`).expect(200);
+    usar({ PIPEDRIVE_API_TOKEN: 'tok-secreto' });
+    const r = (await ctx.admin.post('/api/radar/pipedrive/sincronizar').send({}).expect(200)).body.resultado;
+    expect(r.empresas).toMatchObject({ novas: 0, ignoradas: 2 });
+    expect(await ctx.db('empresas').where('pipedrive_org_id', 77).count({ n: '*' })).toEqual([{ n: 1 }]);
+    // restaurar volta a sincronizar
+    await ctx.db('empresas').where('id', nova.id).update({ excluido_em: null });
+    const r2 = (await ctx.admin.post('/api/radar/pipedrive/sincronizar').send({}).expect(200)).body.resultado;
+    expect(r2.empresas.ignoradas).toBe(1);
   });
 
   it('token recusado vira erro 502 com mensagem clara e fica no status', async () => {

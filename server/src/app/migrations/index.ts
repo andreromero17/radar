@@ -3,9 +3,11 @@
 // Migração já aplicada não se edita: crie uma nova.
 import type { Migration } from '../../db/migrator';
 import * as m20261119200457 from './20261119200457_entidades_do_radar';
+import * as m20261119210141 from './20261119210141_lixeira_empresas_pessoas';
 // @diff:imports
 
 export const appMigrations: Migration[] = [
   m20261119200457,
+  m20261119210141,
   // @diff:list
 ];

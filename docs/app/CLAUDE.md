@@ -35,6 +35,8 @@ PR no frame-app.
   `piotrv1001/linkedin-company-jobs-scraper` (vagas). Trocar de ator exige aprovação do André e teste com 5 perfis.
 - Todo post coletado é conferido contra a fonte pedida: autor diferente da empresa/pessoa (e que não seja repost
   dela) é descartado e contado em `coletas.descartados`.
+- Empresa/pessoa na lixeira é decisão do usuário: a sincronização com o Pipedrive e a coleta não a recriam nem
+  atualizam.
 - A coleta é idempotente: publicação pelo `id_externo`; rodar duas vezes não duplica.
 - Token do Apify, do Pipedrive e de LLM só no `.env` (frame: segredos nunca na tabela de configurações).
 - Dados pessoais só de perfis públicos e só os campos do modelo.

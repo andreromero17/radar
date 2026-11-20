@@ -5,6 +5,8 @@
 //   • pessoas das organizações COM perfil do LinkedIn → pessoas (pela `pipedrive_person_id`; senão, pelo perfil):
 //     nome, cargo (job_title), empresa e perfil. Prioridade e "monitorar" ficam com o Radar.
 //   • o mesmo perfil em dois contatos do Pipedrive vira alerta "Cadastro duplicado" (um só por perfil).
+//   • empresa ou pessoa que o usuário mandou para a LIXEIRA do Radar não volta nem é atualizada (fica "ignorada");
+//     restaurar da lixeira volta a sincronizar.
 // Campos personalizados (Segmento, Tier, LinkedIn da pessoa) são achados pelo NOME no Pipedrive.
 // Rodar de novo não duplica nada.
 // =============================================================================
@@ -38,8 +40,8 @@ interface Pessoa {
 }
 
 export interface ResultadoSincronizacao {
-  empresas: { novas: number; atualizadas: number };
-  pessoas: { novas: number; atualizadas: number; sem_linkedin: number };
+  empresas: { novas: number; atualizadas: number; ignoradas: number };
+  pessoas: { novas: number; atualizadas: number; sem_linkedin: number; ignoradas: number };
   alertas: number;
   avisos: string[];
 }
@@ -73,8 +75,8 @@ export function nivelDoCargo(cargo: string | null | undefined): string | null {
 
 export async function sincronizarPipedrive(db: Db): Promise<ResultadoSincronizacao> {
   const r: ResultadoSincronizacao = {
-    empresas: { novas: 0, atualizadas: 0 },
-    pessoas: { novas: 0, atualizadas: 0, sem_linkedin: 0 },
+    empresas: { novas: 0, atualizadas: 0, ignoradas: 0 },
+    pessoas: { novas: 0, atualizadas: 0, sem_linkedin: 0, ignoradas: 0 },
     alertas: 0,
     avisos: [],
   };
@@ -119,10 +121,15 @@ export async function sincronizarPipedrive(db: Db): Promise<ResultadoSincronizac
         uf: ufDe(org),
         dono: ownerId ? (nomeUsuario.get(ownerId) ?? null) : null,
       };
-      let atual = (await db('empresas').where('pipedrive_org_id', org.id).first('id', 'linkedin_url')) as
-        { id: number; linkedin_url: string | null } | undefined;
+      type Atual = { id: number; linkedin_url: string | null; excluido_em: string | null };
+      const colunas = ['id', 'linkedin_url', 'excluido_em'];
+      let atual = (await db('empresas').where('pipedrive_org_id', org.id).first(colunas)) as Atual | undefined;
       if (!atual && linkedin)
-        atual = (await db('empresas').where('linkedin_url', linkedin).first('id', 'linkedin_url')) as typeof atual;
+        atual = (await db('empresas').where('linkedin_url', linkedin).first(colunas)) as Atual | undefined;
+      if (atual?.excluido_em) {
+        r.empresas.ignoradas++;
+        continue;
+      }
       if (linkedin && linkedin !== atual?.linkedin_url) {
         const dono = (await db('empresas').where('linkedin_url', linkedin).first('id')) as { id: number } | undefined;
         if (!dono || dono.id === atual?.id) dados.linkedin_url = linkedin;
@@ -180,12 +187,14 @@ export async function sincronizarPipedrive(db: Db): Promise<ResultadoSincronizac
       }
       vistos.set(linkedin, p);
       const cargo = p.job_title?.trim() || null;
-      let atual = (await db('pessoas').where('pipedrive_person_id', p.id).first('id', 'nivel', 'linkedin_url')) as
-        { id: number; nivel: string | null; linkedin_url: string | null } | undefined;
-      if (!atual)
-        atual = (await db('pessoas')
-          .where('linkedin_url', linkedin)
-          .first('id', 'nivel', 'linkedin_url')) as typeof atual;
+      type AtualP = { id: number; nivel: string | null; linkedin_url: string | null; excluido_em: string | null };
+      const colunasP = ['id', 'nivel', 'linkedin_url', 'excluido_em'];
+      let atual = (await db('pessoas').where('pipedrive_person_id', p.id).first(colunasP)) as AtualP | undefined;
+      if (!atual) atual = (await db('pessoas').where('linkedin_url', linkedin).first(colunasP)) as AtualP | undefined;
+      if (atual?.excluido_em) {
+        r.pessoas.ignoradas++;
+        continue;
+      }
       const dados: Record<string, unknown> = {
         nome: p.name,
         empresa_id: empresaId,

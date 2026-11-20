@@ -5,16 +5,27 @@ import { espacoAtivoOuNulo } from '../espacos';
 import { HttpError } from '../utils/http';
 import { inserir } from '../db/knex';
 import { nowLocal } from '../utils/time';
-import { apifyConfigurado, ATOR_POSTS, coletarEspaco, coletasEmAndamento, encerrarInterrompidas } from './coleta';
+import {
+  apifyConfigurado,
+  ATORES,
+  coletarEspaco,
+  coletasEmAndamento,
+  encerrarInterrompidas,
+  tipoDoAtor,
+  type TipoColeta,
+} from './coleta';
 import { sincronizarERegistrar, statusPipedrive } from './pipedrive';
+import { visaoConcorrentes, visaoContas } from './services/visao';
 import { pipedriveConfigurado } from './pipedrive/cliente';
 
 /**
  * Rotas próprias do Radar, montadas em /api depois do login e antes do CRUD.
  *   GET  /api/radar/pipedrive/status        token configurado?, filtros e a última sincronização do espaço
  *   POST /api/radar/pipedrive/sincronizar   busca agora as contas-alvo, concorrentes e pessoas do Pipedrive
+ *   GET  /api/radar/visao?universo=Conta-alvo|Concorrente&dias=30   visão geral do universo (telas do Radar)
  *   GET  /api/radar/coleta/status           token do Apify configurado?, coleta rodando?, última execução
  *   POST /api/radar/coleta/executar         dispara a coleta de posts em segundo plano → 202 { coleta_id }
+ *        { tipo: 'posts' | 'paginas' }         posts (padrão) ou dados das páginas (seguidores, logos)
  *        { run_apify }                         …ou retoma um run do Apify já iniciado (que passou do tempo ou foi interrompido)
  */
 export function appRouter(db: Db) {
@@ -40,6 +51,11 @@ export function appRouter(db: Db) {
     }
   });
 
+  router.get('/radar/visao', requirePermission('sinais', 'ver'), async (req, res) => {
+    const dias = Math.min(365, Math.max(7, Number(req.query.dias) || 30));
+    res.json(req.query.universo === 'Concorrente' ? await visaoConcorrentes(db, dias) : await visaoContas(db, dias));
+  });
+
   router.get('/radar/coleta/status', requirePermission('coletas', 'ver'), async (_req, res) => {
     const espaco = espacoAtivoOuNulo()?.espacoId ?? 0;
     await encerrarInterrompidas(db, espaco);
@@ -59,16 +75,27 @@ export function appRouter(db: Db) {
     const espaco = espacoAtivoOuNulo()?.espacoId;
     if (!espaco) throw new HttpError(400, 'Sem espaço na sessão.');
     if (coletasEmAndamento.has(espaco)) throw new HttpError(409, 'Já há uma coleta em andamento.');
+    // retomada: o tipo vem da execução que tinha esse run (ou do texto do erro, na 0.3.0)
+    let tipo: TipoColeta = req.body?.tipo === 'paginas' ? 'paginas' : 'posts';
+    if (runApify) {
+      const origem = (await db('coletas')
+        .where('run_apify', runApify)
+        .orWhere('erro', 'like', `%${runApify}%`)
+        .orderBy('id', 'desc')
+        .first('ator')) as { ator: string | null } | undefined;
+      if (origem) tipo = tipoDoAtor(origem.ator);
+    }
+    const nomes = { posts: 'Posts do LinkedIn', paginas: 'Dados das páginas (seguidores e logos)' };
     const coletaId = await inserir(db('coletas'), {
       inicio: nowLocal(),
       situacao: 'Rodando',
-      descricao: runApify ? `Posts do LinkedIn (retomada do run ${runApify})` : 'Posts do LinkedIn (manual)',
+      descricao: runApify ? `${nomes[tipo]} — retomada do run ${runApify}` : `${nomes[tipo]} (manual)`,
+      ator: ATORES[tipo].replace('~', '/'),
       run_apify: runApify ?? null,
-      ator: ATOR_POSTS.replace('~', '/'),
       criado_em: nowLocal(),
     });
     // segundo plano: a resposta volta na hora; o resultado (ou o erro) fica gravado na linha da coleta
-    const execucao = coletarEspaco(espaco, coletaId, runApify).catch(() => undefined);
+    const execucao = coletarEspaco(espaco, { tipo, coletaId, runId: runApify }).catch(() => undefined);
     if (process.env.VITEST) await execucao; // nos testes, espera para conferir o resultado
     res.status(202).json({ coleta_id: coletaId });
   });

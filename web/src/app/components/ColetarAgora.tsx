@@ -46,13 +46,15 @@ export default function ColetarAgora({ onFeito }: { onFeito?: () => void }) {
 
   if (!pode || !status) return null;
   const retomavel = status.ultima?.situacao === 'Erro' ? status.ultima.run_apify : null;
-  const coletar = async (runApify?: string) => {
+  const coletar = async (runApify?: string, tipo: 'posts' | 'paginas' = 'posts') => {
     try {
-      await api.post('/radar/coleta/executar', runApify ? { run_apify: runApify } : {});
+      await api.post('/radar/coleta/executar', runApify ? { run_apify: runApify } : { tipo });
       toast.success(
         runApify
           ? 'Retomando o run no Apify: os posts que ele já coletou entram sem custo novo.'
-          : 'Coleta iniciada. Pode levar alguns minutos; a lista atualiza sozinha.',
+          : tipo === 'paginas'
+            ? 'Buscando seguidores e logos das páginas. A lista atualiza sozinha.'
+            : 'Coleta iniciada. Pode levar alguns minutos; a lista atualiza sozinha.',
       );
       rodava.current = true;
       setStatus({ ...status, rodando: true });
@@ -74,6 +76,16 @@ export default function ColetarAgora({ onFeito }: { onFeito?: () => void }) {
           <span className="d-none d-md-inline ms-1">Retomar coleta</span>
         </Button>
       )}
+      <Button
+        variant="light"
+        className="border me-2"
+        onClick={() => void coletar(undefined, 'paginas')}
+        disabled={!status.configurado || status.rodando}
+        title="Atualiza seguidores, funcionários e logos das páginas das empresas (roda sozinho uma vez por semana)"
+      >
+        <i className="bi bi-image" />
+        <span className="d-none d-md-inline ms-1">Logos e seguidores</span>
+      </Button>
       <Button
         variant="light"
         className="border"

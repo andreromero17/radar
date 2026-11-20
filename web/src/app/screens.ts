@@ -1,5 +1,6 @@
 // Telas próprias do Radar. O resto usa as telas genéricas do frame.
 import { registerScreens } from '../lib/screens';
+import './styles.css';
 import Coletas from './pages/Coletas';
 import Empresas from './pages/Empresas';
 

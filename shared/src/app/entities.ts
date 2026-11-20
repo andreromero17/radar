@@ -16,10 +16,11 @@ import {
   TIPOS_SINAL,
   TRIAGENS,
   UNIVERSOS,
+  UNIVERSOS_EMPRESA,
 } from './radar';
 
 const GRUPO = 'Radar';
-const COR_UNIVERSO = { 'Conta-alvo': 'success', Concorrente: 'primary' };
+const COR_UNIVERSO = { 'Conta-alvo': 'success', Concorrente: 'primary', Nós: 'warning' };
 const COR_SEVERIDADE = { Alta: 'danger', Média: 'warning', Baixa: 'secondary' };
 
 export const appEntities: Record<string, EntityDef> = {
@@ -47,11 +48,12 @@ export const appEntities: Record<string, EntityDef> = {
         name: 'universo',
         label: 'Universo',
         type: 'select',
-        options: UNIVERSOS,
+        options: UNIVERSOS_EMPRESA,
         colors: COR_UNIVERSO,
         required: true,
         list: true,
         default: 'Conta-alvo',
+        help: '"Nós" = a sua própria empresa, que aparece como referência no comparativo de concorrentes.',
         col: 4,
       },
       { name: 'nome', label: 'Nome', type: 'text', required: true, list: true, search: true, maxLength: 120, col: 8 },
@@ -305,6 +307,31 @@ export const appEntities: Record<string, EntityDef> = {
         col: 4,
       },
       { name: 'chave', label: 'Chave', type: 'text', hidden: true },
+    ],
+  },
+
+  metricas_empresas: {
+    label: 'Métricas das páginas',
+    singular: 'Métrica da página',
+    feminino: true,
+    icon: 'graph-up',
+    labelField: 'data',
+    group: GRUPO,
+    defaultSort: { field: 'data', dir: 'desc' },
+    importar: false,
+    fields: [
+      { name: 'data', label: 'Data', type: 'date', list: true, readonly: true, col: 4 },
+      {
+        name: 'empresa_id',
+        label: 'Empresa',
+        type: 'relation',
+        entity: 'empresas',
+        list: true,
+        readonly: true,
+        col: 8,
+      },
+      { name: 'seguidores', label: 'Seguidores', type: 'number', list: true, readonly: true, col: 6 },
+      { name: 'funcionarios', label: 'Funcionários no LinkedIn', type: 'number', list: true, readonly: true, col: 6 },
     ],
   },
 

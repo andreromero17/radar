@@ -1,9 +1,5 @@
-// =============================================================================
-// Dashboard da APLICAÇÃO. Enquanto for `null`, o frame mostra o dashboard
-// genérico (totais por cadastro + atividade recente). Para um painel próprio:
-//
-//   export const AppDashboard: ComponentType | null = MeuPainel;
-// =============================================================================
+// Dashboard do Radar: visão geral por universo (abas Contas-alvo | Concorrentes).
 import type { ComponentType } from 'react';
+import VisaoGeral from './pages/VisaoGeral';
 
-export const AppDashboard: ComponentType | null = null;
+export const AppDashboard: ComponentType | null = VisaoGeral;

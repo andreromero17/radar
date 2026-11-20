@@ -43,6 +43,12 @@ PR no frame-app.
 
 ## Onde está cada coisa
 
+- Visão geral (0.4.0): `server/src/app/services/visao.ts` (`visaoConcorrentes`, `visaoContas`; tipos em
+  `shared/src/app/radar.ts`; `scoreRadar`), rota `GET /api/radar/visao?universo=&dias=`. Web: `app/dashboard.tsx` →
+  `pages/VisaoGeral.tsx` (abas `components/AbasUniverso.tsx`, universo em `lib/universo.ts`), `VisaoContasTela.tsx`,
+  `VisaoConcorrentesTela.tsx`, gráficos em `components/Graficos.tsx`, logo em `components/LogoEmpresa.tsx`, CSS em
+  `app/styles.css` (só tokens). Universo "Nós" só em empresas (`UNIVERSOS_EMPRESA`). Dados das páginas em
+  `coleta/paginas.ts` (semanal; `baixarImagem` guarda o logo como data URL). Testes `radar040.test.ts`.
 - Coleta (0.3.0): `server/src/app/coleta/` — `apify.ts` (dispara o ator, acompanha o run, lê o dataset; custo de
   `usageTotalUsd`; contexto trocável com `definirContextoApify`), `posts.ts` (`coletarPosts`: fontes, janela,
   autoria, upsert, logo/título/alerta, linha em `coletas`), `index.ts` (uma coleta por espaço por vez, tarefa diária
@@ -63,7 +69,7 @@ PR no frame-app.
 
 ## Próximas entregas
 
-- 0.4.0 — Telas próprias do esboço: abas Contas-alvo/Concorrentes no topo, visão geral de cada universo, caixa de
-  sinais com avaliação, detalhe da empresa e da pessoa, logos.
+- 0.4.1 — Classificação de assunto e tipo de movimento em cada post coletado (alimenta "o que mais engaja").
+- 0.4.2 — Caixa de sinais com avaliação, detalhe da empresa e da pessoa, lista de pessoas com "Precisa de atenção".
 - 0.5.0 — Classificação com LLM e envio de notas/atividades ao Pipedrive.
 - Depois: Driva, sites e portais de negócios, Instagram e Facebook (roadmap da proposta).

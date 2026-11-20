@@ -246,14 +246,12 @@ describe('coleta de posts', () => {
   });
 
   it('execução antiga sem o run gravado: o status tira o run do texto do erro', async () => {
-    await ctx
-      .db('coletas')
-      .insert({
-        inicio: '2026-11-19 21:39:00',
-        situacao: 'Erro',
-        descricao: 'v030',
-        erro: 'O ator não terminou em 30 min (run aEq3wfpA480qA2wxv).',
-      });
+    await ctx.db('coletas').insert({
+      inicio: '2026-11-19 21:39:00',
+      situacao: 'Erro',
+      descricao: 'v030',
+      erro: 'O ator não terminou em 30 min (run aEq3wfpA480qA2wxv).',
+    });
     usar({ APIFY_TOKEN: 'tok-apify' });
     expect((await ctx.admin.get('/api/radar/coleta/status').expect(200)).body.ultima.run_apify).toBe(
       'aEq3wfpA480qA2wxv',

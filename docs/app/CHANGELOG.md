@@ -1,5 +1,21 @@
 # Changelog do Radar
 
+## 0.4.0 — 20/11/2026
+
+- Dashboard próprio do Radar com abas **Contas-alvo | Concorrentes** no topo (lembradas na URL e no navegador) e
+  período de 7, 30 ou 90 dias.
+- Concorrentes: indicadores, **comparativo** por empresa (seguidores e variação semanal, posts e reposts com
+  seta contra o período anterior, curtidas/comentários/compartilhamentos por post, taxa de engajamento, movimentos,
+  alta, último post), **fatia da conversa**, **movimentos por concorrente** e **o que mais engaja** (média de
+  interações por tipo de movimento, com posts de exemplo).
+- Empresa com universo **"Nós"**: a própria empresa aparece destacada no topo do comparativo.
+- Contas-alvo: indicadores, **Agir esta semana**, sinais por semana, tipos de sinal e **contas em destaque** pelo
+  Score Radar (alta 25, média 10, baixa 3, pessoa-chave que publicou 5; até 100).
+- Logos e seguidores automáticos: ator `harvestapi/linkedin-company` uma vez por semana (e pelo botão "Logos e
+  seguidores" em Execuções); o logo é baixado e guardado (os links do LinkedIn expiram); histórico em
+  `metricas_empresas`.
+- Logo em toda lista do Radar: a imagem ou as iniciais numa cor fixa por empresa.
+
 ## 0.3.1 — 19/11/2026
 
 - A coleta espera o ator do Apify por até 3 horas (antes, 30 min — a primeira coleta, com ~500 fontes, passa disso).

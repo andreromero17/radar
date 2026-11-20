@@ -92,3 +92,21 @@ export async function rodarAtor<T>(ator: string, entrada: unknown, opcoes: Opcoe
   );
   return { itens, custoUsd: typeof run.usageTotalUsd === 'number' ? run.usageTotalUsd : null, runId: run.id };
 }
+
+/**
+ * Baixa uma imagem (logo do LinkedIn, cujos links expiram) e devolve como data URL para guardar no banco.
+ * Null se não for imagem, passar de 300 KB ou falhar.
+ */
+export async function baixarImagem(url: string): Promise<string | null> {
+  const ctx = fabrica();
+  try {
+    const res = await ctx.fetch(url);
+    const tipo = (res.headers.get('content-type') ?? '').split(';')[0].trim();
+    if (!res.ok || !/^image\/(png|jpe?g|gif|webp|svg\+xml)$/.test(tipo)) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (!buf.length || buf.length > 300_000) return null;
+    return `data:${tipo};base64,${buf.toString('base64')}`;
+  } catch {
+    return null;
+  }
+}

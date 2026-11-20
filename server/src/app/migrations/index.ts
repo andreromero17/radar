@@ -9,6 +9,7 @@ import * as m20261120111113 from './20261120111113_metricas_e_universo_nos';
 import * as m20261120132936 from './20261120132936_assuntos_das_publicacoes';
 import * as m20261120153021 from './20261120153021_vagas_nas_metricas';
 import * as m20261120180824 from './20261120180824_universo_das_publicacoes';
+import * as m20261120193519 from './20261120193519_historico_de_posts';
 // @diff:imports
 
 export const appMigrations: Migration[] = [
@@ -19,5 +20,6 @@ export const appMigrations: Migration[] = [
   m20261120132936,
   m20261120153021,
   m20261120180824,
+  m20261120193519,
   // @diff:list
 ];

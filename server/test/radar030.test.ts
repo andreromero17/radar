@@ -186,13 +186,14 @@ describe('coleta de posts', () => {
     expect((entradas[0] as { postedLimitDate: string }).postedLimitDate < hoje).toBe(true);
   });
 
-  it('empresa cadastrada depois da última coleta ganha 30 dias num run à parte; as demais, só desde a última', async () => {
+  it('fonte sem histórico (mesmo cadastrada antes e já coletada com janela curta) ganha 30 dias num run à parte', async () => {
+    // caso real: a empresa entrou antes da última coleta, passou por ela com a janela curta e ficou sem histórico
     await ctx.db('empresas').insert({
       universo: 'Nós',
       nome: 'Lighthouse',
       linkedin_url: 'https://www.linkedin.com/company/lighthouse-nova',
       monitorar: true,
-      criado_em: '2999-01-01 00:00:00',
+      criado_em: '2000-01-01 00:00:00',
     });
     itensDoAtor = [];
     usar({ APIFY_TOKEN: 'tok-apify' });
@@ -205,6 +206,59 @@ describe('coleta de posts', () => {
     expect(novas.postedLimitDate < antigas.postedLimitDate).toBe(true);
     const trinta = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
     expect(novas.postedLimitDate).toBe(trinta);
+    // marcada: na próxima coleta, um run só (todas com a janela curta)
+    const lh = await ctx.db('empresas').where('nome', 'Lighthouse').first('historico_posts_em');
+    expect(lh.historico_posts_em).toBeTruthy();
+    entradas = [];
+    await coletarPosts(ctx.db);
+    expect(entradas).toHaveLength(1);
+  });
+
+  it('fonte sem a marca que já tem post antigo é marcada sem gastar run; coleta com erro não marca', async () => {
+    const [id] = await ctx.db('empresas').insert({
+      universo: 'Concorrente',
+      nome: 'Antiga',
+      linkedin_url: 'https://www.linkedin.com/company/antiga',
+      monitorar: true,
+    });
+    const empresaId = typeof id === 'object' ? (id as { id: number }).id : id;
+    await ctx.db('publicacoes').insert({
+      tipo: 'Post',
+      empresa_id: empresaId,
+      titulo: 'velho',
+      data_publicacao: '2026-01-10',
+      id_externo: 'velho1',
+      post_proprio: true,
+    });
+    await ctx.db('empresas').insert({
+      universo: 'Concorrente',
+      nome: 'Sem posts',
+      linkedin_url: 'https://www.linkedin.com/company/sem-posts',
+      monitorar: true,
+    });
+    itensDoAtor = [];
+    usar({ APIFY_TOKEN: 'tok-apify' }, { statusFinal: 'FAILED' });
+    entradas = [];
+    await expect(coletarPosts(ctx.db)).rejects.toThrow();
+    expect((entradas[0] as { targetUrls: string[] }).targetUrls).toEqual([
+      'https://www.linkedin.com/company/sem-posts',
+    ]);
+    expect(
+      (await ctx.db('empresas').where('nome', 'Antiga').first('historico_posts_em')).historico_posts_em,
+    ).toBeTruthy();
+    expect(
+      (await ctx.db('empresas').where('nome', 'Sem posts').first('historico_posts_em')).historico_posts_em,
+    ).toBeNull();
+    await ctx.db('empresas').where('nome', 'Sem posts').update({ monitorar: false });
+  });
+
+  it('"Buscar 30 dias" tira a marca da empresa e das pessoas dela', async () => {
+    const e = await ctx.db('empresas').where('nome', 'Lighthouse').first('id');
+    await ctx.db('empresas').where('id', e.id).update({ historico_posts_em: '2026-11-01 00:00:00' });
+    await ctx.admin.post(`/api/radar/empresas/${e.id}/refazer-historico`).send({}).expect(200);
+    expect((await ctx.db('empresas').where('id', e.id).first('historico_posts_em')).historico_posts_em).toBeNull();
+    await ctx.admin.post('/api/radar/empresas/999999/refazer-historico').send({}).expect(404);
+    await ctx.db('empresas').where('id', e.id).update({ historico_posts_em: '2026-11-01 00:00:00' });
   });
 
   it('coletas de páginas e vagas não contam como "última coleta de posts"', async () => {

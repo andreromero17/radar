@@ -1,5 +1,14 @@
 # Changelog do Radar
 
+## 0.4.5 — 20/11/2026
+
+- Correção: empresas e pessoas cadastradas antes da 0.4.4 que já tinham passado por uma coleta com a janela curta
+  continuavam sem os posts dos últimos 30 dias. Agora cada fonte tem a marca `historico_posts_em`: sem ela, entra no
+  run de 30 dias e é marcada quando a coleta termina bem. Fonte que já tem post com mais de 20 dias é marcada sem
+  novo run (não gasta crédito à toa).
+- Página da empresa: botão **Buscar 30 dias** (para quem corrigiu o endereço do LinkedIn, por exemplo) — na próxima
+  coleta de posts, a empresa e as pessoas dela recebem de novo os últimos 30 dias.
+
 ## 0.4.4 — 20/11/2026
 
 - Coleta de posts: empresa ou pessoa cadastrada depois da última coleta ganha os últimos 30 dias num run à parte

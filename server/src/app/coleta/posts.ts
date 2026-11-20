@@ -3,7 +3,9 @@
 // `harvestapi/linkedin-company-posts` (sem login). Regras (docs/app/CLAUDE.md):
 //   • só empresas/pessoas com "monitorar", fora da lixeira e com o endereço do LinkedIn;
 //   • desde a última coleta de posts bem-sucedida menos 1 dia (primeira vez: 30 dias); até `coleta_max_posts` por
-//     fonte. Empresa/pessoa cadastrada DEPOIS da última coleta é "nova" e ganha os 30 dias num run à parte (0.4.4);
+//     fonte. Fonte sem `historico_posts_em` ganha os 30 dias num run à parte e é marcada quando a coleta termina
+//     bem (0.4.5; antes era pela data de cadastro, o que deixava sem histórico quem já tinha passado por uma coleta
+//     curta). Fonte que já tem post com mais de 20 dias é marcada sem gastar run;
 //   • conferência de autoria: post do próprio dono da fonte = post próprio; de outro autor COM cabeçalho de repost
 //     = repost (post_proprio falso); de outro autor sem cabeçalho = descartado (contado em `coletas.descartados`);
 //   • idempotente: publicação pelo `id_externo` (id do post); de novo = só atualiza curtidas/comentários;
@@ -48,7 +50,7 @@ interface Fonte {
   empresa_id: number | null;
   titulo_linkedin?: string | null;
   nome: string;
-  criado_em?: string | null;
+  historico_posts_em?: string | null;
 }
 
 export interface ResultadoColeta {
@@ -100,23 +102,23 @@ async function fontesDoEspaco(db: Db): Promise<Fonte[]> {
     .whereIn('monitorar', [1, true])
     .whereNull('excluido_em')
     .whereNotNull('linkedin_url')
-    .select('id', 'linkedin_url', 'nome', 'criado_em')) as {
+    .select('id', 'linkedin_url', 'nome', 'historico_posts_em')) as {
     id: number;
     linkedin_url: string;
     nome: string;
-    criado_em: string | null;
+    historico_posts_em: string | null;
   }[];
   const pessoas = (await db('pessoas')
     .whereIn('monitorar', [1, true])
     .whereNull('excluido_em')
     .whereNotNull('linkedin_url')
-    .select('id', 'linkedin_url', 'empresa_id', 'titulo_linkedin', 'nome', 'criado_em')) as {
+    .select('id', 'linkedin_url', 'empresa_id', 'titulo_linkedin', 'nome', 'historico_posts_em')) as {
     id: number;
     linkedin_url: string;
     empresa_id: number | null;
     titulo_linkedin: string | null;
     nome: string;
-    criado_em: string | null;
+    historico_posts_em: string | null;
   }[];
   return [
     ...empresas.map((e) => ({
@@ -126,7 +128,7 @@ async function fontesDoEspaco(db: Db): Promise<Fonte[]> {
       slug: slugDe(e.linkedin_url),
       empresa_id: e.id,
       nome: e.nome,
-      criado_em: e.criado_em,
+      historico_posts_em: e.historico_posts_em,
     })),
     ...pessoas.map((p) => ({
       tipo: 'pessoa' as const,
@@ -136,7 +138,7 @@ async function fontesDoEspaco(db: Db): Promise<Fonte[]> {
       empresa_id: p.empresa_id,
       titulo_linkedin: p.titulo_linkedin,
       nome: p.nome,
-      criado_em: p.criado_em,
+      historico_posts_em: p.historico_posts_em,
     })),
   ];
 }
@@ -150,6 +152,26 @@ async function ultimaColetaOk(db: Db): Promise<string | null> {
     .orderBy('inicio', 'desc')
     .first('inicio')) as { inicio: string } | undefined;
   return ultima?.inicio ?? null;
+}
+/**
+ * Fonte sem a marca de histórico que já tem post com data até `limite` (passou por coletas antes da 0.4.5 e o
+ * histórico veio) é marcada sem novo run. As outras ficam sem marca e entram no grupo dos 30 dias.
+ */
+async function marcarQuemJaTemHistorico(db: Db, fontes: Fonte[], limite: string) {
+  const agora = nowLocal();
+  for (const tipo of ['empresa', 'pessoa'] as const) {
+    const ids = fontes.filter((f) => f.tipo === tipo && !f.historico_posts_em).map((f) => f.id);
+    if (!ids.length) continue;
+    const q = db('publicacoes').where('tipo', 'Post').where('data_publicacao', '<=', limite);
+    if (tipo === 'empresa') q.whereNull('pessoa_id').whereIn('empresa_id', ids).distinct('empresa_id as id');
+    else q.whereIn('pessoa_id', ids).distinct('pessoa_id as id');
+    const comHistorico = ((await q) as { id: number }[]).map((r) => Number(r.id));
+    if (!comHistorico.length) continue;
+    await db(tipo === 'empresa' ? 'empresas' : 'pessoas')
+      .whereIn('id', comHistorico)
+      .update({ historico_posts_em: agora });
+    for (const f of fontes) if (f.tipo === tipo && comHistorico.includes(f.id)) f.historico_posts_em = agora;
+  }
 }
 const diaMenos = (base: Date, dias: number) => new Date(base.getTime() - dias * 86_400_000).toISOString().slice(0, 10);
 
@@ -187,8 +209,9 @@ export async function coletarPosts(
     const maxPosts = Number(await getAppSetting(db, 'coleta_max_posts')) || 20;
     const ultima = await ultimaColetaOk(db);
     const trintaDias = diaMenos(hoje, 30);
-    // novas = cadastradas depois da última coleta: 30 dias; as outras, desde a última coleta (com 1 dia de folga)
-    const novas = fontes.filter((f) => !ultima || (f.criado_em ?? '') > ultima);
+    await marcarQuemJaTemHistorico(db, fontes, diaMenos(hoje, 20));
+    // sem histórico: 30 dias; as outras, desde a última coleta (com 1 dia de folga)
+    const novas = fontes.filter((f) => !ultima || !f.historico_posts_em);
     const antigas = fontes.filter((f) => !novas.includes(f));
     const grupos = opcoes.runId
       ? [{ fontes, desde: trintaDias }]
@@ -196,6 +219,7 @@ export async function coletarPosts(
           { fontes: novas, desde: trintaDias },
           { fontes: antigas, desde: ultima ? diaMenos(new Date(`${ultima.slice(0, 10)}T00:00:00Z`), 1) : trintaDias },
         ].filter((g) => g.fontes.length);
+    const semHistorico = opcoes.runId ? fontes.filter((f) => !f.historico_posts_em) : novas;
     const itens: ItemPost[] = [];
     for (const g of grupos) {
       const run = await rodarAtor<ItemPost>(
@@ -295,6 +319,14 @@ export async function coletarPosts(
         }
       }
       await db('pessoas').where('id', pessoaId).update({ titulo_linkedin: titulo });
+    }
+
+    for (const tipo of ['empresa', 'pessoa'] as const) {
+      const ids = semHistorico.filter((f) => f.tipo === tipo).map((f) => f.id);
+      if (ids.length)
+        await db(tipo === 'empresa' ? 'empresas' : 'pessoas')
+          .whereIn('id', ids)
+          .update({ historico_posts_em: agora });
     }
 
     await db('coletas').where('id', coletaId).update({

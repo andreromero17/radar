@@ -57,7 +57,8 @@ PR no frame-app.
 - Vagas (0.4.3): `coleta/vagas.ts` (`coletarVagas`, ator `piotrv1001/linkedin-company-jobs-scraper`, 30 dias, sem
   detalhe), roda depois de `coletarPaginas` no tipo 'paginas'; vagas = `publicacoes.tipo = 'Vaga'` (`id_externo`
   "vaga:<id>") e `metricas_empresas.vagas`. Toda conta de posts na visão geral filtra `tipo = 'Post'`.
-- 0.4.4: janela de 30 dias para fontes novas (`criado_em` > última coleta de posts); `publicacoes.universo` copiado
+- 0.4.5: janela de 30 dias para fonte sem `historico_posts_em` (empresas/pessoas; marcada ao fim da coleta OK ou se
+  já tem post com mais de 20 dias; `POST /api/radar/empresas/:id/refazer-historico` limpa). 0.4.4: `publicacoes.universo` copiado
   da empresa (`atualizarUniversoDasPublicacoes`: na visão geral, depois da coleta e no `afterSave` de empresas);
   links dos gráficos para `/publicacoes?tipo=Post&post_proprio=1&universo=…&assuntos__contem=…&data_publicacao__de/ate`;
   `pages/Sinais.tsx` com `AbasUniverso` sobre o filtro `universo`.
@@ -82,6 +83,6 @@ PR no frame-app.
 
 ## Próximas entregas
 
-- 0.4.5 — Caixa de sinais com avaliação, detalhe da empresa e da pessoa, lista de pessoas com "Precisa de atenção".
+- 0.4.6 — Caixa de sinais com avaliação, detalhe da empresa e da pessoa, lista de pessoas com "Precisa de atenção".
 - 0.5.0 — Classificação com LLM e envio de notas/atividades ao Pipedrive.
 - Depois: Driva, sites e portais de negócios, Instagram e Facebook (roadmap da proposta).

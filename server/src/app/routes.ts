@@ -64,6 +64,15 @@ export function appRouter(db: Db) {
     res.json(d);
   });
 
+  // marca a empresa (e as pessoas dela) para buscar de novo os últimos 30 dias de posts na próxima coleta
+  router.post('/radar/empresas/:id/refazer-historico', requirePermission('empresas', 'editar'), async (req, res) => {
+    const id = Number(req.params.id);
+    if (!(await db('empresas').where('id', id).first('id'))) throw new HttpError(404, 'Empresa não encontrada.');
+    await db('empresas').where('id', id).update({ historico_posts_em: null });
+    await db('pessoas').where('empresa_id', id).update({ historico_posts_em: null });
+    res.json({ ok: true });
+  });
+
   router.get('/radar/coleta/status', requirePermission('coletas', 'ver'), async (_req, res) => {
     const espaco = espacoAtivoOuNulo()?.espacoId ?? 0;
     await encerrarInterrompidas(db, espaco);

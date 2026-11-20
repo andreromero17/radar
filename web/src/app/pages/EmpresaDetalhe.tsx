@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import type { DetalheEmpresa, PostDetalhe } from '@frame/shared';
 import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
+import { useAuth } from '../../context/AuthContext';
 import { api, errorMessage } from '../../lib/api';
 import LogoEmpresa from '../components/LogoEmpresa';
 import { Barras } from '../components/Graficos';
@@ -78,6 +79,19 @@ export default function EmpresaDetalhe() {
   const [d, setD] = useState<DetalheEmpresa | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [severidade, setSeveridade] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const { can } = useAuth();
+
+  async function refazerHistorico() {
+    try {
+      await api.post(`/radar/empresas/${id}/refazer-historico`, {});
+      setAviso(
+        'Pronto: na próxima coleta de posts (diária ou "Coletar agora") esta empresa e as pessoas dela recebem os últimos 30 dias.',
+      );
+    } catch (e) {
+      setAviso(errorMessage(e));
+    }
+  }
 
   useEffect(() => {
     let vivo = true;
@@ -120,11 +134,27 @@ export default function EmpresaDetalhe() {
             </option>
           ))}
         </Form.Select>
+        {can('empresas', 'editar') && (
+          <button
+            type="button"
+            className="btn btn-light border btn-sm"
+            onClick={refazerHistorico}
+            title="Na próxima coleta, busca de novo os posts dos últimos 30 dias desta empresa"
+          >
+            <i className="bi bi-clock-history me-1" />
+            Buscar 30 dias
+          </button>
+        )}
         <Link to={`/empresas/${e.id}`} className="btn btn-light border btn-sm">
           <i className="bi bi-pencil me-1" />
           Editar cadastro
         </Link>
       </PageHeader>
+      {aviso && (
+        <Alert variant="info" dismissible onClose={() => setAviso(null)}>
+          {aviso}
+        </Alert>
+      )}
 
       <Card className="card-app mb-3">
         <Card.Body className="d-flex flex-wrap align-items-center gap-3">

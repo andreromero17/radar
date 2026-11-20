@@ -10,6 +10,7 @@ import type { Db } from './db/knex';
 import { appRouter } from './app/routes';
 import { arquivoEspaco, dbEspaco, espacoAtivo } from './espacos';
 import { resolverEspaco } from './auth/middleware';
+import { guardaIntegracao, integracaoRouter } from './auth/integracao';
 import { registrarPaineis } from './app/paineis';
 import { paineisRouter } from './routes/paineis';
 import { notificacoesRouter } from './routes/notificacoes';
@@ -102,6 +103,7 @@ export function createApp(opts: AppOptions) {
   // ---- camadas da API ----
   app.use('/api', originGuard([...corsOrigins, opts.appUrl]));
   app.use('/api', authenticate(db, session));
+  app.use('/api', guardaIntegracao); // token de integração: só as rotas do escopo dele
 
   // públicas
   app.get('/api/health', (_req, res) => {
@@ -135,6 +137,7 @@ export function createApp(opts: AppOptions) {
   const arquivo = () => arquivoEspaco(espacoAtivo().espacoId);
   app.use('/api', systemRouter(db, dbEspaco, { arquivo })); // antes do CRUD genérico
   app.use('/api', membrosRouter(db, { mailer: opts.mailer, appUrl: opts.appUrl }));
+  app.use('/api', integracaoRouter(db)); // Meu perfil → Integrações (tokens)
   app.use('/api', paineisRouter(dbEspaco)); // fontes de dados, relatórios dinâmicos e preferências
   app.use('/api', notificacoesRouter(dbEspaco, { emailDisponivel: !!opts.emailDisponivel }));
   app.use('/api', appRouter(dbEspaco)); // rotas próprias da aplicação (sempre no espaço da sessão)

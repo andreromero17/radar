@@ -1,7 +1,8 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { Fragment, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button, Card, Col, Form, Row as BsRow, Spinner } from 'react-bootstrap';
 import {
+  type DetailDef,
   novoRotulo,
   computeFields,
   detailEntity,
@@ -42,6 +43,21 @@ const emptyDetails = (ent: EntityDef): Details =>
     }),
   );
 
+/** O que uma sub-tabela desenhada pelo sistema recebe (CrudForm `detalhes`) */
+export interface DetalheProprioCtx {
+  detail: DetailDef;
+  rows: DetailRow[];
+  setRows: (rows: DetailRow[]) => void;
+  values: Values;
+  /** Muda um campo do registro "pai" */
+  set: (name: string, v: FormValue) => void;
+  /** Erros da API/validação ("entidade.índice.campo" e "entidade") */
+  errors: Record<string, string>;
+  options: Record<string, Option[]>;
+  readOnly: boolean;
+  isNew: boolean;
+}
+
 /** O que um campo próprio recebe (CrudForm `campos`) */
 export interface CampoProprioCtx {
   field: FieldDef;
@@ -63,6 +79,8 @@ interface Props {
   after?: ReactNode;
   /** Campos desenhados pelo sistema, por nome: substituem o campo genérico no mesmo lugar e largura */
   campos?: Record<string, (ctx: CampoProprioCtx) => ReactNode>;
+  /** Sub-tabelas desenhadas pelo sistema, por entidade das linhas: substituem a tabela genérica no mesmo lugar */
+  detalhes?: Record<string, (ctx: DetalheProprioCtx) => ReactNode>;
   /** Campos escondidos conforme o que está preenchido (continuam no formulário e são enviados) */
   ocultar?: (values: Values) => string[];
 }
@@ -280,23 +298,41 @@ export default function CrudForm(props: Props) {
                   </BsRow>
                 </fieldset>
               ))}
-              {(ent.details ?? []).map((d) => (
-                <DetailTable
-                  key={d.entity}
-                  detail={d}
-                  rows={details[d.entity] ?? []}
-                  onChange={(rows) => {
-                    setDetails((s) => ({ ...s, [d.entity]: rows }));
-                    // linhas mudaram de posição: erros antigos da sub-tabela não valem mais
-                    setErrors((er) =>
-                      Object.fromEntries(Object.entries(er).filter(([k]) => !k.startsWith(`${d.entity}`))),
-                    );
-                  }}
-                  errors={errors}
-                  options={relOptions}
-                  readOnly={readOnly}
-                />
-              ))}
+              {(ent.details ?? []).map((d) => {
+                const setRows = (rows: DetailRow[]) => {
+                  setDetails((s) => ({ ...s, [d.entity]: rows }));
+                  // linhas mudaram de posição: erros antigos da sub-tabela não valem mais
+                  setErrors((er) =>
+                    Object.fromEntries(Object.entries(er).filter(([k]) => !k.startsWith(`${d.entity}`))),
+                  );
+                };
+                const proprio = props.detalhes?.[d.entity];
+                return proprio ? (
+                  <Fragment key={d.entity}>
+                    {proprio({
+                      detail: d,
+                      rows: details[d.entity] ?? [],
+                      setRows,
+                      values,
+                      set: onChange,
+                      errors,
+                      options: relOptions,
+                      readOnly,
+                      isNew,
+                    })}
+                  </Fragment>
+                ) : (
+                  <DetailTable
+                    key={d.entity}
+                    detail={d}
+                    rows={details[d.entity] ?? []}
+                    onChange={setRows}
+                    errors={errors}
+                    options={relOptions}
+                    readOnly={readOnly}
+                  />
+                );
+              })}
               <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
                 <Button variant="light" onClick={() => navigate(volta.to, { state: volta.state })}>
                   {readOnly ? 'Voltar' : 'Cancelar'}

@@ -92,6 +92,11 @@ export interface FieldDef {
    * gravada, não vai para o formulário nem para a importação. Ex.: { relacao: 'ativo_id', campo: 'codigo' }
    */
   deRelacao?: { relacao: string; campo: string };
+  /**
+   * Filtro de igualdade deste campo também casa com o registro quando uma linha da sub-tabela tem o valor.
+   * Ex.: no lançamento rateado, `categoria_id` → { entidade: 'lancamentos_rateio', campo: 'categoria_id' }
+   */
+  filtraDetalhe?: { entidade: string; campo: string };
   /** Mostra a soma da coluna no rodapé da listagem (considera todos os filtros, não só a página) */
   total?: 'sum';
   /** Aparece no painel de filtros da listagem (padrão: campos select, multiselect, boolean, relation e data) */

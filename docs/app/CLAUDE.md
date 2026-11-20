@@ -43,6 +43,12 @@ PR no frame-app.
 
 ## Onde está cada coisa
 
+- Coleta (0.3.0): `server/src/app/coleta/` — `apify.ts` (dispara o ator, acompanha o run, lê o dataset; custo de
+  `usageTotalUsd`; contexto trocável com `definirContextoApify`), `posts.ts` (`coletarPosts`: fontes, janela,
+  autoria, upsert, logo/título/alerta, linha em `coletas`), `index.ts` (uma coleta por espaço por vez, tarefa diária
+  `radar.coleta` às 07:00). Rotas `GET /api/radar/coleta/status` e `POST /api/radar/coleta/executar` (202, segundo
+  plano). Botão `web/src/app/components/ColetarAgora.tsx` na tela `pages/Coletas.tsx`. Testes `radar030.test.ts`.
+  Ainda não coletados: vagas (`piotrv1001/linkedin-company-jobs-scraper`) e seguidores das páginas.
 - Pipedrive (0.2.0): `server/src/app/pipedrive/` — `cliente.ts` (API v2 para organizações/pessoas, v1 para campos e
   usuários; token só no cabeçalho `x-api-token`; contexto trocável nos testes com `definirContextoPipedrive`),
   `sincronizar.ts` (regras de upsert; campos Segmento/Tier/LinkedIn achados pelo nome), `index.ts` (status em
@@ -57,8 +63,6 @@ PR no frame-app.
 
 ## Próximas entregas
 
-- 0.3.0 — Coleta diária no Apify (`registrarTarefaDiaria`), com conferência de autoria, custos em `coletas` e
-  alertas de troca de cargo/empresa.
 - 0.4.0 — Telas próprias do esboço: abas Contas-alvo/Concorrentes no topo, visão geral de cada universo, caixa de
   sinais com avaliação, detalhe da empresa e da pessoa, logos.
 - 0.5.0 — Classificação com LLM e envio de notas/atividades ao Pipedrive.

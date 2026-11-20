@@ -29,4 +29,20 @@ export const appSettings: AppSettingDef[] = [
     type: 'boolean',
     default: true,
   },
+  {
+    chave: 'coleta_diaria',
+    label: 'Coletar posts do LinkedIn todo dia (07:00)',
+    type: 'boolean',
+    default: true,
+    help: 'Precisa do APIFY_TOKEN no .env do servidor.',
+  },
+  {
+    chave: 'coleta_max_posts',
+    label: 'Máximo de posts por empresa ou pessoa em cada coleta',
+    type: 'number',
+    default: 20,
+    min: 1,
+    max: 100,
+    help: 'Custo aproximado no Apify: US$ 2 a cada 1.000 posts.',
+  },
 ];

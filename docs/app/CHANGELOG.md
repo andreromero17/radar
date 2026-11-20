@@ -1,5 +1,16 @@
 # Changelog do Radar
 
+## 0.3.0 — 19/11/2026
+
+- Coleta de posts do LinkedIn pelo Apify (`harvestapi/linkedin-company-posts`, sem login): páginas das empresas e
+  perfis das pessoas monitoradas num só run, todo dia às 07:00 e pelo botão "Coletar agora" em Coleta › Execuções.
+- Janela desde a última coleta bem-sucedida (menos 1 dia; primeira vez, 30 dias); até 20 posts por fonte
+  (configurável). Publicações novas entram com triagem "Pendente"; as já existentes só atualizam o engajamento.
+- Conferência de autoria: post de outro autor sem cabeçalho de repost é descartado e contado na execução.
+- Empresa ganha o logo do LinkedIn; pessoa ganha o título do perfil, e título que muda vira alerta "Troca de cargo".
+- Cada execução registra fontes, itens encontrados e novos, descartados, custo em US$ e o erro, se houver.
+- `.env`: `APIFY_TOKEN`.
+
 ## 0.2.1 — 19/11/2026
 
 - Empresas e pessoas ganham lixeira. O que foi mandado para a lixeira não volta na sincronização com o Pipedrive

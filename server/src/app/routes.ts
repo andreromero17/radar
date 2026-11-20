@@ -43,11 +43,11 @@ export function appRouter(db: Db) {
   router.get('/radar/coleta/status', requirePermission('coletas', 'ver'), async (_req, res) => {
     const espaco = espacoAtivoOuNulo()?.espacoId ?? 0;
     await encerrarInterrompidas(db, espaco);
-    res.json({
-      configurado: apifyConfigurado(),
-      rodando: coletasEmAndamento.has(espaco),
-      ultima: (await db('coletas').orderBy('id', 'desc').first()) ?? null,
-    });
+    const ultima = ((await db('coletas').orderBy('id', 'desc').first()) ?? null) as Record<string, unknown> | null;
+    // execuções da 0.3.0 não gravavam o run: ele aparece no texto do erro ("... (run XXXX)")
+    if (ultima && !ultima.run_apify)
+      ultima.run_apify = /\brun ([A-Za-z0-9]{3,40})\b/.exec(String(ultima.erro ?? ''))?.[1] ?? null;
+    res.json({ configurado: apifyConfigurado(), rodando: coletasEmAndamento.has(espaco), ultima });
   });
 
   router.post('/radar/coleta/executar', requirePermission('empresas', 'criar'), async (req, res) => {

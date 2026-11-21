@@ -13,6 +13,7 @@ import * as m20261120193519 from './20261120193519_historico_de_posts';
 import * as m20261120200840 from './20261120200840_apollo';
 import * as m20261121070206 from './20261121070206_tags';
 import * as m20261121074503 from './20261121074503_reposts_identificados';
+import * as m20261121085038 from './20261121085038_carreira_e_fonte';
 // @diff:imports
 
 export const appMigrations: Migration[] = [
@@ -27,5 +28,6 @@ export const appMigrations: Migration[] = [
   m20261120200840,
   m20261121070206,
   m20261121074503,
+  m20261121085038,
   // @diff:list
 ];

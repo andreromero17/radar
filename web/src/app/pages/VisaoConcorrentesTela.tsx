@@ -239,7 +239,8 @@ export default function VisaoConcorrentesTela({ d }: { d: VisaoConcorrentes }) {
                 <Rosca
                   rotulos={[...topo.map((a) => a.assunto), ...(outros ? ['Demais assuntos'] : [])]}
                   valores={[...topo.map((a) => a.posts), ...(outros ? [outros] : [])]}
-                  altura={11}
+                  altura={17}
+                  grande
                   onClick={(i) => verPosts(topo[i]?.assunto)}
                 />
               ) : (

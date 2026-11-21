@@ -184,7 +184,8 @@ export default function PessoaDetalhe() {
                 <Rosca
                   rotulos={d.assuntos.map((a) => a.assunto)}
                   valores={d.assuntos.map((a) => a.posts)}
-                  altura={11}
+                  altura={14}
+                  grande
                   onClick={(i) => verAssunto(d.assuntos[i].assunto)}
                 />
               ) : (

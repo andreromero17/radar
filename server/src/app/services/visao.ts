@@ -5,6 +5,7 @@
 //   Contas-alvo: indicadores, "Agir esta semana", sinais por semana, contas em destaque (Score Radar).
 // =============================================================================
 import {
+  ASSUNTO_CARREIRA,
   lerTags,
   assuntosDoTexto,
   classificarAssuntos,
@@ -21,6 +22,7 @@ import {
 } from '@frame/shared';
 import type { Db } from '../../db/knex';
 import { nowLocal } from '../../utils/time';
+import { registrarTrocaDeEmprego } from './carreira';
 
 type Empresa = {
   id: number;
@@ -84,15 +86,32 @@ const media = (soma: number, n: number) => (n ? Math.round((soma / n) * 10) / 10
  * filtro "concorrentes" da lista de publicações usa ele). Barato quando não há nada a fazer.
  */
 export async function garantirAssuntos(db: Db) {
-  const sem = (await db('publicacoes').whereNull('assuntos').select('id', 'texto', 'titulo').limit(5000)) as {
+  // post de pessoa que ficou sem a pessoa (exclusão definitiva: o banco zera o pessoa_id) não pode virar post da
+  // página: apaga, com os sinais dele (0.4.10)
+  const orfas = (
+    (await db('publicacoes').where('fonte_tipo', 'pessoa').whereNull('pessoa_id').select('id')) as { id: number }[]
+  ).map((r) => r.id);
+  if (orfas.length) {
+    await db('sinais').whereIn('publicacao_id', orfas).del();
+    await db('publicacoes').whereIn('id', orfas).del();
+  }
+  const sem = (await db('publicacoes')
+    .whereNull('assuntos')
+    .select('id', 'texto', 'titulo', 'pessoa_id', 'post_proprio')
+    .limit(5000)) as {
     id: number;
     texto: string | null;
     titulo: string | null;
+    pessoa_id: number | null;
+    post_proprio: unknown;
   }[];
-  for (const p of sem)
+  for (const p of sem) {
+    const assuntos = classificarAssuntos(p.texto || p.titulo, 3, { daPessoa: !!p.pessoa_id && !!p.post_proprio });
     await db('publicacoes')
       .where('id', p.id)
-      .update({ assuntos: classificarAssuntos(p.texto || p.titulo).join('; ') });
+      .update({ assuntos: assuntos.join('; ') });
+    if (assuntos.includes(ASSUNTO_CARREIRA)) await registrarTrocaDeEmprego(db, p.id);
+  }
   await atualizarUniversoDasPublicacoes(db);
   return sem.length;
 }
@@ -182,9 +201,10 @@ function porSemana(datas: (string | null)[], de: string, ate: string) {
 
 /**
  * Empresas monitoradas do universo. Com `tags`, só as que têm ao menos uma delas (como o filtro "etiqueta é
- * qualquer uma de" do Pipedrive); "Nós" fica sempre, porque é a referência do comparativo.
+ * qualquer uma de" do Pipedrive). "Nós" não segue as tags: aparece se estiver em `nos` (null = todos os "Nós") —
+ * pode haver mais de um (Lighthouse e Sellmate) e cada um liga/desliga no filtro (0.4.10).
  */
-async function empresasDe(db: Db, universos: string[], tags: number[] = []) {
+async function empresasDe(db: Db, universos: string[], tags: number[] = [], nos: number[] | null = null) {
   const lista = (await db('empresas')
     .whereIn('universo', universos)
     .whereNull('excluido_em')
@@ -200,14 +220,30 @@ async function empresasDe(db: Db, universos: string[], tags: number[] = []) {
       'dono',
       'tags',
     )) as Empresa[];
-  if (!tags.length) return lista;
-  return lista.filter((e) => e.universo === 'Nós' || lerTags(e.tags).some((t) => tags.includes(t)));
+  return lista.filter((e) =>
+    e.universo === 'Nós'
+      ? nos == null || nos.includes(e.id)
+      : !tags.length || lerTags(e.tags).some((t) => tags.includes(t)),
+  );
 }
 
-export async function visaoConcorrentes(db: Db, dias = 30, tags: number[] = []): Promise<VisaoConcorrentes> {
+export async function visaoConcorrentes(
+  db: Db,
+  dias = 30,
+  tags: number[] = [],
+  nos: number[] | null = null,
+): Promise<VisaoConcorrentes> {
   await garantirAssuntos(db);
   const p = periodoDe(dias);
-  const empresas = await empresasDe(db, ['Concorrente', 'Nós'], tags);
+  const empresas = await empresasDe(db, ['Concorrente', 'Nós'], tags, nos);
+  const todosNos = (
+    (await db('empresas')
+      .where('universo', 'Nós')
+      .whereNull('excluido_em')
+      .whereIn('monitorar', [1, true])
+      .orderBy('nome')
+      .select('id', 'nome', 'nome_curto')) as { id: number; nome: string; nome_curto: string | null }[]
+  ).map((e) => ({ id: e.id, nome: e.nome_curto || e.nome }));
   const ids = empresas.map((e) => e.id);
   const pubs = (await db('publicacoes')
     .where('tipo', 'Post')
@@ -344,6 +380,7 @@ export async function visaoConcorrentes(db: Db, dias = 30, tags: number[] = []):
 
   const maisAtivo = [...conc].sort((a, b) => b.movimentos - a.movimentos || b.posts - a.posts)[0];
   return {
+    nos: todosNos,
     periodo: { de: p.de, ate: p.ate, dias },
     kpis: {
       movimentos: sinaisConc.length,
@@ -594,7 +631,11 @@ export async function detalheEmpresa(db: Db, id: number, dias = 90): Promise<Det
   const ultima = hist.at(-1);
   const corte = ultima ? dia(new Date(new Date(`${ultima.data}T12:00:00Z`).getTime() - 7 * 86_400_000)) : null;
   const base = corte ? hist.filter((m) => m.data <= corte).at(-1) : undefined;
-  const postsPessoas = pubs.filter((x) => x.pessoa_id && !!x.data_publicacao && x.data_publicacao >= p.de);
+  // pessoa na lixeira sai dos números da empresa (volta se restaurar) — 0.4.10
+  const ativas = new Set(pessoas.map((y) => y.id));
+  const postsPessoas = pubs.filter(
+    (x) => !!x.pessoa_id && ativas.has(x.pessoa_id) && !!x.data_publicacao && x.data_publicacao >= p.de,
+  );
 
   return {
     empresa: {

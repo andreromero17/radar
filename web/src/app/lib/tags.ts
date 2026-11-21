@@ -88,3 +88,46 @@ export function useFiltroTags(): [number[], (ids: number[]) => void] {
   );
   return [ids, mudar];
 }
+
+const CHAVE_NOS = 'radar.nos';
+/**
+ * "Nós" escolhidos no comparativo de concorrentes (0.4.10): null = todos; [] = nenhum; senão, os ids. Na URL (?nos=)
+ * e lembrado no navegador, como as tags.
+ */
+export function useFiltroNos(): [number[] | null, (ids: number[] | null) => void] {
+  const [params, setParams] = useSearchParams();
+  const daUrl = params.get('nos');
+  const [guardado] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(CHAVE_NOS);
+    } catch {
+      return null;
+    }
+  });
+  const bruto = daUrl ?? guardado;
+  const ids = bruto == null || bruto === 'todos' ? null : bruto === 'nenhum' ? [] : lerTags(bruto.split(','));
+  const mudar = useCallback(
+    (novos: number[] | null) => {
+      const texto = novos == null ? 'todos' : novos.length ? novos.join(',') : 'nenhum';
+      try {
+        localStorage.setItem(CHAVE_NOS, texto);
+      } catch {
+        /* só a URL */
+      }
+      setParams(
+        (p) => {
+          const n = new URLSearchParams(p);
+          n.set('nos', texto);
+          return n;
+        },
+        { replace: true },
+      );
+    },
+    [setParams],
+  );
+  return [ids, mudar];
+}
+
+/** Parâmetro `nos` da API a partir da escolha */
+export const nosParaApi = (ids: number[] | null) =>
+  ids == null ? '' : `&nos=${ids.length ? ids.join(',') : 'nenhum'}`;

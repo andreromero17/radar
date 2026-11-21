@@ -1,5 +1,19 @@
 # Changelog do Radar
 
+## 0.4.10 — 21/11/2026
+
+- **Troca de emprego**: post da própria pessoa que anuncia mudança ("novo capítulo", "novo desafio", "começo hoje
+  na…", "meu último dia", "starting a new position"…) vira só o assunto **Carreira e movimentação** (antes caía em
+  "Cases e clientes" pelo resto do texto). Gera **alerta de cadastro** "Troca de empresa" e **sinal**: conta-alvo =
+  Alta, "Saída de contato-chave"; concorrente = Média, "Saída de pessoa-chave" (posts dos últimos 90 dias). Os posts
+  das pessoas já coletados foram reclassificados. Em post de página de empresa a regra não vale.
+- **Pessoa excluída**: na lixeira, os posts dela saem dos números da empresa (voltam se restaurar). Exclusão
+  definitiva apaga as publicações e os sinais dela — antes eles ficavam sem dono e passavam a contar como posts da
+  página.
+- **"Nós" no comparativo**: cada empresa da casa (ex.: Lighthouse e Sellmate) liga/desliga na visão de concorrentes;
+  não segue as tags (ligada aparece sempre; desligada nunca). Lembrado como as tags.
+- Gráficos de assuntos maiores (visão de concorrentes e páginas de empresa e pessoa), com a legenda mais legível.
+
 ## 0.4.9 — 21/11/2026
 
 - **Página da pessoa-chave** (`/pessoa/:id`, aberta pelas Pessoas-chave da empresa, pelos autores das publicações e

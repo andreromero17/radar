@@ -107,6 +107,7 @@ export const SINAIS_POR_UNIVERSO: Record<Universo, Record<string, string>> = {
     iniciativa_ia: 'Iniciativa de IA',
     crescimento: 'Crescimento',
     regulacao: 'Regulação',
+    contato_saiu: 'Saída de contato-chave',
   },
   Concorrente: {
     oferta_nova: 'Oferta nova',
@@ -115,6 +116,7 @@ export const SINAIS_POR_UNIVERSO: Record<Universo, Record<string, string>> = {
     contratacao: 'Contratação',
     parceria: 'Parceria, certificação ou prêmio',
     conteudo: 'Conteúdo e posicionamento',
+    saida_pessoa: 'Saída de pessoa-chave',
   },
 };
 export const TIPOS_SINAL = [
@@ -197,6 +199,8 @@ export interface PostExemplo {
   interacoes: number;
 }
 export interface VisaoConcorrentes {
+  /** Todas as empresas "Nós" monitoradas (para o filtro), mesmo as que o filtro esconde */
+  nos: { id: number; nome: string }[];
   periodo: { de: string; ate: string; dias: number };
   kpis: { movimentos: number; alta: number; posts: number; audiencia: number; mais_ativo: string | null };
   linhas: LinhaComparativo[];

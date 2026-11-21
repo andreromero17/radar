@@ -6,7 +6,7 @@ import { api, errorMessage } from '../../lib/api';
 import AbasUniverso from '../components/AbasUniverso';
 import SeletorTags from '../components/SeletorTags';
 import TagPill from '../components/TagPill';
-import { useFiltroTags, useTags } from '../lib/tags';
+import { nosParaApi, useFiltroNos, useFiltroTags, useTags } from '../lib/tags';
 import { useUniverso } from '../lib/universo';
 import VisaoConcorrentesTela from './VisaoConcorrentesTela';
 import VisaoContasTela from './VisaoContasTela';
@@ -23,7 +23,8 @@ export default function VisaoGeral() {
   const { tags: todas, porId } = useTags();
   // ignora no filtro tag que não existe mais
   const filtro = todas ? tags.filter((t) => porId.has(t)) : tags;
-  const chaveTags = filtro.join(',');
+  const [nos, setNos] = useFiltroNos();
+  const chaveTags = `${filtro.join(',')}${universo === 'Concorrente' ? nosParaApi(nos) : ''}`;
 
   useEffect(() => {
     let vivo = true;
@@ -73,6 +74,9 @@ export default function VisaoGeral() {
         </Form.Select>
       </PageHeader>
       <AbasUniverso universo={universo} onChange={setUniverso} />
+      {universo === 'Concorrente' && dados?.u.startsWith('Concorrente|') && (
+        <FiltroNos todos={(dados.d as VisaoConcorrentes).nos} escolhidos={nos} onChange={setNos} />
+      )}
       {filtro.length > 0 && (
         <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
           <span className="small text-muted">Só empresas com:</span>
@@ -98,5 +102,42 @@ export default function VisaoGeral() {
         <VisaoContasTela d={dados.d as VisaoContas} />
       )}
     </>
+  );
+}
+
+/** Liga/desliga cada empresa "Nós" no comparativo (não segue as tags) */
+function FiltroNos({
+  todos,
+  escolhidos,
+  onChange,
+}: {
+  todos: { id: number; nome: string }[];
+  escolhidos: number[] | null;
+  onChange: (ids: number[] | null) => void;
+}) {
+  if (!todos.length) return null;
+  const ligados = escolhidos ?? todos.map((n) => n.id);
+  const alternar = (id: number) => {
+    const novos = ligados.includes(id) ? ligados.filter((x) => x !== id) : [...ligados, id];
+    onChange(todos.every((n) => novos.includes(n.id)) ? null : novos);
+  };
+  return (
+    <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+      <span className="small text-muted" title="As empresas da casa aparecem como referência, com ou sem as tags">
+        Nós no comparativo:
+      </span>
+      {todos.map((n) => (
+        <button
+          key={n.id}
+          type="button"
+          className={`radar-filtro${ligados.includes(n.id) ? ' on' : ''}`}
+          aria-pressed={ligados.includes(n.id)}
+          onClick={() => alternar(n.id)}
+        >
+          {ligados.includes(n.id) && <i className="bi bi-check2 me-1" />}
+          {n.nome}
+        </button>
+      ))}
+    </div>
   );
 }

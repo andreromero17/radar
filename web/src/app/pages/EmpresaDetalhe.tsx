@@ -265,7 +265,8 @@ export default function EmpresaDetalhe() {
                 <Rosca
                   rotulos={d.assuntos_pessoas.map((a) => a.assunto)}
                   valores={d.assuntos_pessoas.map((a) => a.posts)}
-                  altura={11}
+                  altura={14}
+                  grande
                   onClick={(i) => verAssunto(d.assuntos_pessoas[i].assunto, 'pessoas')}
                 />
               ) : (

@@ -58,6 +58,12 @@ PR no frame-app.
 - Vagas (0.4.3): `coleta/vagas.ts` (`coletarVagas`, ator `piotrv1001/linkedin-company-jobs-scraper`, 30 dias, sem
   detalhe), roda depois de `coletarPaginas` no tipo 'paginas'; vagas = `publicacoes.tipo = 'Vaga'` (`id_externo`
   "vaga:<id>") e `metricas_empresas.vagas`. Toda conta de posts na visão geral filtra `tipo = 'Post'`.
+- 0.4.10: troca de emprego = `ASSUNTO_CARREIRA`/`ehTrocaDeEmprego` (shared `assuntos.ts`; `classificarAssuntos(t, 3,
+{ daPessoa })`) + `services/carreira.ts` (`registrarTrocaDeEmprego`: alerta com chave `carreira:<pessoa>:<post>` e
+  sinal por `publicacao_id`, só 90 dias), chamado na coleta e no `garantirAssuntos`. `publicacoes.fonte_tipo`
+  ('empresa' | 'pessoa'): post de pessoa sem `pessoa_id` (exclusão definitiva) é apagado no `garantirAssuntos`; pessoa
+  na lixeira fica fora de `detalheEmpresa`. Visão de concorrentes com `?nos=` (ausente = todos, `nenhum`, ou ids) e
+  `VisaoConcorrentes.nos`; web `useFiltroNos`. Testes `radar080.test.ts`.
 - Pessoa e reposts (0.4.9): `detalhePessoa` em `services/visao.ts` (rota `GET /api/radar/pessoas/:id/detalhe`, tela
   `pages/PessoaDetalhe.tsx` em `pessoa/:id`; `pages/PessoaForm.tsx` com o link). Repost com chave própria
   (`repost:e<empresa>:<id>` / `repost:p<pessoa>:<id>`), `publicacoes.original_id` e `autor_linkedin`; de quem é o
@@ -103,21 +109,6 @@ PR no frame-app.
 
 ## Próximas entregas
 
-- 0.4.10 — Caixa de sinais com avaliação, lista de pessoas com "Precisa de atenção".
-  - **Posts de troca de emprego** (pedido do André em 21/11/2026; ex.: "Novo capítulo 🚀" da Luana Hipolide virou
-    "Cases e clientes"): assunto "Carreira e movimentação" com prioridade, só em post de PESSOA (frases: novo desafio,
-    novo capítulo, nova jornada, começo hoje na, último dia, me despeço, encerro meu ciclo, tenho o prazer de anunciar,
-    nova casa, starting a new position, new chapter…) — quando bate, os outros assuntos saem. Gera alerta de cadastro
-    "Troca de empresa" e sinal (conta-alvo: Alta, contato-chave saiu / nova empresa pode ser oportunidade;
-    concorrente: saída de pessoa-chave). Reclassificar o histórico.
-  - Gráfico **Assuntos mais abordados** maior (visão de concorrentes; idem as roscas das páginas de empresa e de
-    pessoa): aproveitar o espaço vazio do quadro.
-  - **Pessoa excluída** (21/11/2026): na lixeira, os posts dela continuam nos números da empresa (assuntos das
-    pessoas, publicações) — tirar das estatísticas enquanto estiver na lixeira (voltam se restaurar). Exclusão
-    definitiva: hoje o `ON DELETE SET NULL` deixa os posts sem pessoa e eles passam a contar como posts da PÁGINA
-    (bug) — apagar as publicações dela (e os sinais ligados) no `beforeDelete` definitivo, com aviso na confirmação.
-  - **Filtro por tags e o "Nós"** (21/11/2026): hoje "Nós" fica sempre. Pode haver mais de um "Nós" (Lighthouse e
-    Sellmate). No filtro, escolher quais "Nós" mostrar (cada um liga/desliga; padrão: todos), lembrado como as tags;
-    sem nenhum marcado, o "Nós" segue as tags como as outras empresas.
+- 0.4.11 — Caixa de sinais com avaliação, lista de pessoas com "Precisa de atenção".
 - 0.5.0 — Classificação com LLM e envio de notas/atividades ao Pipedrive.
 - Depois: Driva, sites e portais de negócios, Instagram e Facebook (roadmap da proposta).

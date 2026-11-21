@@ -81,6 +81,7 @@ export async function importarPiloto(db: Db): Promise<Resultado> {
       id_externo: chave,
       empresa_id: empresa ? (empresaPorChave.get(empresa as string) ?? null) : null,
       pessoa_id: pessoa ? (pessoaPorChave.get(pessoa as string) ?? null) : null,
+      fonte_tipo: pessoa && pessoaPorChave.get(pessoa as string) ? 'pessoa' : 'empresa',
       criado_em: agora,
     });
     publicacaoPorChave.set(chave as string, id);

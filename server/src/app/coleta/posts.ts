@@ -14,11 +14,12 @@
 //   • empresa ganha o logo do LinkedIn (`logo_linkedin`); pessoa ganha o título do perfil (`titulo_linkedin`) e,
 //     se o título mudou desde a última coleta, um alerta "Troca de cargo".
 // =============================================================================
-import { classificarAssuntos, normalizarLinkedin } from '@frame/shared';
+import { ASSUNTO_CARREIRA, classificarAssuntos, normalizarLinkedin } from '@frame/shared';
 import type { Db } from '../../db/knex';
 import { inserir } from '../../db/knex';
 import { getAppSetting } from '../../services/settings';
 import { nowLocal } from '../../utils/time';
+import { registrarTrocaDeEmprego } from '../services/carreira';
 import { atualizarUniversoDasPublicacoes } from '../services/visao';
 import { rodarAtor } from './apify';
 
@@ -287,7 +288,8 @@ export async function coletarPosts(
         continue;
       }
       const texto = (item.content ?? '').trim();
-      await inserir(db('publicacoes'), {
+      const assuntos = classificarAssuntos(texto, 3, { daPessoa: fonte.tipo === 'pessoa' && proprio });
+      const novoId = await inserir(db('publicacoes'), {
         data_publicacao: dataDo(item),
         tipo: 'Post',
         empresa_id: fonte.empresa_id,
@@ -301,11 +303,13 @@ export async function coletarPosts(
         post_proprio: proprio,
         ...engajamento,
         triagem: 'Pendente',
-        assuntos: classificarAssuntos(texto).join('; '),
+        assuntos: assuntos.join('; '),
+        fonte_tipo: fonte.tipo,
         id_externo: chave,
         criado_em: agora,
       });
       r.novos++;
+      if (assuntos.includes(ASSUNTO_CARREIRA) && (await registrarTrocaDeEmprego(db, novoId))) r.alertas++;
     }
 
     await atualizarUniversoDasPublicacoes(db);

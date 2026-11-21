@@ -78,3 +78,16 @@ describe('areaDoCargo (pessoas relevantes do Apollo)', () => {
     for (const [cargo, area] of casos) expect([cargo, areaDoCargo(cargo)]).toEqual([cargo, area]);
   });
 });
+
+describe('troca de emprego (0.4.10)', () => {
+  it('em post da pessoa vira só "Carreira e movimentação"; em post de empresa, não', async () => {
+    const { classificarAssuntos, ehTrocaDeEmprego, ASSUNTO_CARREIRA } = await import('../src/app/assuntos');
+    const texto =
+      'Novo capítulo. 🚀 Hoje começo na Acme, ajudando clientes com ERP e plataformas de dados. Obrigada a todos!';
+    expect(classificarAssuntos(texto, 3, { daPessoa: true })).toEqual([ASSUNTO_CARREIRA]);
+    expect(classificarAssuntos(texto)).not.toContain(ASSUNTO_CARREIRA);
+    expect(ehTrocaDeEmprego("I'm happy to share that I'm starting a new position as CTO at Acme!")).toBe(true);
+    expect(ehTrocaDeEmprego('Meu último dia na Empresa X foi ontem')).toBe(true);
+    expect(ehTrocaDeEmprego('Lançamos nossa nova plataforma de dados')).toBe(false);
+  });
+});

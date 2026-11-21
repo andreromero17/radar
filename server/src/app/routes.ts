@@ -74,9 +74,12 @@ export function appRouter(db: Db) {
   router.get('/radar/visao', requirePermission('sinais', 'ver'), async (req, res) => {
     const dias = Math.min(365, Math.max(7, Number(req.query.dias) || 30));
     const tags = lerTags(String(req.query.tags ?? '').split(','));
+    // nos ausente = todos os "Nós"; "nenhum" = nenhum; "1,5" = só esses
+    const nos =
+      req.query.nos == null ? null : req.query.nos === 'nenhum' ? [] : lerTags(String(req.query.nos).split(','));
     res.json(
       req.query.universo === 'Concorrente'
-        ? await visaoConcorrentes(db, dias, tags)
+        ? await visaoConcorrentes(db, dias, tags, nos)
         : await visaoContas(db, dias, tags),
     );
   });

@@ -95,6 +95,7 @@ export async function coletarVagas(
         post_proprio: true,
         triagem: 'Pendente',
         assuntos: classificarAssuntos(titulo).join('; '),
+        fonte_tipo: 'empresa',
         id_externo: idExterno,
         criado_em: agora,
       });

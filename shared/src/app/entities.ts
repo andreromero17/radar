@@ -213,6 +213,8 @@ export const appEntities: Record<string, EntityDef> = {
       // 0.4.9: perfil/página do autor (repost: de quem é o post original) e id do post original (repost)
       { name: 'autor_linkedin', label: 'LinkedIn do autor', type: 'text', hidden: true },
       { name: 'original_id', label: 'Id do post original', type: 'text', hidden: true },
+      // 0.4.10: de que fonte veio ('empresa' | 'pessoa'); post de pessoa que perdeu a pessoa (excluída de vez) é apagado
+      { name: 'fonte_tipo', label: 'Fonte', type: 'text', hidden: true },
       {
         name: 'titulo',
         label: 'Título',

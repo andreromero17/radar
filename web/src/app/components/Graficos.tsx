@@ -32,18 +32,21 @@ export function Rosca({
   valores,
   altura = 14,
   onClick,
+  grande,
 }: {
   rotulos: string[];
   valores: number[];
   altura?: number;
   /** Clique numa fatia ou na legenda: índice do rótulo */
   onClick?: (i: number) => void;
+  /** Legenda em letra normal e mais espaçada, ao lado da rosca, para quadros com espaço (0.4.10) */
+  grande?: boolean;
 }) {
   const v = useThemeVersion();
   const t = chartTheme();
   const total = valores.reduce((s, x) => s + x, 0) || 1;
   return (
-    <div className="d-flex flex-wrap align-items-center gap-3">
+    <div className={`d-flex flex-wrap align-items-center ${grande ? 'gap-4 justify-content-center h-100' : 'gap-3'}`}>
       <div style={{ width: `${altura}rem`, height: `${altura}rem` }}>
         <Chart
           key={v}
@@ -73,11 +76,11 @@ export function Rosca({
           }}
         />
       </div>
-      <ul className="list-unstyled mb-0 flex-grow-1 small" style={{ minWidth: '12rem' }}>
+      <ul className={`list-unstyled mb-0 flex-grow-1${grande ? '' : ' small'}`} style={{ minWidth: '12rem' }}>
         {rotulos.map((r, i) => (
           <li
             key={r}
-            className="d-flex align-items-center gap-2 py-1"
+            className={`d-flex align-items-center gap-2 ${grande ? 'py-2' : 'py-1'}`}
             role={onClick ? 'button' : undefined}
             onClick={onClick ? () => onClick(i) : undefined}
             style={onClick ? { cursor: 'pointer' } : undefined}

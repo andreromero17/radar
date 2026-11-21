@@ -4,6 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { LinhaComparativo, VisaoConcorrentes } from '@frame/shared';
 import StatCard from '../../components/StatCard';
 import LogoEmpresa from '../components/LogoEmpresa';
+import { TagsDaEmpresa } from '../components/TagPill';
+import { useTags } from '../lib/tags';
 import { Barras, BarrasEmpilhadas, BarrasHorizontais, Rosca } from '../components/Graficos';
 import { compacto, dataCurta } from '../lib/universo';
 
@@ -69,6 +71,7 @@ const COLUNAS: { chave: Chave; rotulo: string; dica?: string }[] = [
 
 /** Visão geral dos concorrentes: comparativo, assuntos, assuntos por concorrente e o que mais engaja */
 export default function VisaoConcorrentesTela({ d }: { d: VisaoConcorrentes }) {
+  const { porId: porTag } = useTags();
   const [ordem, setOrdem] = useState<{ chave: Chave; desc: boolean }>({ chave: 'movimentos', desc: true });
   const linhas = useMemo(() => {
     const valor = (l: LinhaComparativo) => l[ordem.chave];
@@ -180,6 +183,7 @@ export default function VisaoConcorrentesTela({ d }: { d: VisaoConcorrentes }) {
                     >
                       <LogoEmpresa nome={l.nome} logo={l.logo} tamanho={1.75} />
                       <span className="fw-semibold">{l.nome}</span>
+                      <TagsDaEmpresa ids={l.tags} porId={porTag} />
                       {l.nos && <span className="radar-chip">Nós</span>}
                     </Link>
                   </td>

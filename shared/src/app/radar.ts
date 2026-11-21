@@ -23,7 +23,39 @@ export const TIPOS_ALERTA = [
 ] as const;
 export const SITUACOES_ALERTA = ['Aberto', 'Resolvido', 'Ignorado'] as const;
 export const SITUACOES_COLETA = ['Rodando', 'Ok', 'Erro'] as const;
-/** Pessoas sugeridas pelo Apollo (0.5.0) */
+/** Tag de empresa (0.4.7, como as etiquetas do Pipedrive) */
+export interface Tag {
+  id: number;
+  nome: string;
+  cor: string;
+  /** Empresas com a tag (fora da lixeira) */
+  empresas?: number;
+}
+/** Cores sugeridas ao criar uma tag (a pessoa pode escolher outra) */
+export const CORES_TAG = [
+  '#e03e3e',
+  '#d97706',
+  '#ca8a04',
+  '#2b8a5a',
+  '#0d9488',
+  '#1d4ed8',
+  '#7c3aed',
+  '#db2777',
+  '#57534e',
+  '#868e96',
+];
+/** Lê `empresas.tags` (JSON de ids) sem quebrar com valor ruim */
+export function lerTags(v: unknown): number[] {
+  if (Array.isArray(v)) return v.map(Number).filter((n) => Number.isInteger(n) && n > 0);
+  if (typeof v !== 'string' || !v.trim()) return [];
+  try {
+    return lerTags(JSON.parse(v));
+  } catch {
+    return [];
+  }
+}
+
+/** Pessoas sugeridas pelo Apollo (0.4.6) */
 export const SITUACOES_SUGESTAO = ['Sugerida', 'Aprovada', 'Descartada'] as const;
 export const AREAS_PESSOA = ['Executivo', 'TI', 'Marketing', 'Comercial', 'RH'] as const;
 export type AreaPessoa = (typeof AREAS_PESSOA)[number];
@@ -131,6 +163,8 @@ export interface EmpresaResumo {
   id: number;
   nome: string;
   logo: string | null;
+  /** Ids das tags da empresa (0.4.7) */
+  tags: number[];
 }
 export interface LinhaComparativo extends EmpresaResumo {
   nos: boolean;

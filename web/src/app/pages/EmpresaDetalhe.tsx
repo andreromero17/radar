@@ -7,6 +7,7 @@ import StatCard from '../../components/StatCard';
 import { useAuth } from '../../context/AuthContext';
 import { api, errorMessage } from '../../lib/api';
 import ApolloEmpresa from '../components/ApolloEmpresa';
+import { TagsEditaveis } from '../components/SeletorTags';
 import LogoEmpresa from '../components/LogoEmpresa';
 import { Barras } from '../components/Graficos';
 import { compacto, dataCurta } from '../lib/universo';
@@ -82,6 +83,8 @@ export default function EmpresaDetalhe() {
   const [severidade, setSeveridade] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [recarga, setRecarga] = useState(0);
+  const [buscaSinais, setBuscaSinais] = useState('');
+  const [buscaPessoas, setBuscaPessoas] = useState('');
   const { can } = useAuth();
 
   async function refazerHistorico() {
@@ -118,7 +121,14 @@ export default function EmpresaDetalhe() {
   const k = d.kpis;
   const maxAssunto = Math.max(1, ...d.assuntos.map((a) => a.media));
   const posts = d.posts;
-  const sinais = severidade ? d.sinais.filter((s) => s.severidade === severidade) : d.sinais;
+  const tem = (termo: string, ...textos: (string | null | undefined)[]) => {
+    const t = semAcento(termo.trim());
+    return !t || textos.some((x) => semAcento(x ?? '').includes(t));
+  };
+  const sinais = d.sinais.filter(
+    (s) => (!severidade || s.severidade === severidade) && tem(buscaSinais, s.titulo, s.gancho, s.tipo, s.pessoa),
+  );
+  const pessoas = d.pessoas.filter((p) => tem(buscaPessoas, p.nome, p.cargo));
 
   return (
     <>
@@ -169,6 +179,9 @@ export default function EmpresaDetalhe() {
               {e.segmento && <span className="radar-chip">{e.segmento}</span>}
               {e.uf && <span className="radar-chip">{e.uf}</span>}
               {e.dono && <span className="small text-muted">Dono: {e.dono}</span>}
+            </div>
+            <div className="mt-2">
+              <TagsEditaveis key={e.id} empresaId={e.id} ids={e.tags} />
             </div>
           </div>
           <div className="d-flex gap-2">
@@ -303,11 +316,15 @@ export default function EmpresaDetalhe() {
       <Row className="g-3 mb-3">
         <Col lg={7}>
           <Card className="card-app h-100">
-            <Card.Header className="fw-semibold">Sinais</Card.Header>
+            <Card.Header className="d-flex align-items-center gap-2">
+              <span className="fw-semibold">Sinais</span>
+              <span className="small text-muted">{d.sinais.length}</span>
+              <Busca valor={buscaSinais} onChange={setBuscaSinais} placeholder="Buscar nos sinais" />
+            </Card.Header>
             <Card.Body>
               <FiltroSeveridade valor={severidade} onChange={setSeveridade} />
               {sinais.length ? (
-                <ul className="radar-lista">
+                <ul className="radar-lista radar-rolagem">
                   {sinais.map((s) => (
                     <li key={s.id} className="flex-column">
                       <div className="d-flex flex-wrap gap-2 align-items-center">
@@ -325,7 +342,8 @@ export default function EmpresaDetalhe() {
                 </ul>
               ) : (
                 <p className="text-muted mb-0">
-                  Nenhum sinal {severidade ? `de severidade ${severidade.toLowerCase()} ` : ''}no período.
+                  Nenhum sinal {severidade ? `de severidade ${severidade.toLowerCase()} ` : ''}
+                  {buscaSinais.trim() ? 'com essa busca ' : ''}no período.
                 </p>
               )}
             </Card.Body>
@@ -333,11 +351,25 @@ export default function EmpresaDetalhe() {
         </Col>
         <Col lg={5}>
           <Card className="card-app h-100">
-            <Card.Header className="fw-semibold">Pessoas-chave</Card.Header>
+            <Card.Header className="d-flex align-items-center gap-2">
+              <span className="fw-semibold text-nowrap">Pessoas-chave</span>
+              <span className="small text-muted">{d.pessoas.length}</span>
+              <Busca valor={buscaPessoas} onChange={setBuscaPessoas} placeholder="Buscar pessoa ou cargo" />
+              {can('pessoas', 'criar') && (
+                <Link
+                  to={`/pessoas/novo?empresa_id=${e.id}`}
+                  className="btn btn-light border btn-sm text-nowrap"
+                  title="Cadastrar uma pessoa desta empresa"
+                >
+                  <i className="bi bi-plus-lg me-1" />
+                  Pessoa
+                </Link>
+              )}
+            </Card.Header>
             <Card.Body>
-              {d.pessoas.length ? (
-                <ul className="radar-lista">
-                  {d.pessoas.map((p) => (
+              {pessoas.length ? (
+                <ul className="radar-lista radar-rolagem">
+                  {pessoas.map((p) => (
                     <li key={p.id} className="justify-content-between align-items-center">
                       <div style={{ minWidth: 0 }}>
                         <Link to={`/pessoas/${p.id}`} className="fw-semibold text-reset text-decoration-none">
@@ -352,7 +384,9 @@ export default function EmpresaDetalhe() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-muted mb-0">Nenhuma pessoa-chave cadastrada.</p>
+                <p className="text-muted mb-0">
+                  {d.pessoas.length ? 'Nenhuma pessoa com essa busca.' : 'Nenhuma pessoa-chave cadastrada.'}
+                </p>
               )}
             </Card.Body>
           </Card>
@@ -418,5 +452,34 @@ export default function EmpresaDetalhe() {
         </div>
       </Card>
     </>
+  );
+}
+
+const semAcento = (t: string) =>
+  t
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+function Busca({
+  valor,
+  onChange,
+  placeholder,
+}: {
+  valor: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <Form.Control
+      size="sm"
+      type="search"
+      className="ms-auto"
+      style={{ maxWidth: '14rem' }}
+      placeholder={placeholder}
+      aria-label={placeholder}
+      value={valor}
+      onChange={(ev) => onChange(ev.target.value)}
+    />
   );
 }

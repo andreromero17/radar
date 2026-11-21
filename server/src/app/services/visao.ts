@@ -5,6 +5,7 @@
 //   Contas-alvo: indicadores, "Agir esta semana", sinais por semana, contas em destaque (Score Radar).
 // =============================================================================
 import {
+  lerTags,
   assuntosDoTexto,
   classificarAssuntos,
   scoreRadar,
@@ -29,6 +30,7 @@ type Empresa = {
   universo: string;
   seguidores: number | null;
   dono: string | null;
+  tags?: string | null;
 };
 type Pub = {
   id: number;
@@ -68,6 +70,7 @@ const resumo = (e: Empresa): EmpresaResumo => ({
   id: e.id,
   nome: e.nome_curto || e.nome,
   logo: e.logo || e.logo_linkedin || null,
+  tags: lerTags(e.tags),
 });
 const interacoes = (p: Pub) => (p.curtidas ?? 0) + (p.comentarios ?? 0) + (p.compartilhamentos ?? 0);
 const media = (soma: number, n: number) => (n ? Math.round((soma / n) * 10) / 10 : null);
@@ -122,18 +125,34 @@ function porSemana(datas: (string | null)[], de: string, ate: string) {
   return semanas;
 }
 
-async function empresasDe(db: Db, universos: string[]) {
-  return (await db('empresas')
+/**
+ * Empresas monitoradas do universo. Com `tags`, só as que têm ao menos uma delas (como o filtro "etiqueta é
+ * qualquer uma de" do Pipedrive); "Nós" fica sempre, porque é a referência do comparativo.
+ */
+async function empresasDe(db: Db, universos: string[], tags: number[] = []) {
+  const lista = (await db('empresas')
     .whereIn('universo', universos)
     .whereNull('excluido_em')
     .whereIn('monitorar', [1, true])
-    .select('id', 'nome', 'nome_curto', 'logo', 'logo_linkedin', 'universo', 'seguidores', 'dono')) as Empresa[];
+    .select(
+      'id',
+      'nome',
+      'nome_curto',
+      'logo',
+      'logo_linkedin',
+      'universo',
+      'seguidores',
+      'dono',
+      'tags',
+    )) as Empresa[];
+  if (!tags.length) return lista;
+  return lista.filter((e) => e.universo === 'Nós' || lerTags(e.tags).some((t) => tags.includes(t)));
 }
 
-export async function visaoConcorrentes(db: Db, dias = 30): Promise<VisaoConcorrentes> {
+export async function visaoConcorrentes(db: Db, dias = 30, tags: number[] = []): Promise<VisaoConcorrentes> {
   await garantirAssuntos(db);
   const p = periodoDe(dias);
-  const empresas = await empresasDe(db, ['Concorrente', 'Nós']);
+  const empresas = await empresasDe(db, ['Concorrente', 'Nós'], tags);
   const ids = empresas.map((e) => e.id);
   const pubs = (await db('publicacoes')
     .where('tipo', 'Post')
@@ -290,9 +309,9 @@ export async function visaoConcorrentes(db: Db, dias = 30): Promise<VisaoConcorr
   };
 }
 
-export async function visaoContas(db: Db, dias = 30): Promise<VisaoContas> {
+export async function visaoContas(db: Db, dias = 30, tags: number[] = []): Promise<VisaoContas> {
   const p = periodoDe(dias);
-  const empresas = await empresasDe(db, ['Conta-alvo']);
+  const empresas = await empresasDe(db, ['Conta-alvo'], tags);
   const ids = empresas.map((e) => e.id);
   const porId = new Map(empresas.map((e) => [e.id, e]));
   const sinais = (await db('sinais')

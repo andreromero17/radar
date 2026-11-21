@@ -118,6 +118,8 @@ export const appEntities: Record<string, EntityDef> = {
       { name: 'apollo_descricao', label: 'Descrição (Apollo)', type: 'textarea', readonly: true, col: 12 },
       { name: 'apollo_enriquecido_em', label: 'Enriquecida no Apollo em', type: 'text', readonly: true, col: 4 },
       { name: 'apollo_org_id', label: 'Id no Apollo', type: 'text', hidden: true },
+      // ids das tags (JSON: [1, 3]); editadas pelo seletor de tags (rota própria), não pelo formulário genérico
+      { name: 'tags', label: 'Tags', type: 'text', hidden: true },
     ],
   },
 
@@ -355,6 +357,22 @@ export const appEntities: Record<string, EntityDef> = {
         col: 4,
       },
       { name: 'chave', label: 'Chave', type: 'text', hidden: true },
+    ],
+  },
+
+  tags: {
+    label: 'Tags',
+    singular: 'Tag',
+    feminino: true,
+    icon: 'tags',
+    labelField: 'nome',
+    group: GRUPO,
+    pageSizes: PAGINACAO,
+    pageSize: 100,
+    defaultSort: { field: 'nome', dir: 'asc' },
+    fields: [
+      { name: 'nome', label: 'Nome', type: 'text', required: true, list: true, search: true, maxLength: 60, col: 8 },
+      { name: 'cor', label: 'Cor', type: 'color', required: true, list: true, default: '#1d4ed8', col: 4 },
     ],
   },
 

@@ -1,3 +1,4 @@
+import { lerTags } from '@frame/shared';
 import { Router } from 'express';
 import { requirePermission } from '../auth/middleware';
 import type { Db } from '../db/knex';
@@ -17,6 +18,7 @@ import {
 import { sincronizarERegistrar, statusPipedrive } from './pipedrive';
 import { detalheEmpresa, visaoConcorrentes, visaoContas } from './services/visao';
 import { pipedriveConfigurado } from './pipedrive/cliente';
+import { criarTag, definirTagsDaEmpresa, listarTags } from './services/tags';
 import {
   aEnriquecer,
   apolloConfigurado,
@@ -71,7 +73,27 @@ export function appRouter(db: Db) {
 
   router.get('/radar/visao', requirePermission('sinais', 'ver'), async (req, res) => {
     const dias = Math.min(365, Math.max(7, Number(req.query.dias) || 30));
-    res.json(req.query.universo === 'Concorrente' ? await visaoConcorrentes(db, dias) : await visaoContas(db, dias));
+    const tags = lerTags(String(req.query.tags ?? '').split(','));
+    res.json(
+      req.query.universo === 'Concorrente'
+        ? await visaoConcorrentes(db, dias, tags)
+        : await visaoContas(db, dias, tags),
+    );
+  });
+
+  // ------------------------------------------------------------- tags (0.4.7)
+  router.get('/radar/tags', requirePermission('empresas', 'ver'), async (_req, res) => {
+    res.json(await listarTags(db));
+  });
+  router.post('/radar/tags', requirePermission('tags', 'criar'), async (req, res) => {
+    res.status(201).json(await criarTag(db, String(req.body?.nome ?? ''), String(req.body?.cor ?? '')));
+  });
+  router.put('/radar/empresas/:id/tags', requirePermission('empresas', 'editar'), async (req, res) => {
+    const ids = Array.isArray(req.body?.ids) ? lerTags(req.body.ids) : null;
+    if (!ids) throw new HttpError(400, 'Envie { ids: [...] }.');
+    if (!(await definirTagsDaEmpresa(db, Number(req.params.id), ids)))
+      throw new HttpError(404, 'Empresa não encontrada.');
+    res.json({ ids });
   });
 
   router.get('/radar/empresas/:id/detalhe', requirePermission('empresas', 'ver'), async (req, res) => {

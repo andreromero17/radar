@@ -4,6 +4,7 @@ import type { MenuItem } from '../config/menu';
 export const appMenu: MenuItem[] = [
   { label: 'Sinais', icon: 'lightning-charge', to: '/sinais', perm: ['sinais', 'ver'], tab: true },
   { label: 'Empresas', icon: 'building', to: '/empresas', perm: ['empresas', 'ver'], tab: true },
+  { label: 'Tags', icon: 'tags', to: '/tags', perm: ['tags', 'ver'] },
   { label: 'Pessoas', icon: 'people', to: '/pessoas', perm: ['pessoas', 'ver'], tab: true },
   { label: 'Publicações', icon: 'file-text', to: '/publicacoes', perm: ['publicacoes', 'ver'] },
   {

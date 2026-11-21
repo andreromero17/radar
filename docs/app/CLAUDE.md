@@ -58,6 +58,12 @@ PR no frame-app.
 - Vagas (0.4.3): `coleta/vagas.ts` (`coletarVagas`, ator `piotrv1001/linkedin-company-jobs-scraper`, 30 dias, sem
   detalhe), roda depois de `coletarPaginas` no tipo 'paginas'; vagas = `publicacoes.tipo = 'Vaga'` (`id_externo`
   "vaga:<id>") e `metricas_empresas.vagas`. Toda conta de posts na visão geral filtra `tipo = 'Post'`.
+- Tags (0.4.7): entidade `tags` (nome único sem diferenciar maiúsculas, cor) + `empresas.tags` (JSON de ids, oculto;
+  `lerTags` em shared). Serviço `app/services/tags.ts` (hooks: nome único e tirar das empresas ao excluir; `listarTags`
+  com contagem, `criarTag`, `definirTagsDaEmpresa`). Rotas `GET/POST /api/radar/tags`, `PUT
+/api/radar/empresas/:id/tags`; visão geral com `?tags=1,3` ("qualquer uma de"; "Nós" fica). Web: `lib/tags.ts`
+  (cache compartilhado, `useFiltroTags` na URL + localStorage), `components/TagPill.tsx`, `components/SeletorTags.tsx`
+  (`TagsEditaveis`). Testes `radar060.test.ts`.
 - Apollo (0.4.6): `server/src/app/apollo/` — `cliente.ts` (chave mestra `APOLLO_API_KEY` no cabeçalho `x-api-key`;
   contexto trocável com `definirContextoApollo`), `index.ts` (enriquecer pelo domínio do site = 1 crédito, campos
   `empresas.apollo_*`; buscar pessoas `mixed_people/api_search` = 0 crédito → `sugestoes_pessoas` filtradas por
@@ -91,9 +97,6 @@ PR no frame-app.
 
 ## Próximas entregas
 
-- 0.4.7 — Caixa de sinais com avaliação, detalhe da empresa e da pessoa, lista de pessoas com "Precisa de atenção".
-  - Página da empresa: as seções **Sinais** e **Pessoas-chave** com altura limitada a ~10 itens e rolagem própria
-    (as listas ficam longas e esticam a tela) — pedido do André em 21/11/2026.
-    Nas duas, um campo de **busca** (texto, cargo, nome).
+- 0.4.8 — Caixa de sinais com avaliação, detalhe da pessoa, lista de pessoas com "Precisa de atenção".
 - 0.5.0 — Classificação com LLM e envio de notas/atividades ao Pipedrive.
 - Depois: Driva, sites e portais de negócios, Instagram e Facebook (roadmap da proposta).

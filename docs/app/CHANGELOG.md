@@ -1,5 +1,17 @@
 # Changelog do Radar
 
+## 0.4.7 — 21/11/2026
+
+- **Tags de empresas**, no jeito das etiquetas do Pipedrive: cadastro de tags com nome e cor (menu **Tags**); uma
+  empresa pode ter várias. Na página da empresa (e no formulário, ao editar) as tags aparecem coloridas, com × para
+  tirar e o seletor com busca, marcação e "Criar" com paleta de cores.
+- **Visão geral filtrada por tags** (Contas-alvo e Concorrentes): "Filtrar por tags" com várias ao mesmo tempo —
+  mostra as empresas com qualquer uma delas; "Nós" continua no comparativo como referência. A escolha fica na URL e
+  é lembrada no navegador. As tags aparecem ao lado do nome no comparativo e na lista de contas.
+- Página da empresa: **Sinais** e **Pessoas-chave** com rolagem própria (cerca de 10 itens), campo de **busca** e
+  botão **+ Pessoa** (abre o cadastro já com a empresa).
+- Excluir uma tag tira ela de todas as empresas.
+
 ## 0.4.6 — 20/11/2026
 
 - **Colaboradores no LinkedIn** (o número da aba Pessoas, já lido na coleta semanal das páginas): coluna no

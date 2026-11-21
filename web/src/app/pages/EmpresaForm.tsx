@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react';
 import { Button } from 'react-bootstrap';
+import { useParams } from 'react-router-dom';
 import CrudForm from '../../pages/CrudForm';
 import { reduzirImagem } from '../../lib/imagem';
 import LogoEmpresa from '../components/LogoEmpresa';
+import { TagsEditaveis } from '../components/SeletorTags';
 
 /**
  * Formulário genérico de empresas com o logo em destaque: grande, mostrando o que está em uso — o enviado ou, sem
@@ -72,9 +74,18 @@ function CampoLogo({
 }
 
 export default function EmpresaForm() {
+  const { id } = useParams();
   return (
     <CrudForm
       entity="empresas"
+      after={
+        id ? (
+          <div className="mt-3">
+            <div className="form-label">Tags</div>
+            <TagsEditaveis empresaId={Number(id)} ids={[]} carregar />
+          </div>
+        ) : null
+      }
       campos={{
         logo: ({ value, values, set, disabled }) => (
           <CampoLogo

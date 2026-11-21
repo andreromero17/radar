@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import type { VisaoContas } from '@frame/shared';
 import StatCard from '../../components/StatCard';
 import LogoEmpresa from '../components/LogoEmpresa';
+import { TagsDaEmpresa } from '../components/TagPill';
+import { useTags } from '../lib/tags';
 import { Barras } from '../components/Graficos';
 import { cssVar } from '../../lib/themeVars';
 import { dataCurta } from '../lib/universo';
@@ -13,6 +15,7 @@ export const ChipSeveridade = ({ s }: { s: string }) => (
 
 /** Visão geral das contas-alvo: onde agir nos próximos dias */
 export default function VisaoContasTela({ d }: { d: VisaoContas }) {
+  const { porId: porTag } = useTags();
   const maxTipo = Math.max(1, ...d.tipos.map((t) => t.n));
   return (
     <>
@@ -151,6 +154,7 @@ export default function VisaoContasTela({ d }: { d: VisaoContas }) {
                     >
                       <LogoEmpresa nome={e.nome} logo={e.logo} tamanho={1.75} />
                       <span className="fw-semibold">{e.nome}</span>
+                      <TagsDaEmpresa ids={e.tags} porId={porTag} />
                     </Link>
                   </td>
                   <td className="text-muted">{e.dono ?? '—'}</td>

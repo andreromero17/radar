@@ -94,5 +94,6 @@ PR no frame-app.
 - 0.4.7 — Caixa de sinais com avaliação, detalhe da empresa e da pessoa, lista de pessoas com "Precisa de atenção".
   - Página da empresa: as seções **Sinais** e **Pessoas-chave** com altura limitada a ~10 itens e rolagem própria
     (as listas ficam longas e esticam a tela) — pedido do André em 21/11/2026.
+    Nas duas, um campo de **busca** (texto, cargo, nome).
 - 0.5.0 — Classificação com LLM e envio de notas/atividades ao Pipedrive.
 - Depois: Driva, sites e portais de negócios, Instagram e Facebook (roadmap da proposta).

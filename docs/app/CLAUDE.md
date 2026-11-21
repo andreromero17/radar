@@ -104,5 +104,11 @@ PR no frame-app.
 ## Próximas entregas
 
 - 0.4.10 — Caixa de sinais com avaliação, lista de pessoas com "Precisa de atenção".
+  - **Posts de troca de emprego** (pedido do André em 21/11/2026; ex.: "Novo capítulo 🚀" da Luana Hipolide virou
+    "Cases e clientes"): assunto "Carreira e movimentação" com prioridade, só em post de PESSOA (frases: novo desafio,
+    novo capítulo, nova jornada, começo hoje na, último dia, me despeço, encerro meu ciclo, tenho o prazer de anunciar,
+    nova casa, starting a new position, new chapter…) — quando bate, os outros assuntos saem. Gera alerta de cadastro
+    "Troca de empresa" e sinal (conta-alvo: Alta, contato-chave saiu / nova empresa pode ser oportunidade;
+    concorrente: saída de pessoa-chave). Reclassificar o histórico.
 - 0.5.0 — Classificação com LLM e envio de notas/atividades ao Pipedrive.
 - Depois: Driva, sites e portais de negócios, Instagram e Facebook (roadmap da proposta).

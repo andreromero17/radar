@@ -138,6 +138,19 @@ export const appEntities: Record<string, EntityDef> = {
     fields: [
       { name: 'nome', label: 'Nome', type: 'text', required: true, list: true, search: true, maxLength: 120, col: 6 },
       { name: 'empresa_id', label: 'Empresa', type: 'relation', entity: 'empresas', list: true, search: true, col: 6 },
+      // 0.4.11: copiado da empresa (filtro "Universo" da lista de pessoas); muda junto com a empresa
+      {
+        name: 'universo',
+        label: 'Universo',
+        type: 'select',
+        options: UNIVERSOS_EMPRESA,
+        colors: COR_UNIVERSO,
+        readonly: true,
+        list: true,
+        filter: true,
+        col: 6,
+        help: 'Vem da empresa: conta-alvo, concorrente ou nós.',
+      },
       {
         name: 'cargo',
         label: 'Cargo',

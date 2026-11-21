@@ -2,7 +2,7 @@
 import { normalizarLinkedin } from '@frame/shared';
 import type { EntityHooks } from '../../hooks/types';
 import { badRequest, conflict } from '../../utils/http';
-import { atualizarUniversoDasPublicacoes } from '../services/visao';
+import { atualizarUniversoDasPessoas, atualizarUniversoDasPublicacoes } from '../services/visao';
 
 function chaveLinkedin(tabela: 'empresas' | 'pessoas', rotulo: string): EntityHooks {
   return {
@@ -41,6 +41,19 @@ export const empresasHooks: EntityHooks = {
   async afterSave(row, data, { db }) {
     if (!('universo' in data)) return;
     await atualizarUniversoDasPublicacoes(db, Number(row.id));
+    await atualizarUniversoDasPessoas(db, Number(row.id));
   },
 };
-export const pessoasHooks = chaveLinkedin('pessoas', 'Perfil no LinkedIn');
+const linkedinPessoa = chaveLinkedin('pessoas', 'Perfil no LinkedIn');
+export const pessoasHooks: EntityHooks = {
+  ...linkedinPessoa,
+  // o universo vem da empresa (0.4.11)
+  async beforeSave(data, ctx) {
+    await linkedinPessoa.beforeSave!(data, ctx);
+    if (!('empresa_id' in data)) return;
+    const e = data.empresa_id
+      ? ((await ctx.db('empresas').where('id', data.empresa_id).first('universo')) as { universo: string } | undefined)
+      : undefined;
+    data.universo = e?.universo ?? null;
+  },
+};

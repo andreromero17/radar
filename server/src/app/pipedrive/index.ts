@@ -1,4 +1,5 @@
 // Pipedrive: sincronização sob demanda (rota) e diária (tarefa), com o último resultado por espaço em memória.
+import { atualizarUniversoDasPessoas } from '../services/visao';
 import type { Db } from '../../db/knex';
 import { comEspaco, espacoAtivoOuNulo, idsEspacosAtivos } from '../../espacos';
 import { getAppSetting } from '../../services/settings';
@@ -22,6 +23,7 @@ const espacoAtual = () => espacoAtivoOuNulo()?.espacoId ?? 0;
 export async function sincronizarERegistrar(db: Db, espacoId = espacoAtual()): Promise<UltimaSincronizacao> {
   try {
     const resultado = await sincronizarPipedrive(db);
+    await atualizarUniversoDasPessoas(db);
     const u = { quando: nowLocal(), ok: true, resultado };
     ultimas.set(espacoId, u);
     return u;

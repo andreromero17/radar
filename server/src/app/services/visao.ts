@@ -113,7 +113,15 @@ export async function garantirAssuntos(db: Db) {
     if (assuntos.includes(ASSUNTO_CARREIRA)) await registrarTrocaDeEmprego(db, p.id);
   }
   await atualizarUniversoDasPublicacoes(db);
+  await atualizarUniversoDasPessoas(db);
   return sem.length;
+}
+
+/** Copia o universo da empresa para as pessoas dela (filtro da lista de pessoas, 0.4.11) */
+export async function atualizarUniversoDasPessoas(db: Db, empresaId?: number) {
+  const q = db('pessoas');
+  if (empresaId) q.where('empresa_id', empresaId);
+  await q.update({ universo: db('empresas').select('universo').whereRaw('empresas.id = pessoas.empresa_id') });
 }
 
 /** Copia o universo da empresa para as publicações dela (todas, ou só as de uma empresa) */

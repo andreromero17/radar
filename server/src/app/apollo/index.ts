@@ -15,6 +15,7 @@ import { inserir } from '../../db/knex';
 import { nowLocal } from '../../utils/time';
 import { siteLimpo } from '../coleta/paginas';
 import { nivelDoCargo } from '../pipedrive/sincronizar';
+import { atualizarUniversoDasPessoas } from '../services/visao';
 import { clienteApollo, ErroApollo } from './cliente';
 
 export { apolloConfigurado, definirContextoApollo, ErroApollo } from './cliente';
@@ -300,6 +301,7 @@ export async function aprovarSugestoes(db: Db, ids: number[]) {
         .update({ situacao: 'Aprovada', pessoa_id: pessoaId, nome, cargo, atualizado_em: agora });
     }
   }
+  await atualizarUniversoDasPessoas(db);
   return r;
 }
 

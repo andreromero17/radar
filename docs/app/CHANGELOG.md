@@ -1,5 +1,15 @@
 # Changelog do Radar
 
+## 0.4.11 — 21/11/2026
+
+- **Pessoas por universo**: a lista de pessoas ganhou a coluna e o filtro **Universo** (conta-alvo, concorrente,
+  nós), que vem da empresa e muda junto com ela.
+- **Seleção de empresa com busca e em ordem** (frame 0.31.0, PR #43 do frame-app): o campo de relação virou uma
+  lista em que se digita para buscar (sem acento e maiúsculas), com setas e Enter; as opções vêm em ordem alfabética
+  do português (antes as maiúsculas vinham antes das minúsculas). Vale para todos os campos de empresa/pessoa do
+  sistema. No painel de filtros, relação com muitas opções ganhou busca e marcação.
+- Traz também o frame 0.29.0 (tokens de integração) e 0.30.0 (sub-tabela e célula desenhadas pelo sistema).
+
 ## 0.4.10 — 21/11/2026
 
 - **Troca de emprego**: post da própria pessoa que anuncia mudança ("novo capítulo", "novo desafio", "começo hoje

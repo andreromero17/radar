@@ -58,6 +58,10 @@ PR no frame-app.
 - Vagas (0.4.3): `coleta/vagas.ts` (`coletarVagas`, ator `piotrv1001/linkedin-company-jobs-scraper`, 30 dias, sem
   detalhe), roda depois de `coletarPaginas` no tipo 'paginas'; vagas = `publicacoes.tipo = 'Vaga'` (`id_externo`
   "vaga:<id>") e `metricas_empresas.vagas`. Toda conta de posts na visão geral filtra `tipo = 'Post'`.
+- 0.4.11: `pessoas.universo` (copiado da empresa: hook de pessoas no `beforeSave`, `afterSave` de empresas,
+  `atualizarUniversoDasPessoas` depois do Pipedrive, do Apollo e no `garantirAssuntos`). Frame 0.31.0 (campo de
+  relação com busca, `RelationSelect`) veio do branch `feat/relacao-com-busca` do frame-app (PR #43) — depois do merge
+  lá, `git pull upstream main` normal. Testes `radar090.test.ts`.
 - 0.4.10: troca de emprego = `ASSUNTO_CARREIRA`/`ehTrocaDeEmprego` (shared `assuntos.ts`; `classificarAssuntos(t, 3,
 { daPessoa })`) + `services/carreira.ts` (`registrarTrocaDeEmprego`: alerta com chave `carreira:<pessoa>:<post>` e
   sinal por `publicacao_id`, só 90 dias), chamado na coleta e no `garantirAssuntos`. `publicacoes.fonte_tipo`
@@ -109,6 +113,6 @@ PR no frame-app.
 
 ## Próximas entregas
 
-- 0.4.11 — Caixa de sinais com avaliação, lista de pessoas com "Precisa de atenção".
+- 0.4.12 — Caixa de sinais com avaliação, lista de pessoas com "Precisa de atenção".
 - 0.5.0 — Classificação com LLM e envio de notas/atividades ao Pipedrive.
 - Depois: Driva, sites e portais de negócios, Instagram e Facebook (roadmap da proposta).

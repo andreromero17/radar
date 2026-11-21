@@ -116,5 +116,8 @@ PR no frame-app.
     pessoas, publicações) — tirar das estatísticas enquanto estiver na lixeira (voltam se restaurar). Exclusão
     definitiva: hoje o `ON DELETE SET NULL` deixa os posts sem pessoa e eles passam a contar como posts da PÁGINA
     (bug) — apagar as publicações dela (e os sinais ligados) no `beforeDelete` definitivo, com aviso na confirmação.
+  - **Filtro por tags e o "Nós"** (21/11/2026): hoje "Nós" fica sempre. Pode haver mais de um "Nós" (Lighthouse e
+    Sellmate). No filtro, escolher quais "Nós" mostrar (cada um liga/desliga; padrão: todos), lembrado como as tags;
+    sem nenhum marcado, o "Nós" segue as tags como as outras empresas.
 - 0.5.0 — Classificação com LLM e envio de notas/atividades ao Pipedrive.
 - Depois: Driva, sites e portais de negócios, Instagram e Facebook (roadmap da proposta).

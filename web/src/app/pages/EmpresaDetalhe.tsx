@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Card, Col, Form, Row, Spinner, Table } from 'react-bootstrap';
 import { Link, useParams } from 'react-router-dom';
-import type { DetalheEmpresa, PostDetalhe } from '@frame/shared';
+import type { DetalheEmpresa } from '@frame/shared';
 import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
 import { useAuth } from '../../context/AuthContext';
@@ -9,70 +9,16 @@ import { api, errorMessage } from '../../lib/api';
 import ApolloEmpresa from '../components/ApolloEmpresa';
 import { TagsEditaveis } from '../components/SeletorTags';
 import LogoEmpresa from '../components/LogoEmpresa';
-import { Barras } from '../components/Graficos';
+import { Barras, Rosca } from '../components/Graficos';
+import { Busca, CabecalhoPosts, LinhaPost, PublicacoesDoPeriodo, type Origem } from '../components/Publicacoes';
+import { contem, num } from '../lib/texto';
 import { compacto, dataCurta } from '../lib/universo';
 import { ChipSeveridade } from './VisaoContasTela';
 import { FiltroSeveridade } from './Sinais';
 
-const num = (n: number | null | undefined, casas = 1) =>
-  n == null ? '—' : n.toLocaleString('pt-BR', { maximumFractionDigits: casas });
 const PERIODOS = [30, 90, 180];
 const voltarPara = (universo: string) =>
   universo === 'Concorrente' || universo === 'Nós' ? '/?u=concorrentes' : '/?u=contas';
-
-function LinhaPost({ p, mostrarAutor }: { p: PostDetalhe; mostrarAutor?: boolean }) {
-  return (
-    <tr>
-      <td className="text-muted">{dataCurta(p.data)}</td>
-      <td style={{ maxWidth: '28rem' }}>
-        <a
-          href={p.url ?? undefined}
-          target="_blank"
-          rel="noreferrer"
-          className="d-block text-truncate text-reset"
-          title={p.titulo}
-        >
-          {p.titulo || '(sem texto)'}
-        </a>
-        <div className="d-flex flex-wrap gap-1 mt-1">
-          {!p.proprio && <span className="radar-chip">Repost</span>}
-          {mostrarAutor && p.autor && <span className="radar-chip">{p.autor}</span>}
-          {p.assuntos.map((a) => (
-            <span key={a} className="radar-chip">
-              {a}
-            </span>
-          ))}
-          {p.sinal && (
-            <Link
-              to={`/sinais/${p.sinal.id}`}
-              className={`radar-chip ${p.sinal.severidade === 'Alta' ? 'radar-sev-alta' : ''}`}
-            >
-              <i className="bi bi-lightning-charge me-1" />
-              {p.sinal.tipo}
-            </Link>
-          )}
-        </div>
-      </td>
-      <td className="text-end">{num(p.curtidas, 0)}</td>
-      <td className="text-end">{num(p.comentarios, 0)}</td>
-      <td className="text-end">{num(p.compartilhamentos, 0)}</td>
-      <td className="text-end fw-semibold">{p.interacoes}</td>
-    </tr>
-  );
-}
-
-const CabecalhoPosts = () => (
-  <thead>
-    <tr>
-      <th>Data</th>
-      <th>Post</th>
-      <th className="text-end">Curtidas</th>
-      <th className="text-end">Coment.</th>
-      <th className="text-end">Compart.</th>
-      <th className="text-end">Interações</th>
-    </tr>
-  </thead>
-);
 
 /** Página da empresa: posts, assuntos, engajamento, seguidores, sinais e pessoas-chave */
 export default function EmpresaDetalhe() {
@@ -85,6 +31,15 @@ export default function EmpresaDetalhe() {
   const [recarga, setRecarga] = useState(0);
   const [buscaSinais, setBuscaSinais] = useState('');
   const [buscaPessoas, setBuscaPessoas] = useState('');
+  const [origem, setOrigem] = useState<Origem>('todas');
+  const [assunto, setAssunto] = useState<string | null>(null);
+  const publicacoesRef = useRef<HTMLDivElement>(null);
+  /** Clique num assunto (gráfico): filtra "Todas as publicações" e rola até lá */
+  const verAssunto = (a: string, o: Origem) => {
+    setAssunto(a);
+    setOrigem(o);
+    setTimeout(() => publicacoesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  };
   const { can } = useAuth();
 
   async function refazerHistorico() {
@@ -120,11 +75,7 @@ export default function EmpresaDetalhe() {
   const e = d.empresa;
   const k = d.kpis;
   const maxAssunto = Math.max(1, ...d.assuntos.map((a) => a.media));
-  const posts = d.posts;
-  const tem = (termo: string, ...textos: (string | null | undefined)[]) => {
-    const t = semAcento(termo.trim());
-    return !t || textos.some((x) => semAcento(x ?? '').includes(t));
-  };
+  const tem = contem;
   const sinais = d.sinais.filter(
     (s) => (!severidade || s.severidade === severidade) && tem(buscaSinais, s.titulo, s.gancho, s.tipo, s.pessoa),
   );
@@ -281,9 +232,14 @@ export default function EmpresaDetalhe() {
               {d.assuntos.map((a) => (
                 <div key={a.assunto} className="mb-2">
                   <div className="d-flex justify-content-between small">
-                    <span>
+                    <button
+                      type="button"
+                      className="btn btn-link p-0 text-reset text-decoration-none small"
+                      onClick={() => verAssunto(a.assunto, 'pagina')}
+                      title="Ver os posts deste assunto"
+                    >
                       {a.assunto} <span className="text-muted">· {a.posts} post(s)</span>
-                    </span>
+                    </button>
                     <span className="text-muted">{num(a.media)} interações/post</span>
                   </div>
                   <div className="radar-barra">
@@ -292,6 +248,70 @@ export default function EmpresaDetalhe() {
                 </div>
               ))}
               {!d.assuntos.length && <p className="text-muted mb-0">Sem posts no período.</p>}
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      <Row className="g-3 mb-3">
+        <Col lg={6}>
+          <Card className="card-app h-100">
+            <Card.Header className="d-flex justify-content-between align-items-center">
+              <span className="fw-semibold">Assuntos das pessoas-chave</span>
+              {d.assuntos_pessoas.length > 0 && <span className="small text-muted">Clique para ver os posts</span>}
+            </Card.Header>
+            <Card.Body>
+              {d.assuntos_pessoas.length ? (
+                <Rosca
+                  rotulos={d.assuntos_pessoas.map((a) => a.assunto)}
+                  valores={d.assuntos_pessoas.map((a) => a.posts)}
+                  altura={11}
+                  onClick={(i) => verAssunto(d.assuntos_pessoas[i].assunto, 'pessoas')}
+                />
+              ) : (
+                <p className="text-muted mb-0">Nenhum post das pessoas-chave no período.</p>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col lg={6}>
+          <Card className="card-app h-100">
+            <Card.Header className="d-flex justify-content-between align-items-center">
+              <span className="fw-semibold">Posts das pessoas que a empresa repostou</span>
+              <span className="small text-muted">{d.reposts_pessoas.length}</span>
+            </Card.Header>
+            <Card.Body>
+              {d.reposts_pessoas.length ? (
+                <ul className="radar-lista radar-rolagem">
+                  {d.reposts_pessoas.map((r) => (
+                    <li key={r.id} className="flex-column">
+                      <div className="d-flex gap-2 align-items-center small">
+                        {r.pessoa_id ? (
+                          <Link to={`/pessoa/${r.pessoa_id}`} className="fw-semibold text-reset">
+                            {r.autor}
+                          </Link>
+                        ) : (
+                          <span className="fw-semibold">{r.autor}</span>
+                        )}
+                        <span className="text-muted ms-auto">{dataCurta(r.data)}</span>
+                      </div>
+                      <a
+                        href={r.url ?? undefined}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-reset text-truncate"
+                      >
+                        {r.titulo || '(sem texto)'}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted mb-0">
+                  A página não repostou posts das pessoas-chave no período. (Curtidas e comentários da página não vêm na
+                  coleta.)
+                </p>
+              )}
             </Card.Body>
           </Card>
         </Col>
@@ -372,7 +392,7 @@ export default function EmpresaDetalhe() {
                   {pessoas.map((p) => (
                     <li key={p.id} className="justify-content-between align-items-center">
                       <div style={{ minWidth: 0 }}>
-                        <Link to={`/pessoas/${p.id}`} className="fw-semibold text-reset text-decoration-none">
+                        <Link to={`/pessoa/${p.id}`} className="fw-semibold text-reset text-decoration-none">
                           {p.nome}
                         </Link>
                         <div className="small text-muted text-truncate">{p.cargo ?? '—'}</div>
@@ -428,58 +448,17 @@ export default function EmpresaDetalhe() {
         </Card>
       )}
 
-      <Card className="card-app">
-        <Card.Header className="d-flex justify-content-between align-items-center">
-          <span className="fw-semibold">Todas as publicações do período</span>
-          <span className="small text-muted">Página e pessoas-chave · mais recentes primeiro</span>
-        </Card.Header>
-        <div className="table-responsive">
-          <Table hover className="mb-0 radar-tabela">
-            <CabecalhoPosts />
-            <tbody>
-              {posts.map((p) => (
-                <LinhaPost key={p.id} p={p} mostrarAutor />
-              ))}
-              {!posts.length && (
-                <tr>
-                  <td colSpan={6} className="text-muted">
-                    Nenhuma publicação no período.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
-        </div>
-      </Card>
+      <PublicacoesDoPeriodo
+        ref={publicacoesRef}
+        posts={d.posts}
+        subtitulo="Página e pessoas-chave · mais recentes primeiro"
+        mostrarAutor
+        comOrigem
+        origem={origem}
+        onOrigem={setOrigem}
+        assunto={assunto}
+        onAssunto={setAssunto}
+      />
     </>
-  );
-}
-
-const semAcento = (t: string) =>
-  t
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-
-function Busca({
-  valor,
-  onChange,
-  placeholder,
-}: {
-  valor: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-}) {
-  return (
-    <Form.Control
-      size="sm"
-      type="search"
-      className="ms-auto"
-      style={{ maxWidth: '14rem' }}
-      placeholder={placeholder}
-      aria-label={placeholder}
-      value={valor}
-      onChange={(ev) => onChange(ev.target.value)}
-    />
   );
 }

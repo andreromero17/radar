@@ -243,6 +243,10 @@ export interface PostDetalhe extends PostExemplo {
   compartilhamentos: number | null;
   assuntos: string[];
   sinal: { id: number; tipo: string; severidade: string } | null;
+  /** Post de pessoa-chave (null = da página da empresa) */
+  pessoa_id: number | null;
+  /** Post da pessoa que a página da empresa repostou (0.4.9) */
+  repost_empresa?: boolean;
 }
 export interface DetalheEmpresa {
   empresa: EmpresaResumo & {
@@ -287,6 +291,10 @@ export interface DetalheEmpresa {
   seguidores: { data: string; seguidores: number }[];
   semanas: { inicio: string; n: number }[];
   assuntos: { assunto: string; posts: number; media: number }[];
+  /** Assuntos dos posts próprios das pessoas-chave no período (0.4.9) */
+  assuntos_pessoas: { assunto: string; posts: number; media: number }[];
+  /** Reposts da página da empresa de posts das pessoas-chave dela, no período (0.4.9) */
+  reposts_pessoas: PostDetalhe[];
   melhores: PostDetalhe[];
   vagas: { id: number; titulo: string; url: string | null; data: string | null; local: string | null }[];
   posts: PostDetalhe[];
@@ -299,4 +307,38 @@ export interface DetalheEmpresa {
     posts: number;
     ultimo: string | null;
   }[];
+}
+
+/** Página da pessoa-chave (0.4.9): estatísticas como as da empresa, sobre os posts do perfil */
+export interface DetalhePessoa {
+  pessoa: {
+    id: number;
+    nome: string;
+    cargo: string | null;
+    titulo_linkedin: string | null;
+    linkedin_url: string | null;
+    nivel: string | null;
+    prioridade: string | null;
+    monitorar: boolean;
+    empresa: (EmpresaResumo & { universo: string }) | null;
+  };
+  periodo: { de: string; ate: string; dias: number };
+  kpis: {
+    posts: number;
+    posts_anterior: number;
+    reposts: number;
+    interacoes_post: number | null;
+    curtidas_post: number | null;
+    sinais: number;
+    alta: number;
+    /** Posts dela que a página da empresa repostou (no período) */
+    repostados_pela_empresa: number;
+    /** Reposts dela de posts da página da empresa (no período) */
+    reposts_da_empresa: number;
+  };
+  semanas: { inicio: string; n: number }[];
+  assuntos: { assunto: string; posts: number; media: number }[];
+  melhores: PostDetalhe[];
+  posts: PostDetalhe[];
+  sinais: SinalResumo[];
 }

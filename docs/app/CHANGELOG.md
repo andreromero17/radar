@@ -1,5 +1,22 @@
 # Changelog do Radar
 
+## 0.4.9 — 21/11/2026
+
+- **Página da pessoa-chave** (`/pessoa/:id`, aberta pelas Pessoas-chave da empresa, pelos autores das publicações e
+  pelo cadastro da pessoa): 8 indicadores (posts próprios, interações e curtidas por post, sinais, reposts que fez,
+  posts repostados pela empresa, reposts da página da empresa, assuntos), posts por semana, assuntos mais abordados
+  (clicáveis), o que mais engaja, sinais com busca, posts que mais engajaram e todas as publicações com busca.
+- **Página da empresa**: gráfico **Assuntos das pessoas-chave** (clique filtra as publicações) e o quadro **Posts das
+  pessoas que a empresa repostou**; os posts das pessoas que a página repostou ganham o selo "Repostado pela
+  empresa". Os assuntos da página também ficaram clicáveis.
+- **Todas as publicações do período** com busca (texto, autor, assunto), filtro Todas / Da página / Das
+  pessoas-chave e o assunto escolhido no gráfico (com ×).
+- Correção na coleta: o repost passou a ter chave própria. Antes, quando a página repostava o post de uma pessoa
+  monitorada, só um dos dois entrava. A migração converte os reposts já gravados; o repost guarda o LinkedIn do
+  autor original.
+- Curtidas e comentários da página da empresa em posts das pessoas não vêm na coleta atual (exigiria outro ator do
+  Apify, a aprovar).
+
 ## 0.4.8 — 21/11/2026
 
 - Correção: tags criadas no cadastro (menu Tags) não apareciam no seletor da empresa nem no filtro da visão geral até

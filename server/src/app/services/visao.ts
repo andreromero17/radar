@@ -10,6 +10,7 @@ import {
   classificarAssuntos,
   scoreRadar,
   type DetalheEmpresa,
+  type DetalhePessoa,
   type PostDetalhe,
   type EmpresaResumo,
   type LinhaComparativo,
@@ -45,6 +46,9 @@ type Pub = {
   url: string | null;
   assuntos?: string | null;
   autor?: string | null;
+  id_externo?: string | null;
+  original_id?: string | null;
+  autor_linkedin?: string | null;
 };
 type Sinal = {
   id: number;
@@ -109,6 +113,57 @@ function porAssunto(posts: Pub[]) {
   for (const x of posts) for (const a of assuntosDoTexto(x.assuntos)) m.set(a, [...(m.get(a) ?? []), x]);
   return m;
 }
+
+/** Assuntos com contagem e média de interações, do mais frequente ao menos */
+function assuntosComMedia(posts: Pub[]) {
+  return [...porAssunto(posts).entries()]
+    .map(([assunto, ps]) => ({
+      assunto,
+      posts: ps.length,
+      media:
+        media(
+          ps.reduce((s, x) => s + interacoes(x), 0),
+          ps.length,
+        ) ?? 0,
+    }))
+    .sort((a, b) => b.posts - a.posts);
+}
+
+const normalizarNome = (t: string | null | undefined) =>
+  (t ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/** De quem é o post original de um repost: pelo LinkedIn do autor ou, nos antigos (sem ele), pelo nome */
+function autorDoRepost<T extends { nome: string; linkedin_url: string | null }>(x: Pub, candidatos: T[]) {
+  if (x.autor_linkedin) {
+    const porLink = candidatos.find((c) => c.linkedin_url && c.linkedin_url === x.autor_linkedin);
+    if (porLink) return porLink;
+  }
+  const nome = normalizarNome(x.autor);
+  return nome ? candidatos.find((c) => normalizarNome(c.nome) === nome) : undefined;
+}
+
+const COLUNAS_PUB = [
+  'id',
+  'empresa_id',
+  'pessoa_id',
+  'data_publicacao',
+  'post_proprio',
+  'curtidas',
+  'comentarios',
+  'compartilhamentos',
+  'titulo',
+  'url',
+  'assuntos',
+  'autor',
+  'id_externo',
+  'original_id',
+  'autor_linkedin',
+];
 
 /** Semanas (segunda a domingo) que cobrem o período, com a contagem de datas em cada uma */
 function porSemana(datas: (string | null)[], de: string, ate: string) {
@@ -454,20 +509,7 @@ export async function detalheEmpresa(db: Db, id: number, dias = 90): Promise<Det
     .where('data_publicacao', '>=', p.deAnterior)
     .where('data_publicacao', '<=', p.ate)
     .orderBy('data_publicacao', 'desc')
-    .select(
-      'id',
-      'empresa_id',
-      'pessoa_id',
-      'data_publicacao',
-      'post_proprio',
-      'curtidas',
-      'comentarios',
-      'compartilhamentos',
-      'titulo',
-      'url',
-      'assuntos',
-      'autor',
-    )) as Pub[];
+    .select(COLUNAS_PUB)) as Pub[];
   const sinais = (await db('sinais')
     .where('empresa_id', id)
     .where('data', '>=', p.de)
@@ -487,12 +529,23 @@ export async function detalheEmpresa(db: Db, id: number, dias = 90): Promise<Det
   const pessoas = (await db('pessoas')
     .where('empresa_id', id)
     .whereNull('excluido_em')
-    .select('id', 'nome', 'cargo', 'prioridade')) as {
+    .select('id', 'nome', 'cargo', 'prioridade', 'linkedin_url')) as {
     id: number;
     nome: string;
     cargo: string | null;
     prioridade: string | null;
+    linkedin_url: string | null;
   }[];
+  // posts das pessoas que a página repostou (qualquer data): pelo id do post original
+  const repostadas = new Set(
+    (
+      (await db('publicacoes')
+        .where({ empresa_id: id, tipo: 'Post' })
+        .whereNull('pessoa_id')
+        .whereNotNull('original_id')
+        .select('original_id')) as { original_id: string }[]
+    ).map((r) => r.original_id),
+  );
   const hist = (await db('metricas_empresas')
     .where('empresa_id', id)
     .whereNotNull('seguidores')
@@ -522,6 +575,8 @@ export async function detalheEmpresa(db: Db, id: number, dias = 90): Promise<Det
       compartilhamentos: x.compartilhamentos,
       assuntos: assuntosDoTexto(x.assuntos),
       sinal: s ? { id: s.id, tipo: s.tipo, severidade: s.severidade } : null,
+      pessoa_id: x.pessoa_id,
+      repost_empresa: !!x.pessoa_id && !!x.post_proprio && !!x.id_externo && repostadas.has(x.id_externo),
     };
   };
   const colab = colaboradoresNoPeriodo(
@@ -589,17 +644,14 @@ export async function detalheEmpresa(db: Db, id: number, dias = 90): Promise<Det
       p.de,
       p.ate,
     ),
-    assuntos: [...porAssunto(proprios).entries()]
-      .map(([assunto, ps]) => ({
-        assunto,
-        posts: ps.length,
-        media:
-          media(
-            ps.reduce((s, x) => s + interacoes(x), 0),
-            ps.length,
-          ) ?? 0,
-      }))
-      .sort((a, b) => b.posts - a.posts),
+    assuntos: assuntosComMedia(proprios),
+    assuntos_pessoas: assuntosComMedia(postsPessoas.filter((x) => !!x.post_proprio)),
+    reposts_pessoas: atuais
+      .filter((x) => !x.post_proprio)
+      .flatMap((x) => {
+        const quem = autorDoRepost(x, pessoas);
+        return quem ? [{ ...detalhe(x), autor: quem.nome, pessoa_id: quem.id }] : [];
+      }),
     vagas: vagasRows.map((v) => ({
       id: v.id,
       titulo: v.titulo ?? 'Vaga',
@@ -639,5 +691,146 @@ export async function detalheEmpresa(db: Db, id: number, dias = 90): Promise<Det
         };
       })
       .sort((a, b) => b.posts - a.posts || a.nome.localeCompare(b.nome)),
+  };
+}
+
+/** Página da pessoa-chave (0.4.9): posts do perfil, assuntos, engajamento, sinais e a relação com a página da empresa */
+export async function detalhePessoa(db: Db, id: number, dias = 90): Promise<DetalhePessoa | null> {
+  await garantirAssuntos(db);
+  const x = (await db('pessoas').where('id', id).first()) as
+    | {
+        id: number;
+        nome: string;
+        cargo: string | null;
+        titulo_linkedin: string | null;
+        linkedin_url: string | null;
+        nivel: string | null;
+        prioridade: string | null;
+        monitorar: unknown;
+        empresa_id: number | null;
+      }
+    | undefined;
+  if (!x) return null;
+  const p = periodoDe(dias);
+  const emp = x.empresa_id
+    ? ((await db('empresas').where('id', x.empresa_id).first()) as
+        (Empresa & { linkedin_url: string | null }) | undefined)
+    : undefined;
+  const pubs = (await db('publicacoes')
+    .where({ pessoa_id: id, tipo: 'Post' })
+    .where('data_publicacao', '>=', p.deAnterior)
+    .where('data_publicacao', '<=', p.ate)
+    .orderBy('data_publicacao', 'desc')
+    .select(COLUNAS_PUB)) as Pub[];
+  const repostadas = emp
+    ? new Set(
+        (
+          (await db('publicacoes')
+            .where({ empresa_id: emp.id, tipo: 'Post' })
+            .whereNull('pessoa_id')
+            .whereNotNull('original_id')
+            .select('original_id')) as { original_id: string }[]
+        ).map((r) => r.original_id),
+      )
+    : new Set<string>();
+  const sinais = (await db('sinais')
+    .where('pessoa_id', id)
+    .where('data', '>=', p.de)
+    .orderBy('data', 'desc')
+    .select(
+      'id',
+      'empresa_id',
+      'pessoa_id',
+      'publicacao_id',
+      'data',
+      'severidade',
+      'tipo',
+      'titulo',
+      'gancho',
+      'situacao',
+    )) as Sinal[];
+
+  const atuais = pubs.filter((y) => !!y.data_publicacao && y.data_publicacao >= p.de);
+  const proprios = atuais.filter((y) => !!y.post_proprio);
+  const soma = (f: (y: Pub) => number) => proprios.reduce((s, y) => s + f(y), 0);
+  const sinalPorPub = new Map(sinais.filter((s) => s.publicacao_id).map((s) => [s.publicacao_id!, s]));
+  const nomeEmpresa = emp ? emp.nome_curto || emp.nome : '';
+  const ehRepostada = (y: Pub) => !!y.post_proprio && !!y.id_externo && repostadas.has(y.id_externo);
+  const daEmpresa = (y: Pub) =>
+    !y.post_proprio &&
+    !!emp &&
+    !!autorDoRepost(y, [
+      { nome: emp.nome, linkedin_url: emp.linkedin_url },
+      { nome: nomeEmpresa, linkedin_url: null },
+    ]);
+  const detalhe = (y: Pub): PostDetalhe => {
+    const s = sinalPorPub.get(y.id);
+    return {
+      id: y.id,
+      titulo: y.titulo ?? '',
+      url: y.url,
+      empresa: nomeEmpresa,
+      interacoes: interacoes(y),
+      data: y.data_publicacao,
+      // no perfil, o autor só interessa no repost (de quem é o post original)
+      autor: y.post_proprio ? null : (y.autor ?? null),
+      proprio: !!y.post_proprio,
+      curtidas: y.curtidas,
+      comentarios: y.comentarios,
+      compartilhamentos: y.compartilhamentos,
+      assuntos: assuntosDoTexto(y.assuntos),
+      sinal: s ? { id: s.id, tipo: s.tipo, severidade: s.severidade } : null,
+      pessoa_id: y.post_proprio ? id : null,
+      repost_empresa: ehRepostada(y),
+    };
+  };
+  return {
+    pessoa: {
+      id: x.id,
+      nome: x.nome,
+      cargo: x.cargo,
+      titulo_linkedin: x.titulo_linkedin,
+      linkedin_url: x.linkedin_url,
+      nivel: x.nivel,
+      prioridade: x.prioridade,
+      monitorar: !!x.monitorar,
+      empresa: emp ? { ...resumo(emp), universo: emp.universo } : null,
+    },
+    periodo: { de: p.de, ate: p.ate, dias },
+    kpis: {
+      posts: proprios.length,
+      posts_anterior: pubs.filter((y) => !!y.post_proprio && !!y.data_publicacao && y.data_publicacao < p.de).length,
+      reposts: atuais.length - proprios.length,
+      interacoes_post: media(soma(interacoes), proprios.length),
+      curtidas_post: media(
+        soma((y) => y.curtidas ?? 0),
+        proprios.length,
+      ),
+      sinais: sinais.length,
+      alta: sinais.filter((s) => s.severidade === 'Alta').length,
+      repostados_pela_empresa: proprios.filter(ehRepostada).length,
+      reposts_da_empresa: atuais.filter(daEmpresa).length,
+    },
+    semanas: porSemana(
+      proprios.map((y) => y.data_publicacao),
+      p.de,
+      p.ate,
+    ),
+    assuntos: assuntosComMedia(proprios),
+    melhores: [...proprios]
+      .sort((a, b) => interacoes(b) - interacoes(a))
+      .slice(0, 5)
+      .map(detalhe),
+    posts: atuais.slice(0, 200).map(detalhe),
+    sinais: sinais.map((s) => ({
+      id: s.id,
+      data: s.data,
+      severidade: s.severidade,
+      tipo: s.tipo,
+      titulo: s.titulo,
+      gancho: s.gancho,
+      empresa: emp ? resumo(emp) : null,
+      pessoa: x.nome,
+    })),
   };
 }

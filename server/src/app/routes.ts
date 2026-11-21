@@ -16,7 +16,7 @@ import {
   type TipoColeta,
 } from './coleta';
 import { sincronizarERegistrar, statusPipedrive } from './pipedrive';
-import { detalheEmpresa, visaoConcorrentes, visaoContas } from './services/visao';
+import { detalheEmpresa, detalhePessoa, visaoConcorrentes, visaoContas } from './services/visao';
 import { pipedriveConfigurado } from './pipedrive/cliente';
 import { criarTag, definirTagsDaEmpresa, listarTags } from './services/tags';
 import {
@@ -94,6 +94,13 @@ export function appRouter(db: Db) {
     if (!(await definirTagsDaEmpresa(db, Number(req.params.id), ids)))
       throw new HttpError(404, 'Empresa não encontrada.');
     res.json({ ids });
+  });
+
+  router.get('/radar/pessoas/:id/detalhe', requirePermission('pessoas', 'ver'), async (req, res) => {
+    const dias = Math.min(365, Math.max(7, Number(req.query.dias) || 90));
+    const d = await detalhePessoa(db, Number(req.params.id), dias);
+    if (!d) throw new HttpError(404, 'Pessoa não encontrada.');
+    res.json(d);
   });
 
   router.get('/radar/empresas/:id/detalhe', requirePermission('empresas', 'ver'), async (req, res) => {

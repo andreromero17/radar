@@ -58,6 +58,12 @@ PR no frame-app.
 - Vagas (0.4.3): `coleta/vagas.ts` (`coletarVagas`, ator `piotrv1001/linkedin-company-jobs-scraper`, 30 dias, sem
   detalhe), roda depois de `coletarPaginas` no tipo 'paginas'; vagas = `publicacoes.tipo = 'Vaga'` (`id_externo`
   "vaga:<id>") e `metricas_empresas.vagas`. Toda conta de posts na visão geral filtra `tipo = 'Post'`.
+- Pessoa e reposts (0.4.9): `detalhePessoa` em `services/visao.ts` (rota `GET /api/radar/pessoas/:id/detalhe`, tela
+  `pages/PessoaDetalhe.tsx` em `pessoa/:id`; `pages/PessoaForm.tsx` com o link). Repost com chave própria
+  (`repost:e<empresa>:<id>` / `repost:p<pessoa>:<id>`), `publicacoes.original_id` e `autor_linkedin`; de quem é o
+  original: `autorDoRepost` (LinkedIn, ou nome nos antigos). `DetalheEmpresa.assuntos_pessoas` e `reposts_pessoas`;
+  `PostDetalhe.repost_empresa`. Tabelas e busca em `components/Publicacoes.tsx` (`PublicacoesDoPeriodo`), ajudantes em
+  `lib/texto.ts`. Testes `radar070.test.ts`.
 - Tags (0.4.7): entidade `tags` (nome único sem diferenciar maiúsculas, cor) + `empresas.tags` (JSON de ids, oculto;
   `lerTags` em shared). Serviço `app/services/tags.ts` (hooks: nome único e tirar das empresas ao excluir; `listarTags`
   com contagem, `criarTag`, `definirTagsDaEmpresa`). Rotas `GET/POST /api/radar/tags`, `PUT
@@ -97,6 +103,6 @@ PR no frame-app.
 
 ## Próximas entregas
 
-- 0.4.9 — Caixa de sinais com avaliação, detalhe da pessoa, lista de pessoas com "Precisa de atenção".
+- 0.4.10 — Caixa de sinais com avaliação, lista de pessoas com "Precisa de atenção".
 - 0.5.0 — Classificação com LLM e envio de notas/atividades ao Pipedrive.
 - Depois: Driva, sites e portais de negócios, Instagram e Facebook (roadmap da proposta).

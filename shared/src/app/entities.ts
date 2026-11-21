@@ -210,6 +210,9 @@ export const appEntities: Record<string, EntityDef> = {
         help: 'Copiado da empresa (para filtrar).',
       },
       { name: 'autor', label: 'Autor', type: 'text', search: true, maxLength: 160, col: 6 },
+      // 0.4.9: perfil/página do autor (repost: de quem é o post original) e id do post original (repost)
+      { name: 'autor_linkedin', label: 'LinkedIn do autor', type: 'text', hidden: true },
+      { name: 'original_id', label: 'Id do post original', type: 'text', hidden: true },
       {
         name: 'titulo',
         label: 'Título',

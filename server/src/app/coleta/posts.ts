@@ -6,6 +6,8 @@
 //     fonte. Fonte sem `historico_posts_em` ganha os 30 dias num run à parte e é marcada quando a coleta termina
 //     bem (0.4.5; antes era pela data de cadastro, o que deixava sem histórico quem já tinha passado por uma coleta
 //     curta). Fonte que já tem post com mais de 20 dias é marcada sem gastar run;
+//   • repost = chave `repost:e<empresa>:<id>` / `repost:p<pessoa>:<id>` (0.4.9), com `original_id` e o
+//     `autor_linkedin` do post original — assim dá para saber quais posts das pessoas a empresa repostou;
 //   • conferência de autoria: post do próprio dono da fonte = post próprio; de outro autor COM cabeçalho de repost
 //     = repost (post_proprio falso); de outro autor sem cabeçalho = descartado (contado em `coletas.descartados`);
 //   • idempotente: publicação pelo `id_externo` (id do post); de novo = só atualiza curtidas/comentários;
@@ -269,12 +271,18 @@ export async function coletarPosts(
         comentarios: item.engagement?.comments ?? null,
         compartilhamentos: item.engagement?.shares ?? null,
       };
-      const existente = (await db('publicacoes').where('id_externo', idExterno).first('id')) as
-        { id: number } | undefined;
+      // repost tem chave própria por fonte: o post original (de uma pessoa monitorada, por exemplo) entra à parte
+      const chave = proprio ? idExterno : `repost:${fonte.tipo === 'pessoa' ? 'p' : 'e'}${fonte.id}:${idExterno}`;
+      const autorLinkedin = normalizarLinkedin(item.author?.linkedinUrl) ?? null;
+      const existente = (await db('publicacoes').where('id_externo', chave).first('id')) as { id: number } | undefined;
       if (existente) {
         await db('publicacoes')
           .where('id', existente.id)
-          .update({ ...engajamento, atualizado_em: agora });
+          .update({
+            ...engajamento,
+            ...(autorLinkedin ? { autor_linkedin: autorLinkedin } : {}),
+            atualizado_em: agora,
+          });
         r.atualizados++;
         continue;
       }
@@ -285,6 +293,8 @@ export async function coletarPosts(
         empresa_id: fonte.empresa_id,
         pessoa_id: fonte.tipo === 'pessoa' ? fonte.id : null,
         autor: item.author?.name ?? null,
+        autor_linkedin: autorLinkedin,
+        original_id: proprio ? null : idExterno,
         titulo: tituloDo(texto),
         texto,
         url: item.linkedinUrl ?? null,
@@ -292,7 +302,7 @@ export async function coletarPosts(
         ...engajamento,
         triagem: 'Pendente',
         assuntos: classificarAssuntos(texto).join('; '),
-        id_externo: idExterno,
+        id_externo: chave,
         criado_em: agora,
       });
       r.novos++;

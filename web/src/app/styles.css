@@ -218,3 +218,29 @@
   max-height: 34rem;
   overflow-y: auto;
 }
+
+/* Página da pessoa (0.4.9) */
+.radar-avatar {
+  width: 6.5rem;
+  height: 6.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--brand-1);
+  background: rgba(var(--brand-1-rgb), 0.12);
+  flex-shrink: 0;
+}
+.radar-chip-destaque {
+  background: rgba(var(--brand-1-rgb), 0.12);
+  color: var(--brand-1);
+  border-color: transparent;
+}
+.radar-chip .btn-close {
+  width: 0.5rem;
+  height: 0.5rem;
+  padding: 0.125rem;
+  background-size: 0.5rem;
+}

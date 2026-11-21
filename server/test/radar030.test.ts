@@ -146,7 +146,9 @@ describe('coleta de posts', () => {
       data_publicacao: '2026-11-18',
     });
     expect(!!novo.post_proprio).toBe(true);
-    expect(!!(await ctx.db('publicacoes').where('id_externo', 'rep1').first('post_proprio')).post_proprio).toBe(false);
+    const rep = await ctx.db('publicacoes').where('original_id', 'rep1').first();
+    expect(!!rep.post_proprio).toBe(false);
+    expect(rep.id_externo).toMatch(/^repost:e\d+:rep1$/);
     expect(await ctx.db('publicacoes').where('id_externo', 'lixo1').first()).toBeUndefined();
 
     const pessoa = await ctx.db('pessoas').where('linkedin_url', polidoro).first('id', 'titulo_linkedin');
@@ -356,5 +358,32 @@ describe('coleta de posts', () => {
   it('perfil só de leitura não dispara coleta', async () => {
     usar({ APIFY_TOKEN: 'tok-apify' });
     await ctx.leitura.post('/api/radar/coleta/executar').send({}).expect(403);
+  });
+});
+
+describe('reposts com chave própria (0.4.9)', () => {
+  it('o post da pessoa e o repost dele pela página da empresa entram os dois', async () => {
+    const taking = 'https://www.linkedin.com/company/taking';
+    const polidoro = 'https://www.linkedin.com/in/polidoro';
+    await ctx.db('pessoas').where('linkedin_url', polidoro).update({ monitorar: true });
+    await ctx.db('empresas').where('linkedin_url', taking).update({ monitorar: true, excluido_em: null });
+    const autor = { publicIdentifier: 'polidoro', name: 'Adriano Polidoro', linkedinUrl: `${polidoro}?x=1` };
+    itensDoAtor = [
+      post({ id: 'dup1', fonte: taking, autor, header: { text: 'Grupo Taking repostou isto' } }),
+      post({ id: 'dup1', fonte: polidoro, autor }),
+    ];
+    usar({ APIFY_TOKEN: 'tok-apify' });
+    await coletarPosts(ctx.db);
+    const linhas = await ctx.db('publicacoes').where('id_externo', 'dup1').orWhere('original_id', 'dup1').select();
+    expect(linhas).toHaveLength(2);
+    const rep = linhas.find((l) => !l.post_proprio)!;
+    expect(rep.pessoa_id).toBeNull();
+    expect(rep.autor_linkedin).toBe(polidoro);
+    expect(linhas.find((l) => !!l.post_proprio)!.pessoa_id).not.toBeNull();
+    // de novo: idempotente
+    await coletarPosts(ctx.db);
+    expect(
+      await ctx.db('publicacoes').where('id_externo', 'dup1').orWhere('original_id', 'dup1').select(),
+    ).toHaveLength(2);
   });
 });

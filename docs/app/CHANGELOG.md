@@ -1,5 +1,10 @@
 # Changelog do Radar
 
+## 0.4.8 — 21/11/2026
+
+- Correção: tags criadas no cadastro (menu Tags) não apareciam no seletor da empresa nem no filtro da visão geral até
+  recarregar a página. A lista agora é atualizada ao abrir cada tela e ao abrir o seletor.
+
 ## 0.4.7 — 21/11/2026
 
 - **Tags de empresas**, no jeito das etiquetas do Pipedrive: cadastro de tags com nome e cor (menu **Tags**); uma

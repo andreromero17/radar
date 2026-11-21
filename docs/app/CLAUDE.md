@@ -97,6 +97,6 @@ PR no frame-app.
 
 ## Próximas entregas
 
-- 0.4.8 — Caixa de sinais com avaliação, detalhe da pessoa, lista de pessoas com "Precisa de atenção".
+- 0.4.9 — Caixa de sinais com avaliação, detalhe da pessoa, lista de pessoas com "Precisa de atenção".
 - 0.5.0 — Classificação com LLM e envio de notas/atividades ao Pipedrive.
 - Depois: Driva, sites e portais de negócios, Instagram e Facebook (roadmap da proposta).

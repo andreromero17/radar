@@ -36,8 +36,10 @@ export function useTags() {
     },
     () => cache,
   );
+  // mostra o que já tem e atualiza ao montar: tags criadas/alteradas no cadastro genérico (menu Tags) não passam
+  // por aqui (0.4.8: antes a lista ficava a da primeira carga até recarregar a página)
   useEffect(() => {
-    if (!cache && !pedido) void recarregarTags();
+    if (!pedido) void recarregarTags();
   }, []);
   const porId = new Map((tags ?? []).map((t) => [t.id, t]));
   return { tags, porId };

@@ -54,7 +54,13 @@ export default function SeletorTags({
   };
 
   return (
-    <Dropdown autoClose="outside" onToggle={(aberto) => !aberto && setBusca('')}>
+    <Dropdown
+      autoClose="outside"
+      onToggle={(aberto) => {
+        if (aberto) void recarregarTags();
+        else setBusca('');
+      }}
+    >
       <Dropdown.Toggle size="sm" variant="light" className="border">
         <i className="bi bi-tags me-1" />
         {rotulo ?? 'Tags'}

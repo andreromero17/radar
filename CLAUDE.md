@@ -140,6 +140,13 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
   sempre um admin ativo, só admin gerencia admin, derrubar sessões).
 - **Campos especiais:** `password` nunca sai da API (removido em `present()` no CRUD), não é filtrável/ordenável,
   vai para o banco como hash e para o log só como "(alterada)". `permissions` é JSON normalizado.
+- **Sub-tabela e célula próprias, filtro na sub-tabela (0.30.0):** CrudForm `detalhes` (desenha a sub-tabela de uma
+  entidade de linhas, mesma gravação), CrudList `celulas` (desenha a célula de um campo) e `FieldDef.filtraDetalhe`
+  (`{ entidade, campo }`: o filtro de igualdade também casa nas linhas da sub-tabela).
+- **Tokens de integração (0.29.0):** `auth/integracao.ts` — `registerEscopoIntegracao({ escopo, nome, descricao, rotas })`
+  (rotas como `'POST /api/...'`); `Authorization: Bearer fi_...` → `authenticate` ignora o cookie, `guardaIntegracao`
+  só deixa passar as rotas do escopo (60/min) e o `resolverEspaco` usa só o espaço do token (se ainda membro).
+  Hash em `tokens_integracao` (plataforma); gerenciados em Meu perfil (`/api/integracoes/*`, nunca com token).
 - **Filtros extras (0.28.0):** `EntityDef.filtrosExtras` = filtro só de URL (painel e chips) para as linhas extras do
   `listExtras`; os registros o ignoram.
 - **Listagem agrupada (0.27.0):** `EntityDef.agrupar` = campo (de preferência `select`) que agrupa a listagem em títulos
@@ -161,7 +168,7 @@ derivado ficam em `docs/app/CLAUDE.md`, importado aqui: @docs/app/CLAUDE.md
   Texto de PDF em linhas: `services/pdf.ts` (`linhasPdf`, via `unpdf`).
 - **Telas plugáveis:** `web/src/lib/screens.ts` (`registerScreens`, `registerPage`), registradas em
   `web/src/app/screens.ts`; rotas em `pages/EntityRoutes.tsx`. `CrudList`/`CrudForm` aceitam `entity` e slots
-  (`CrudList`: `before`, `actions`, `onAlterado`; `CrudForm`: `after`, `campos` — campo desenhado pelo sistema —, `ocultar`).
+  (`CrudList`: `before`, `actions`, `onAlterado`, `celulas`; `CrudForm`: `after`, `campos` — campo desenhado pelo sistema —, `detalhes`, `ocultar`).
 - **Módulo de demonstração:** `shared/src/demo/`, `server/src/demo/setup.ts`, `web/src/demo/menu.ts`; ligado por
   `DEMO=true` no `.env` (o Vite lê o mesmo arquivo e define `__DEMO__`). Tabelas `demo_*` fora das migrações.
   Telas próprias de exemplo em `web/src/demo/pages.tsx`.

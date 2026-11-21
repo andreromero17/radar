@@ -149,7 +149,14 @@ export function applyFilters(db: Db, qb: Knex.QueryBuilder, table: string, ent: 
       if (f.type === 'boolean') qb.where(col(f), toDbValue(db, eq[0] === '1' || eq[0] === 'true'));
       else if (f.type === 'multiselect')
         qb.where((w) => eq.forEach((v) => w.orWhere(col(f), like, `%${JSON.stringify(v)}%`)));
-      else if (eq.length > 1) qb.whereIn(col(f), eq);
+      else if (f.filtraDetalhe) {
+        // o valor no próprio registro ou em alguma linha da sub-tabela (ex.: categoria de uma parte do rateio)
+        const d = ent.details?.find((x) => x.entity === f.filtraDetalhe!.entidade);
+        qb.where((w) => {
+          w.whereIn(col(f), eq);
+          if (d) w.orWhereIn(`${table}.id`, db(d.entity).select(d.field).whereIn(f.filtraDetalhe!.campo, eq));
+        });
+      } else if (eq.length > 1) qb.whereIn(col(f), eq);
       else qb.where(col(f), eq[0]);
     }
 
@@ -512,6 +519,8 @@ export async function restoreRecord(c: OpCtx, table: string, ent: EntityDef, id:
   return getRecord(c.db, table, ent, id);
 }
 
+const ORDEM_ALFABETICA = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
+
 /**
  * Opções de select (id + nome), com filtros de igualdade (selects dependentes).
  * Sem os inativos (`activeField`), a não ser com ?todos=1 (filtros da listagem).
@@ -540,7 +549,11 @@ export async function relationOptions(
       ? db.from(qb.as('o')).whereIn('id', somenteIds).orderBy('label', 'asc')
       : qb.orderBy(ent.labelField, 'asc')
   ).limit(5000);
-  return rows.map((r) => ({ value: r.id as number, label: String(r.label ?? r.id) }));
+  // ordem alfabética do português (o banco ordena maiúsculas antes de minúsculas e acentos no fim — SQLite — ou
+  // conforme a collation do Postgres): "e-Core" junto de "Eficaz", "Ágil" junto de "Agile"
+  return rows
+    .map((r) => ({ value: r.id as number, label: String(r.label ?? r.id) }))
+    .sort((a, b) => ORDEM_ALFABETICA.compare(a.label, b.label));
 }
 
 /** Esvazia a lixeira de uma entidade agora (botão "Esvaziar lixeira"): apaga de vez, com um log de resumo. */

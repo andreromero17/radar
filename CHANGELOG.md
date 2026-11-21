@@ -4,6 +4,40 @@ Versões do frame. O número exibido no rodapé do menu vem do `package.json` da
 Use [versionamento semântico](https://semver.org/lang/pt-BR/): **MAIOR** quebra compatibilidade, **MENOR** traz
 novidades, **CORREÇÃO** só corrige.
 
+## 0.31.0 — 21/11/2026
+
+- **Campo de relação com busca** (`components/RelationSelect.tsx`, usado pelo `FieldInput` em formulários,
+  sub-tabelas e edição em lote): digitar filtra a lista (sem diferenciar acento e maiúsculas), setas + Enter escolhem,
+  Esc fecha, "—" limpa quando o campo não é obrigatório; a lista abre com posição fixa (não é cortada dentro de
+  tabelas). Desenha até 200 itens por vez; a busca alcança todos
+- **Opções de relação em ordem alfabética do português** (`relationOptions`): antes o SQLite punha maiúsculas antes
+  das minúsculas e os acentos no fim ("e-Core" depois de "Zeta"); agora "Ágil" fica junto de "Agile" e "item 9"
+  antes de "item 10"
+- **Filtro de relação com muitas opções** (painel de filtros, mais de 12): busca + lista de marcação, com os
+  marcados no topo e "Limpar" (antes, um select múltiplo que pedia Ctrl/Cmd)
+
+## 0.30.0 — 20/11/2026
+
+- **Sub-tabela desenhada pelo sistema** (CrudForm `detalhes`): `{ [entidade das linhas]: (ctx) => ReactNode }` troca
+  a tabela genérica do master-detail por uma própria, no mesmo lugar, com as linhas, `setRows`, os valores e o `set`
+  do registro pai, os erros e as opções de relação. A gravação continua a mesma (pai + linhas numa transação)
+- **Célula desenhada pelo sistema** (CrudList `celulas`): `{ [campo]: (linha, padrão) => ReactNode }` (ex.: um selo
+  ao lado do valor padrão)
+- **Filtro que casa na sub-tabela** (`FieldDef.filtraDetalhe: { entidade, campo }`): o filtro de igualdade do campo
+  também traz o registro quando uma linha da sub-tabela tem o valor (ex.: lançamento rateado aparece no filtro da
+  categoria de uma das partes)
+
+## 0.29.0 — 19/11/2026
+
+- **Tokens de integração** (`server/src/auth/integracao.ts`): acesso sem navegador (atalho do celular, automação,
+  outro sistema) com `Authorization: Bearer fi_...`. O sistema registra o que cada tipo pode fazer com
+  `registerEscopoIntegracao({ escopo, nome, descricao, rotas: ['POST /api/...'] })`; o token só abre essas rotas
+  (o resto dá 403), vale num espaço só (o da sessão em que foi criado, enquanto o usuário for membro), segue as
+  permissões e o papel do usuário, é guardado só como hash (tabela `tokens_integracao` na plataforma), registra o
+  último uso, é revogável e limitado a 60 requisições por minuto. Não gerencia tokens nem acessa `/api/auth`
+- Meu perfil → **Integrações** (`components/IntegracoesCard.tsx`): gerar (o token aparece uma vez), listar e revogar;
+  só aparece quando há escopo registrado
+
 ## 0.28.0 — 18/11/2026
 
 - **Filtros extras** (`EntityDef.filtrosExtras`): filtro que não é campo da entidade, para as linhas extras do sistema

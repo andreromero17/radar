@@ -5,13 +5,21 @@ import { HttpError } from '../utils/http';
 import { definirEspacoDaSessao, resolveSession, type SessionConfig } from './sessions';
 import { abrirEspaco, entrarNoEspaco, espacosDoUsuario } from '../espacos';
 import { espacoDeSuporte, nomeDeSuporte } from '../espacos/suporte';
+import { resolveTokenIntegracao } from './integracao';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       /** Preenchido quando há sessão válida */
-      auth?: { user: AuthUser; sessionId: string; espacoId?: number | null; suporteId?: number | null };
+      auth?: {
+        user: AuthUser;
+        sessionId: string;
+        espacoId?: number | null;
+        suporteId?: number | null;
+        /** Acesso por token de integração (frame 0.29.0): espaço fixo, só as rotas do escopo */
+        integracao?: { id: number; escopo: string };
+      };
     }
   }
 }
@@ -34,9 +42,15 @@ export function parseCookies(header: string | undefined): Record<string, string>
   return out;
 }
 
-/** Carrega a sessão do cookie (se houver). Não bloqueia nada. */
+/** Carrega a sessão do cookie — ou o token de integração do cabeçalho Authorization (se houver). Não bloqueia nada. */
 export function authenticate(db: Db, cfg: SessionConfig): RequestHandler {
   return async (req, _res, next) => {
+    const bearer = /^Bearer\s+(\S+)$/i.exec(req.headers.authorization ?? '')?.[1];
+    if (bearer) {
+      const t = await resolveTokenIntegracao(db, bearer);
+      if (t) req.auth = t;
+      return next(); // com Authorization, o cookie não vale
+    }
     const token = parseCookies(req.headers.cookie)[COOKIE_NAME];
     if (token) {
       const s = await resolveSession(db, cfg, token);
@@ -112,6 +126,15 @@ export function resolverEspaco(plataforma: Db): RequestHandler {
     const auth = req.auth;
     if (!auth) throw new HttpError(401, 'Sessão expirada. Faça login novamente.');
     const lista = await espacosDoUsuario(auth.user.id);
+    // token de integração: sempre o espaço dele (se o usuário ainda for membro)
+    if (auth.integracao) {
+      const esp = lista.find((e) => e.id === auth.espacoId);
+      if (!esp) throw new HttpError(403, 'O token não vale mais: você não participa deste espaço');
+      auth.user.espaco = esp;
+      auth.user.espacos = [esp];
+      const db = await abrirEspaco(esp.id);
+      return entrarNoEspaco({ espacoId: esp.id, db, papel: esp.papel }, next);
+    }
     // sessão de suporte (Fase 5C): vale enquanto a liberação do dono valer; senão volta ao normal
     if (auth.suporteId) {
       const sup = await espacoDeSuporte(auth.suporteId, auth.user);

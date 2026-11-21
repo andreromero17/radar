@@ -72,6 +72,8 @@ interface Props {
   /** Depois de qualquer alteração feita na lista (liga/desliga, excluir, restaurar, em lote): recarregar o que
    * depende dela (cards de totais no `before`...) */
   onAlterado?: () => void;
+  /** Células desenhadas pelo sistema, por campo: recebem a linha e o conteúdo padrão (ex.: um selo ao lado) */
+  celulas?: Record<string, (row: Row, padrao: ReactNode) => ReactNode>;
 }
 
 /** Linha de outra entidade que a aplicação mostra junto (hook `listExtras` no servidor) */
@@ -725,11 +727,15 @@ export default function CrudList(props: Props) {
                       )}
                       {cols.map((f) => (
                         <td key={f.name} className={isNumeric(f) ? 'text-end text-nowrap' : undefined}>
-                          {renderCell(
-                            f,
-                            row,
-                            podeEditar && !trash ? { onToggle: toggleInline, busy: toggling === row.id } : undefined,
-                          )}
+                          {(() => {
+                            const padrao = renderCell(
+                              f,
+                              row,
+                              podeEditar && !trash ? { onToggle: toggleInline, busy: toggling === row.id } : undefined,
+                            );
+                            const propria = props.celulas?.[f.name];
+                            return propria ? propria(row, padrao) : padrao;
+                          })()}
                         </td>
                       ))}
                       <td className="text-end pe-4 text-nowrap" onClick={(e) => e.stopPropagation()}>

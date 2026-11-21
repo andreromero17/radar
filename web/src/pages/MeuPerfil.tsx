@@ -10,6 +10,7 @@ import { useToast } from '../context/ToastContext';
 import PageHeader from '../components/PageHeader';
 import ConfirmModal from '../components/ConfirmModal';
 import DoisFatoresCard from '../components/DoisFatoresCard';
+import IntegracoesCard from '../components/IntegracoesCard';
 import SeusDadosCard from '../components/SeusDadosCard';
 
 export default function MeuPerfil() {
@@ -182,6 +183,9 @@ export default function MeuPerfil() {
         </Col>
         <Col lg={5}>
           <SeusDadosCard />
+        </Col>
+        <Col lg={12}>
+          <IntegracoesCard />
         </Col>
       </Row>
 

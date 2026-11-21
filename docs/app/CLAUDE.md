@@ -110,5 +110,7 @@ PR no frame-app.
     nova casa, starting a new position, new chapter…) — quando bate, os outros assuntos saem. Gera alerta de cadastro
     "Troca de empresa" e sinal (conta-alvo: Alta, contato-chave saiu / nova empresa pode ser oportunidade;
     concorrente: saída de pessoa-chave). Reclassificar o histórico.
+  - Gráfico **Assuntos mais abordados** maior (visão de concorrentes; idem as roscas das páginas de empresa e de
+    pessoa): aproveitar o espaço vazio do quadro.
 - 0.5.0 — Classificação com LLM e envio de notas/atividades ao Pipedrive.
 - Depois: Driva, sites e portais de negócios, Instagram e Facebook (roadmap da proposta).

@@ -37,6 +37,7 @@ export default function RelationSelect({
   const [ativo, setAtivo] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listaRef = useRef<HTMLDivElement>(null);
+  const campoRef = useRef<HTMLDivElement>(null);
   const atual = options.find((o) => String(o.value) === value);
 
   const filtradas = useMemo(() => {
@@ -87,13 +88,17 @@ export default function RelationSelect({
   return (
     <Dropdown
       show={aberto}
-      onToggle={(abrir) => {
+      onToggle={(abrir, meta) => {
+        // o campo não é um Dropdown.Toggle: o clique nele chega como "clique fora" e fecharia a lista que o próprio
+        // clique acabou de abrir
+        const alvo = meta?.originalEvent?.target as Node | undefined;
+        if (!abrir && alvo && campoRef.current?.contains(alvo)) return;
         setAberto(abrir);
         if (!abrir) setBusca('');
       }}
       className="relation-select"
     >
-      <div className="relation-select-campo">
+      <div className="relation-select-campo" ref={campoRef}>
         <Form.Control
           ref={inputRef}
           id={id}

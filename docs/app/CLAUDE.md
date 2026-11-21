@@ -112,5 +112,9 @@ PR no frame-app.
     concorrente: saída de pessoa-chave). Reclassificar o histórico.
   - Gráfico **Assuntos mais abordados** maior (visão de concorrentes; idem as roscas das páginas de empresa e de
     pessoa): aproveitar o espaço vazio do quadro.
+  - **Pessoa excluída** (21/11/2026): na lixeira, os posts dela continuam nos números da empresa (assuntos das
+    pessoas, publicações) — tirar das estatísticas enquanto estiver na lixeira (voltam se restaurar). Exclusão
+    definitiva: hoje o `ON DELETE SET NULL` deixa os posts sem pessoa e eles passam a contar como posts da PÁGINA
+    (bug) — apagar as publicações dela (e os sinais ligados) no `beforeDelete` definitivo, com aviso na confirmação.
 - 0.5.0 — Classificação com LLM e envio de notas/atividades ao Pipedrive.
 - Depois: Driva, sites e portais de negócios, Instagram e Facebook (roadmap da proposta).
